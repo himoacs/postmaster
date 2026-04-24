@@ -1,0 +1,147 @@
+// PostMaster - AI Writing Assistant (Single-User Mode)
+// Schema for API keys, style profiles, and content generations
+// Uses embedded SQLite for zero-config local deployment
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// API Key Management
+// ============================================================================
+
+// AIProvider values: OPENAI, ANTHROPIC, XAI, MISTRAL, STABILITY
+// Stored as strings for SQLite compatibility
+
+model APIKey {
+  id            String   @id @default(cuid())
+  provider      String   @unique // AIProvider enum stored as string
+  encryptedKey  String   // Encrypted API key
+  isValid       Boolean  @default(false)
+  validModels   String   @default("[]") // JSON array of model IDs
+  lastValidated DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// LiteLLM Proxy Configuration - alternative to individual API keys
+model LiteLLMConfig {
+  id            String   @id @default(cuid())
+  endpoint      String   // LiteLLM proxy URL (e.g., http://localhost:4000)
+  encryptedKey  String?  // Optional API key for the proxy
+  isEnabled     Boolean  @default(true)
+  isValid       Boolean  @default(false)
+  
+  // Cached discovered models (JSON array of LiteLLMModel objects)
+  cachedModels  String   @default("[]")
+  
+  lastValidated DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ============================================================================
+// Style Profile & Content Samples
+// ============================================================================
+
+model StyleProfile {
+  id          String   @id @default(cuid())
+  
+  // AI-extracted style characteristics
+  tone        String?  // e.g., "conversational", "formal", "witty"
+  voice       String?  // e.g., "first-person", "authoritative", "friendly"
+  vocabulary  String?  // e.g., "technical", "simple", "creative"
+  sentence    String?  // e.g., "short punchy", "long flowing", "varied"
+  patterns    String?  // Common phrases, structures (JSON)
+  
+  // User-provided context
+  bio         String?  // About the user
+  context     String?  // Writing context (blogger, marketer, etc.)
+  
+  // Manual overrides
+  overrides   String?  // JSON of manual style adjustments
+  
+  analyzedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContentSample {
+  id            String   @id @default(cuid())
+  url           String   // Original URL
+  title         String?  // Extracted title
+  extractedText String?  // Extracted content (stored as text)
+  wordCount     Int?
+  analyzedAt    DateTime?
+  createdAt     DateTime @default(now())
+}
+
+// ============================================================================
+// Content Generation
+// ============================================================================
+
+// GenerationStatus values: PENDING, GENERATING, SYNTHESIZING, COMPLETED, FAILED
+// ContentType values: BLOG_POST, TWEET_THREAD, LINKEDIN_POST, EMAIL, ARTICLE, OTHER
+
+model Generation {
+  id           String   @id @default(cuid())
+  
+  // Input
+  prompt       String
+  contentType  String   @default("BLOG_POST")
+  lengthPref   String?  // short, medium, long
+  styleContext String?  // JSON snapshot of style profile at generation time
+  
+  // State
+  status       String   @default("PENDING")
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  outputs            GenerationOutput[]
+  synthesizedContent SynthesizedContent?
+
+  @@index([createdAt])
+}
+
+model GenerationOutput {
+  id           String   @id @default(cuid())
+  generationId String
+  
+  provider     String   // AIProvider stored as string
+  model        String   // Specific model used (e.g., "gpt-4o", "claude-3-opus")
+  content      String   // Generated content
+  tokensUsed   Int?
+  latencyMs    Int?     // Time taken in milliseconds
+  
+  createdAt    DateTime @default(now())
+
+  generation Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  @@index([generationId])
+}
+
+model SynthesizedContent {
+  id           String   @id @default(cuid())
+  generationId String   @unique
+  
+  // Final content
+  content      String
+  
+  // Iteration tracking
+  version      Int      @default(1)
+  feedback     String?  // JSON array of feedback items
+  
+  // Image generation
+  imageUrl     String?
+  imagePrompt  String?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  generation Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+}
