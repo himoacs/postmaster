@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { generateWithAnthropic } from "@/lib/ai/claude";
+import { generateWithLiteLLM } from "@/lib/ai/litellm";
 
 // POST /api/style/analyze - Analyze writing style from samples
 export async function POST() {
@@ -19,8 +20,13 @@ export async function POST() {
     );
   }
 
-  // Get a valid API key
-  const apiKey = await prisma.aPIKey.findFirst({
+  // Check for LiteLLM config first
+  const litellmConfig = await prisma.liteLLMConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+
+  // Fall back to direct API keys if no LiteLLM
+  const apiKey = !litellmConfig ? await prisma.aPIKey.findFirst({
     where: {
       isValid: true,
       provider: { in: ["ANTHROPIC", "OPENAI"] },
@@ -28,16 +34,14 @@ export async function POST() {
     orderBy: {
       provider: "asc", // Prefer Anthropic
     },
-  });
+  }) : null;
 
-  if (!apiKey) {
+  if (!litellmConfig && !apiKey) {
     return NextResponse.json(
-      { error: "No valid API key available for style analysis" },
+      { error: "No valid API key or LiteLLM proxy available for style analysis" },
       { status: 400 }
     );
   }
-
-  const decryptedKey = decrypt(apiKey.encryptedKey);
 
   // Combine sample texts
   const combinedText = samples
@@ -65,7 +69,26 @@ ${combinedText}`;
   try {
     let result: { content: string; tokensUsed: number };
 
-    if (apiKey.provider === "ANTHROPIC") {
+    if (litellmConfig) {
+      // Use LiteLLM - pick a fast/cheap model for analysis
+      const models = JSON.parse(litellmConfig.cachedModels || "[]") as Array<{ id: string; costTier: string }>;
+      // Prefer low-cost models for style analysis
+      const cheapModel = models.find(m => m.costTier === "low") || models[0];
+      const modelId = cheapModel?.id || "azure-gpt-4o-mini";
+      
+      const litellmKey = litellmConfig.encryptedKey 
+        ? decrypt(litellmConfig.encryptedKey) 
+        : undefined;
+      
+      result = await generateWithLiteLLM(
+        litellmConfig.endpoint,
+        litellmKey,
+        modelId,
+        systemPrompt,
+        userPrompt
+      );
+    } else if (apiKey!.provider === "ANTHROPIC") {
+      const decryptedKey = decrypt(apiKey!.encryptedKey);
       result = await generateWithAnthropic(
         decryptedKey,
         "claude-3-haiku-20240307",
@@ -73,6 +96,7 @@ ${combinedText}`;
         userPrompt
       );
     } else {
+      const decryptedKey = decrypt(apiKey!.encryptedKey);
       result = await generateWithOpenAI(
         decryptedKey,
         "gpt-4o-mini",

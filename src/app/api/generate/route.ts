@@ -147,8 +147,13 @@ export async function POST(request: NextRequest) {
 
   // Generate with each selected model in parallel
   const outputs: GenerationOutput[] = [];
+  const failedModels: { provider: string; model: string; error: string }[] = [];
 
-  const generatePromises = selectedModels.map(async (model) => {
+  type GenerateResult = 
+    | { success: true; output: GenerationOutput }
+    | { success: false; provider: string; model: string; error: string };
+
+  const generatePromises = selectedModels.map(async (model): Promise<GenerateResult> => {
     const startTime = Date.now();
 
     try {
@@ -157,8 +162,7 @@ export async function POST(request: NextRequest) {
       if (model.provider === "LITELLM") {
         // Use LiteLLM proxy
         if (!liteLLMConfig) {
-          console.error("LiteLLM not configured");
-          return null;
+          return { success: false, provider: model.provider, model: model.modelId, error: "LiteLLM not configured" };
         }
         
         // Decrypt LiteLLM API key if present
@@ -167,7 +171,7 @@ export async function POST(request: NextRequest) {
           try {
             liteLLMKey = decrypt(liteLLMConfig.encryptedKey);
           } catch {
-            console.error("Failed to decrypt LiteLLM API key");
+            return { success: false, provider: model.provider, model: model.modelId, error: "Failed to decrypt API key" };
           }
         }
 
@@ -182,7 +186,7 @@ export async function POST(request: NextRequest) {
         // Use direct API
         const apiKey = apiKeys.find((k) => k.provider === model.provider);
         if (!apiKey) {
-          return null;
+          return { success: false, provider: model.provider, model: model.modelId, error: "API key not found" };
         }
 
         const decryptedKey = decrypt(apiKey.encryptedKey);
@@ -221,7 +225,7 @@ export async function POST(request: NextRequest) {
             );
             break;
           default:
-            return null;
+            return { success: false, provider: model.provider, model: model.modelId, error: "Unknown provider" };
         }
       }
 
@@ -240,23 +244,29 @@ export async function POST(request: NextRequest) {
       });
 
       return {
-        provider: model.provider,
-        model: model.modelId,
-        content: result.content,
-        tokensUsed: result.tokensUsed,
-        latencyMs,
+        success: true,
+        output: {
+          provider: model.provider,
+          model: model.modelId,
+          content: result.content,
+          tokensUsed: result.tokensUsed,
+          latencyMs,
+        },
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error(`Error generating with ${model.provider}:`, error);
-      return null;
+      return { success: false, provider: model.provider, model: model.modelId, error: errorMessage };
     }
   });
 
   const results = await Promise.all(generatePromises);
   
   for (const result of results) {
-    if (result) {
-      outputs.push(result);
+    if (result.success) {
+      outputs.push(result.output);
+    } else {
+      failedModels.push({ provider: result.provider, model: result.model, error: result.error });
     }
   }
 
@@ -276,6 +286,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     generationId: generation.id,
     outputs,
+    ...(failedModels.length > 0 && { failedModels }),
     ...(yoloMode && {
       yoloSelection: {
         models: selectedModels,
@@ -347,7 +358,7 @@ Content format: ${contentType.replace("_", " ").toLowerCase()}
 Guidelines:
 - Write naturally and avoid AI-sounding phrases
 - Be engaging and provide value to the reader
-- Use appropriate formatting (headers, lists, etc.) when it helps clarity
+- Use markdown formatting for structure (## for headings, **bold**, *italic*, bullet lists with -, etc.)
 - Don't include generic introductions like "In today's fast-paced world..."
 - Start with something that hooks the reader's attention
 `;

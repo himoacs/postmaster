@@ -129,6 +129,18 @@ Output only the revised content.`;
       where: { generationId },
     });
 
+    if (existing) {
+      // Save current version to history before updating
+      await prisma.synthesisVersion.create({
+        data: {
+          synthesizedContentId: existing.id,
+          version: existing.version,
+          content: existing.content,
+          feedback: feedback, // The feedback that will be applied to create the next version
+        },
+      });
+    }
+
     const currentFeedback = existing?.feedback
       ? JSON.parse(existing.feedback)
       : [];
@@ -142,7 +154,7 @@ Output only the revised content.`;
       },
     });
 
-    return NextResponse.json({ content: result.content });
+    return NextResponse.json({ content: result.content, synthesisId: existing?.id });
   } catch (error) {
     console.error("Iteration error:", error);
     return NextResponse.json({ error: "Iteration failed" }, { status: 500 });

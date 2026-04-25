@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+
+// GET /api/knowledge - List all knowledge entries
+// Optional query params: ?active=true to filter only active entries
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const activeOnly = searchParams.get("active") === "true";
+
+  try {
+    const entries = await prisma.knowledgeEntry.findMany({
+      where: activeOnly ? { isActive: true } : undefined,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        source: true,
+        mimeType: true,
+        wordCount: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        // Only include content for active filter (used in generation)
+        ...(activeOnly ? { content: true } : {}),
+      },
+    });
+
+    return NextResponse.json({ entries });
+  } catch (error) {
+    console.error("Failed to fetch knowledge entries:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch knowledge entries" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/knowledge?id=xxx - Delete a knowledge entry
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing entry ID" }, { status: 400 });
+  }
+
+  try {
+    await prisma.knowledgeEntry.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Failed to delete knowledge entry:", error);
+    return NextResponse.json(
+      { error: "Failed to delete entry" },
+      { status: 500 }
+    );
+  }
+}

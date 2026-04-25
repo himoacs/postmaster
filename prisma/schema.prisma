@@ -104,6 +104,7 @@ model Generation {
 
   outputs            GenerationOutput[]
   synthesizedContent SynthesizedContent?
+  critiques          GenerationCritique[]
 
   @@index([createdAt])
 }
@@ -132,6 +133,12 @@ model SynthesizedContent {
   // Final content
   content      String
   
+  // LLM's reasoning for synthesis decisions (transparency)
+  reasoning    String?  // JSON: { summary, decisions: [{ aspect, choice, rationale }] }
+  
+  // Synthesis strategy used
+  strategy     String   @default("basic") // basic, sequential, debate
+  
   // Iteration tracking
   version      Int      @default(1)
   feedback     String?  // JSON array of feedback items
@@ -140,8 +147,127 @@ model SynthesizedContent {
   imageUrl     String?
   imagePrompt  String?
   
+  // Parent-child versioning: tracks lineage across regenerations
+  parentSynthesisId String?
+  globalVersion     Int      @default(1) // Version number in the full lineage chain
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  generation    Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  versions      SynthesisVersion[]
+  parentSynthesis SynthesizedContent?  @relation("SynthesisLineage", fields: [parentSynthesisId], references: [id], onDelete: SetNull)
+  childSyntheses  SynthesizedContent[] @relation("SynthesisLineage")
+}
+
+// ============================================================================
+// Multi-Model Critique System
+// ============================================================================
+
+// Stores critiques from one model evaluating other drafts
+model GenerationCritique {
+  id           String   @id @default(cuid())
+  generationId String
+  
+  // Critic model info
+  fromProvider String   // Provider of the critiquing model
+  fromModel    String   // Model that provided the critique
+  
+  // Critique data (JSON containing CritiqueOutput structure)
+  critiques    String   // JSON: { targetDrafts, overallRating, consensusPoints }
+  
+  // Round tracking for debate mode
+  debateRound  Int      @default(0) // 0 for sequential mode, 1+ for debate rounds
+  
+  createdAt    DateTime @default(now())
+
   generation Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  @@index([generationId])
+  @@index([generationId, debateRound])
+}
+
+// ============================================================================
+// User Preferences
+// ============================================================================
+
+model UserPreferences {
+  id                   String   @id @default(cuid())
+  
+  // Synthesis settings
+  synthesisStrategy    String   @default("basic") // basic, sequential, debate
+  debateMaxRounds      Int      @default(3)       // Max debate rounds
+  showCritiqueDetails  Boolean  @default(true)    // Show critique details in UI
+  
+  // Future: other user preferences can be added here
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ============================================================================
+// Model Performance Analytics
+// ============================================================================
+
+model ModelAnalytics {
+  id           String   @id @default(cuid())
+  provider     String   // AIProvider
+  modelId      String   // Specific model identifier
+  
+  // Aggregate stats
+  totalRuns    Int      @default(0)
+  totalTokens  Int      @default(0)
+  totalLatencyMs Int    @default(0)
+  avgRating    Float?   // Average quality rating from critiques
+  
+  // Last usage tracking
+  lastUsed     DateTime?
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([provider, modelId])
+}
+
+// ============================================================================
+// Content Version History (for Diff View)
+// ============================================================================
+
+model SynthesisVersion {
+  id                   String   @id @default(cuid())
+  synthesizedContentId String
+  version              Int
+  content              String   // Content snapshot at this version
+  reasoning            String?  // LLM reasoning snapshot at this version
+  feedback             String?  // Feedback that was applied to create next version
+  
+  createdAt            DateTime @default(now())
+
+  synthesizedContent   SynthesizedContent @relation(fields: [synthesizedContentId], references: [id], onDelete: Cascade)
+
+  @@index([synthesizedContentId])
+  @@unique([synthesizedContentId, version])
+}
+
+// ============================================================================
+// Knowledge Base
+// ============================================================================
+
+// KnowledgeEntry type values: "url", "text", "file"
+// mimeType values (for files): "application/pdf", "text/plain"
+
+model KnowledgeEntry {
+  id        String   @id @default(cuid())
+  title     String   // User-defined or auto-generated title
+  type      String   // "url" | "text" | "file"
+  source    String   // URL, filename, or "pasted"
+  mimeType  String?  // For files: "application/pdf", "text/plain"
+  content   String   // Extracted or pasted text content
+  wordCount Int
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }

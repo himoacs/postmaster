@@ -12,6 +12,8 @@ import {
   Menu,
   X,
   Home,
+  BarChart3,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -24,6 +26,8 @@ import {
 const navigation = [
   { name: "Write", href: "/dashboard", icon: PenLine },
   { name: "History", href: "/dashboard/history", icon: History },
+  { name: "Knowledge", href: "/dashboard/knowledge", icon: Database },
+  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

@@ -123,6 +123,29 @@ export async function generateWithLiteLLM(
   return { content, tokensUsed };
 }
 
+/**
+ * Generate image using LiteLLM proxy (routes to DALL-E or other image providers)
+ */
+export async function generateImageWithLiteLLM(
+  endpoint: string,
+  apiKey: string | undefined,
+  prompt: string,
+  model: string = "dall-e-3",
+  size: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024"
+): Promise<string> {
+  const client = createLiteLLMClient(endpoint, apiKey);
+  
+  const response = await client.images.generate({
+    model,
+    prompt,
+    n: 1,
+    size,
+    quality: "standard",
+  });
+  
+  return response.data?.[0]?.url || "";
+}
+
 // =============================================================================
 // Helper Functions
 // =============================================================================

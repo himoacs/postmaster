@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,13 +19,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Plus, X, Link2, FileText } from "lucide-react";
+import { ChevronDown, Plus, X, Link2, FileText, Database } from "lucide-react";
 
 export interface ReferenceSource {
   id: string;
   type: "url" | "text";
   value: string;
   label?: string;
+}
+
+export interface KnowledgeEntryBasic {
+  id: string;
+  title: string;
+  type: string;
+  wordCount: number;
 }
 
 interface PromptInputProps {
@@ -36,6 +44,8 @@ interface PromptInputProps {
   onLengthPrefChange: (value: string) => void;
   references: ReferenceSource[];
   onReferencesChange: (refs: ReferenceSource[]) => void;
+  selectedKnowledge: string[];
+  onSelectedKnowledgeChange: (ids: string[]) => void;
 }
 
 const contentTypes = [
@@ -62,10 +72,41 @@ export function PromptInput({
   onLengthPrefChange,
   references,
   onReferencesChange,
+  selectedKnowledge,
+  onSelectedKnowledgeChange,
 }: PromptInputProps) {
   const [isReferencesOpen, setIsReferencesOpen] = useState(references.length > 0);
+  const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
   const [newUrl, setNewUrl] = useState("");
   const [newText, setNewText] = useState("");
+  const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntryBasic[]>([]);
+
+  // Fetch active knowledge entries
+  useEffect(() => {
+    async function fetchKnowledge() {
+      try {
+        const response = await fetch("/api/knowledge?active=true");
+        if (response.ok) {
+          const data = await response.json();
+          setKnowledgeEntries(data.entries);
+          if (data.entries.length > 0) {
+            setIsKnowledgeOpen(true);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch knowledge entries:", error);
+      }
+    }
+    fetchKnowledge();
+  }, []);
+
+  const toggleKnowledgeEntry = (id: string) => {
+    if (selectedKnowledge.includes(id)) {
+      onSelectedKnowledgeChange(selectedKnowledge.filter((k) => k !== id));
+    } else {
+      onSelectedKnowledgeChange([...selectedKnowledge, id]);
+    }
+  };
 
   const addUrlReference = () => {
     if (!newUrl.trim()) return;
@@ -263,6 +304,66 @@ export function PromptInput({
           )}
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Knowledge Base Section */}
+      {knowledgeEntries.length > 0 && (
+        <Collapsible open={isKnowledgeOpen} onOpenChange={setIsKnowledgeOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex w-full items-center justify-between p-0 hover:bg-transparent"
+            >
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                <span className="text-sm font-medium">Knowledge Base</span>
+                {selectedKnowledge.length > 0 && (
+                  <Badge variant="default" className="ml-2">
+                    {selectedKnowledge.length} selected
+                  </Badge>
+                )}
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isKnowledgeOpen ? "rotate-180" : ""
+                }`}
+              />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Select knowledge entries to include as context for your content.
+            </p>
+            <div className="space-y-2">
+              {knowledgeEntries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                >
+                  <Checkbox
+                    id={`kb-${entry.id}`}
+                    checked={selectedKnowledge.includes(entry.id)}
+                    onCheckedChange={() => toggleKnowledgeEntry(entry.id)}
+                  />
+                  <label
+                    htmlFor={`kb-${entry.id}`}
+                    className="flex-1 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{entry.title}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {entry.type.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {entry.wordCount.toLocaleString()} words
+                    </span>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   );
 }

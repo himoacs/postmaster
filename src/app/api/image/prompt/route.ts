@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { generateWithAnthropic } from "@/lib/ai/claude";
+import { generateWithLiteLLM } from "@/lib/ai/litellm";
 
 // POST /api/image/prompt - Generate an image prompt from content
 export async function POST(request: NextRequest) {
@@ -12,22 +13,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
 
-  // Find first valid text generation key
-  const apiKey = await prisma.aPIKey.findFirst({
+  // Check for LiteLLM config first
+  const litellmConfig = await prisma.liteLLMConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+
+  // Fall back to direct API keys if no LiteLLM
+  const apiKey = !litellmConfig ? await prisma.aPIKey.findFirst({
     where: {
       isValid: true,
       provider: { in: ["OPENAI", "ANTHROPIC"] },
     },
-  });
+  }) : null;
 
-  if (!apiKey) {
+  if (!litellmConfig && !apiKey) {
     return NextResponse.json(
-      { error: "No valid API key available" },
+      { error: "No valid API key or LiteLLM proxy available" },
       { status: 400 }
     );
   }
-
-  const decryptedKey = decrypt(apiKey.encryptedKey);
 
   const systemPrompt = `You are an expert at creating image prompts for AI image generators.
 Given a piece of content, create a concise, descriptive prompt for generating a hero image.
@@ -45,7 +49,25 @@ Generate a prompt for a blog hero image that captures the essence of this conten
   try {
     let result: { content: string; tokensUsed: number };
 
-    if (apiKey.provider === "OPENAI") {
+    if (litellmConfig) {
+      // Use LiteLLM - pick a fast/cheap model for prompt generation
+      const models = JSON.parse(litellmConfig.cachedModels || "[]") as Array<{ id: string; costTier: string }>;
+      const cheapModel = models.find(m => m.costTier === "low") || models[0];
+      const modelId = cheapModel?.id || "azure-gpt-4o-mini";
+      
+      const litellmKey = litellmConfig.encryptedKey 
+        ? decrypt(litellmConfig.encryptedKey) 
+        : undefined;
+      
+      result = await generateWithLiteLLM(
+        litellmConfig.endpoint,
+        litellmKey,
+        modelId,
+        systemPrompt,
+        userPrompt
+      );
+    } else if (apiKey!.provider === "OPENAI") {
+      const decryptedKey = decrypt(apiKey!.encryptedKey);
       result = await generateWithOpenAI(
         decryptedKey,
         "gpt-4o-mini",
@@ -53,6 +75,7 @@ Generate a prompt for a blog hero image that captures the essence of this conten
         userPrompt
       );
     } else {
+      const decryptedKey = decrypt(apiKey!.encryptedKey);
       result = await generateWithAnthropic(
         decryptedKey,
         "claude-3-haiku-20240307",

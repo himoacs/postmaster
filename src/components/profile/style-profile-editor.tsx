@@ -72,9 +72,12 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
         method: "POST",
       });
 
-      if (!response.ok) throw new Error("Analysis failed");
-
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed");
+      }
+
       setProfile((prev) => ({
         ...prev,
         tone: data.tone || prev.tone,
@@ -85,7 +88,7 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
       }));
       toast.success("Style analysis complete");
     } catch (error) {
-      toast.error("Failed to analyze style. Make sure you have content samples added.");
+      toast.error(error instanceof Error ? error.message : "Failed to analyze style");
     } finally {
       setAnalyzing(false);
     }

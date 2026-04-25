@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Star, Sparkles, Clock, Hash } from "lucide-react";
-import { AIProvider } from "@/types";
+import { ArrowLeft, Star, Sparkles, Clock, Hash, MessagesSquare, Swords } from "lucide-react";
+import { AIProvider, SynthesisStrategy } from "@/types";
 import { GenerationOutput } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 
@@ -14,6 +15,7 @@ interface ComparisonViewProps {
   outputs: GenerationOutput[];
   onSynthesize: (starredSections?: { provider: AIProvider; text: string }[]) => void;
   onBack: () => void;
+  synthesisStrategy?: SynthesisStrategy;
 }
 
 interface StarredSection {
@@ -25,6 +27,7 @@ export function ComparisonView({
   outputs,
   onSynthesize,
   onBack,
+  synthesisStrategy = "basic",
 }: ComparisonViewProps) {
   const [starredSections, setStarredSections] = useState<StarredSection[]>([]);
   const [selectedText, setSelectedText] = useState<{
@@ -72,10 +75,32 @@ export function ComparisonView({
             </p>
           </div>
         </div>
-        <Button onClick={() => onSynthesize(starredSections)} size="lg">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Synthesize{starredSections.length > 0 && ` (${starredSections.length} starred)`}
-        </Button>
+        <div className="flex items-center gap-3">
+          {synthesisStrategy !== "basic" && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {synthesisStrategy === "debate" ? (
+                <>
+                  <Swords className="h-3 w-3" />
+                  Debate Mode
+                </>
+              ) : (
+                <>
+                  <MessagesSquare className="h-3 w-3" />
+                  Critique Mode
+                </>
+              )}
+            </Badge>
+          )}
+          <Button onClick={() => onSynthesize(starredSections)} size="lg">
+            <Sparkles className="mr-2 h-4 w-4" />
+            {synthesisStrategy === "basic" 
+              ? `Synthesize${starredSections.length > 0 ? ` (${starredSections.length} starred)` : ""}`
+              : synthesisStrategy === "debate"
+                ? "Start Debate & Synthesize"
+                : "Critique & Synthesize"
+            }
+          </Button>
+        </div>
       </div>
 
       {/* Starred sections */}
@@ -169,11 +194,7 @@ export function ComparisonView({
                   className="prose prose-sm dark:prose-invert max-w-none select-text"
                   onMouseUp={() => handleTextSelection(output.provider)}
                 >
-                  {output.content.split("\n").map((paragraph, i) => (
-                    <p key={i} className="mb-3">
-                      {paragraph}
-                    </p>
-                  ))}
+                  <ReactMarkdown>{output.content}</ReactMarkdown>
                 </div>
               </ScrollArea>
             </CardContent>
