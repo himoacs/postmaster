@@ -199,6 +199,10 @@ model UserPreferences {
   debateMaxRounds      Int      @default(3)       // Max debate rounds
   showCritiqueDetails  Boolean  @default(true)    // Show critique details in UI
   
+  // Primary model preference (used for synthesis, iteration, etc.)
+  primaryModelProvider String?  // e.g., "LITELLM", "OPENAI", "ANTHROPIC"
+  primaryModelId       String?  // e.g., "azure-gpt-4o", "gpt-4o", "claude-3-opus"
+  
   // Future: other user preferences can be added here
   
   createdAt            DateTime @default(now())
@@ -257,14 +261,15 @@ model SynthesisVersion {
 // mimeType values (for files): "application/pdf", "text/plain"
 
 model KnowledgeEntry {
-  id        String   @id @default(cuid())
-  title     String   // User-defined or auto-generated title
-  type      String   // "url" | "text" | "file"
-  source    String   // URL, filename, or "pasted"
-  mimeType  String?  // For files: "application/pdf", "text/plain"
-  content   String   // Extracted or pasted text content
-  wordCount Int
-  isActive  Boolean  @default(true)
+  id           String   @id @default(cuid())
+  title        String   // User-defined or auto-generated title
+  type         String   // "url" | "text" | "file"
+  source       String   // URL, filename, or "pasted"
+  mimeType     String?  // For files: "application/pdf", "text/plain"
+  content      String   // Extracted or pasted text content
+  wordCount    Int
+  isActive     Boolean  @default(true)
+  subpageLinks Json?    // For URLs: discovered subpage links [{ url, title }]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

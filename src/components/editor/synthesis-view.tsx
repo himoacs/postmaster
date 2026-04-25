@@ -42,6 +42,7 @@ import {
   X,
   Pencil,
   Eye,
+  Quote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageGenerator } from "./image-generator";
@@ -109,6 +110,16 @@ export function SynthesisView({
   const handleCancelEdits = () => {
     setDraftContent(content);
     setIsEditing(false);
+  };
+
+  // Check if content has citations and provide removal function
+  const hasCitations = /\[Source:[^\]]+\]/.test(draftContent);
+  
+  const handleRemoveCitations = () => {
+    const cleanedContent = draftContent.replace(/\s*\[Source:[^\]]+\]/g, "");
+    setDraftContent(cleanedContent);
+    onContentChange?.(cleanedContent);
+    toast.success("Citations removed");
   };
 
   // Use draftContent for all operations
@@ -376,10 +387,18 @@ export function SynthesisView({
                     </Button>
                   </>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
+                  <>
+                    {hasCitations && (
+                      <Button variant="outline" size="sm" onClick={handleRemoveCitations}>
+                        <Quote className="mr-2 h-4 w-4" />
+                        Remove Citations
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

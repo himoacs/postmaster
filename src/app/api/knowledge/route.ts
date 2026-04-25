@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { SubpageLink } from "@/lib/url-crawler";
 
 // GET /api/knowledge - List all knowledge entries
 // Optional query params: ?active=true to filter only active entries
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
         mimeType: true,
         wordCount: true,
         isActive: true,
+        subpageLinks: true,
         createdAt: true,
         updatedAt: true,
         // Only include content for active filter (used in generation)
@@ -26,7 +28,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ entries });
+    // Transform entries to include subpageCount instead of full links array
+    const transformedEntries = entries.map((entry) => ({
+      ...entry,
+      subpageCount: entry.subpageLinks 
+        ? (entry.subpageLinks as SubpageLink[]).length 
+        : 0,
+      subpageLinks: undefined, // Don't send full array to client
+    }));
+
+    return NextResponse.json({ entries: transformedEntries });
   } catch (error) {
     console.error("Failed to fetch knowledge entries:", error);
     return NextResponse.json(

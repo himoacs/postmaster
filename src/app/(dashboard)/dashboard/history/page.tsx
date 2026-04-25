@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { HistoryList } from "@/components/history/history-list";
+import { HeartHandshake } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ContentType, GenerationStatus, AIProvider } from "@/types";
 
 export default async function HistoryPage() {
@@ -41,11 +43,19 @@ export default async function HistoryPage() {
 
   return (
     <div className="h-full">
-      <header className="border-b px-6 py-4">
-        <h1 className="font-serif text-xl font-medium">History</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          View and continue previous generations
-        </p>
+      <header className="flex items-center justify-between border-b px-6 py-4">
+        <div>
+          <h1 className="font-serif text-xl font-medium">History</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            View and continue previous generations
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+            <HeartHandshake className="h-4 w-4" />
+            Donate
+          </a>
+        </Button>
       </header>
       <div className="p-6">
         <div className="mx-auto max-w-4xl">

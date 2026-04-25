@@ -24,6 +24,7 @@ import {
   FileText,
   FileType,
   AlertCircle,
+  HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddKnowledgeDialog } from "@/components/knowledge/add-knowledge-dialog";
@@ -35,6 +36,7 @@ interface KnowledgeEntry {
   source: string;
   mimeType?: string;
   wordCount: number;
+  subpageCount?: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -166,10 +168,18 @@ export default function KnowledgePage() {
               Store reference content for AI models to use during generation
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Knowledge
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Knowledge
+            </Button>
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+              <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+                <HeartHandshake className="h-4 w-4" />
+                Donate
+              </a>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -267,6 +277,12 @@ export default function KnowledgePage() {
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                           <span>{entry.wordCount.toLocaleString()} words</span>
+                          {entry.subpageCount && entry.subpageCount > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-blue-600">+{entry.subpageCount} subpages</span>
+                            </>
+                          )}
                           <span>•</span>
                           <span className="truncate max-w-xs">{entry.source}</span>
                           <span>•</span>

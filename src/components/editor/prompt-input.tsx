@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,7 +20,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Plus, X, Link2, FileText, Database } from "lucide-react";
+import { ChevronDown, Plus, X, Link2, FileText, Database, Quote, Sparkles, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export interface ReferenceSource {
   id: string;
@@ -33,6 +35,7 @@ export interface KnowledgeEntryBasic {
   title: string;
   type: string;
   wordCount: number;
+  subpageCount?: number;
 }
 
 interface PromptInputProps {
@@ -46,6 +49,8 @@ interface PromptInputProps {
   onReferencesChange: (refs: ReferenceSource[]) => void;
   selectedKnowledge: string[];
   onSelectedKnowledgeChange: (ids: string[]) => void;
+  enableCitations: boolean;
+  onEnableCitationsChange: (enabled: boolean) => void;
 }
 
 const contentTypes = [
@@ -74,12 +79,15 @@ export function PromptInput({
   onReferencesChange,
   selectedKnowledge,
   onSelectedKnowledgeChange,
+  enableCitations,
+  onEnableCitationsChange,
 }: PromptInputProps) {
   const [isReferencesOpen, setIsReferencesOpen] = useState(references.length > 0);
   const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
   const [newUrl, setNewUrl] = useState("");
   const [newText, setNewText] = useState("");
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntryBasic[]>([]);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // Fetch active knowledge entries
   useEffect(() => {
@@ -141,6 +149,39 @@ export function PromptInput({
     onReferencesChange(references.filter((r) => r.id !== id));
   };
 
+  const enhancePrompt = async () => {
+    if (!prompt.trim() || prompt.length < 10) {
+      toast.error("Please enter a prompt (at least 10 characters) to enhance");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const response = await fetch("/api/enhance-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          contentType,
+          lengthPref,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to enhance prompt");
+      }
+
+      const data = await response.json();
+      onPromptChange(data.enhanced);
+      toast.success("Prompt enhanced successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to enhance prompt");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -154,9 +195,51 @@ export function PromptInput({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
         />
-        <p className="mt-2 text-sm text-muted-foreground">
-          {prompt.length} characters
-        </p>
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {prompt.length} characters
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={enhancePrompt}
+            disabled={isEnhancing || prompt.length < 10}
+            className="gap-2"
+          >
+            {isEnhancing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Enhancing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Enhance Prompt
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Citations Toggle */}
+      <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+        <div className="flex items-center gap-3">
+          <Quote className="h-4 w-4 text-muted-foreground" />
+          <div className="space-y-0.5">
+            <Label htmlFor="citations" className="text-sm font-medium cursor-pointer">
+              Include citations
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Add inline source citations to ground content in your references
+            </p>
+          </div>
+        </div>
+        <Switch
+          id="citations"
+          checked={enableCitations}
+          onCheckedChange={onEnableCitationsChange}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -353,9 +436,17 @@ export function PromptInput({
                       <Badge variant="outline" className="text-xs">
                         {entry.type.toUpperCase()}
                       </Badge>
+                      {entry.subpageCount && entry.subpageCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{entry.subpageCount} pages
+                        </Badge>
+                      )}
                     </div>
                     <span className="text-sm text-muted-foreground">
                       {entry.wordCount.toLocaleString()} words
+                      {entry.subpageCount && entry.subpageCount > 0 && (
+                        <span className="ml-1">· dynamic fetch enabled</span>
+                      )}
                     </span>
                   </label>
                 </div>

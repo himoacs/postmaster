@@ -24,11 +24,12 @@ interface GenerationRequest {
   selectedModels?: SelectedModel[];
   yoloMode?: boolean; // Auto-select optimal models
   references?: ReferenceInput[];
+  enableCitations?: boolean; // Include inline source citations
 }
 
 // POST /api/generate - Generate content with multiple models
 export async function POST(request: NextRequest) {
-  const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references } =
+  const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations } =
     (await request.json()) as GenerationRequest;
 
   if (!prompt) {
@@ -140,7 +141,8 @@ export async function POST(request: NextRequest) {
   });
 
   // Build system prompt
-  const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref);
+  const hasReferences = references && references.length > 0;
+  const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences);
 
   // Build user prompt with references
   const userPrompt = prompt + referenceContext;
@@ -307,7 +309,9 @@ function buildSystemPrompt(
     context?: string | null;
   } | null,
   contentType: string,
-  lengthPref: string
+  lengthPref: string,
+  enableCitations?: boolean,
+  hasReferences?: boolean
 ): string {
   const lengthGuide = {
     short: "around 300 words",
@@ -362,6 +366,28 @@ Guidelines:
 - Don't include generic introductions like "In today's fast-paced world..."
 - Start with something that hooks the reader's attention
 `;
+
+  // Add citation instructions when enabled and references exist
+  if (enableCitations && hasReferences) {
+    prompt += `
+CRITICAL - INLINE CITATIONS REQUIRED:
+You MUST cite sources throughout your writing. This is mandatory, not optional.
+
+Format: [Source: Title] immediately after any claim derived from reference materials.
+
+Rules:
+1. EVERY paragraph that uses reference material MUST have at least one citation
+2. Cite specific facts, definitions, features, statistics, and technical details
+3. Place the citation immediately after the relevant sentence or clause
+4. Use the title from the reference material (e.g., [Source: Solace Event Portal Docs])
+5. Aim for 3-5 citations minimum in the entire piece
+6. Do NOT cluster all citations at the end - distribute them throughout
+
+Example: "Event-driven architecture enables real-time responses to events as they occur [Source: Solace Docs]. This approach is particularly valuable for microservices communication [Source: Solace Event Portal]."
+
+If you fail to include citations, the output will be rejected.
+`;
+  }
 
   return prompt;
 }

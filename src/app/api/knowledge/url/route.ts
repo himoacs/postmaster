@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { fetchUrlContent } from "@/lib/url-fetcher";
+import { discoverSubpageLinks } from "@/lib/url-crawler";
 
 interface CreateUrlRequest {
   url: string;
@@ -8,6 +8,7 @@ interface CreateUrlRequest {
 }
 
 // POST /api/knowledge/url - Create knowledge entry from URL
+// Now also discovers subpage links for dynamic fetching at generation time
 export async function POST(request: NextRequest) {
   try {
     const { url, title: customTitle } = (await request.json()) as CreateUrlRequest;
@@ -23,17 +24,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
     }
 
-    // Fetch and extract content from URL
-    const fetched = await fetchUrlContent(url);
+    // Fetch content and discover subpage links
+    const crawlResult = await discoverSubpageLinks(url);
 
-    if (fetched.error) {
+    if (crawlResult.error) {
       return NextResponse.json(
-        { error: `Failed to fetch URL: ${fetched.error}` },
+        { error: `Failed to fetch URL: ${crawlResult.error}` },
         { status: 400 }
       );
     }
 
-    if (!fetched.content || fetched.content.trim().length === 0) {
+    if (!crawlResult.rootContent || crawlResult.rootContent.trim().length === 0) {
       return NextResponse.json(
         { error: "No content could be extracted from this URL" },
         { status: 400 }
@@ -41,20 +42,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate word count
-    const wordCount = fetched.content.split(/\s+/).filter(Boolean).length;
+    const wordCount = crawlResult.rootContent.split(/\s+/).filter(Boolean).length;
 
     // Use custom title, fetched title, or URL hostname as fallback
-    const title = customTitle || fetched.title || new URL(url).hostname;
+    const title = customTitle || crawlResult.rootTitle || new URL(url).hostname;
 
-    // Create knowledge entry
+    // Create knowledge entry with subpage links
     const entry = await prisma.knowledgeEntry.create({
       data: {
         title,
         type: "url",
         source: url,
-        content: fetched.content,
+        content: crawlResult.rootContent,
         wordCount,
         isActive: true,
+        subpageLinks: crawlResult.subpageLinks.length > 0 ? crawlResult.subpageLinks : undefined,
       },
     });
 
@@ -66,9 +68,10 @@ export async function POST(request: NextRequest) {
         source: entry.source,
         wordCount: entry.wordCount,
         isActive: entry.isActive,
+        subpageCount: crawlResult.subpageLinks.length,
         createdAt: entry.createdAt,
       },
-      preview: fetched.content.slice(0, 500) + (fetched.content.length > 500 ? "..." : ""),
+      preview: crawlResult.rootContent.slice(0, 500) + (crawlResult.rootContent.length > 500 ? "..." : ""),
     });
   } catch (error) {
     console.error("Failed to create knowledge entry from URL:", error);

@@ -1,6 +1,8 @@
 import { WritingWorkspace } from "@/components/editor/writing-workspace";
 import { prisma } from "@/lib/db";
 import { AIProvider, GenerationOutput, ContentType } from "@/types";
+import { HeartHandshake } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PageProps {
   searchParams: Promise<{ resumeId?: string }>;
@@ -61,6 +63,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               : "Compare outputs from multiple AI models"}
           </p>
         </div>
+        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+            <HeartHandshake className="h-4 w-4" />
+            Donate
+          </a>
+        </Button>
       </header>
       <div className="flex-1 overflow-hidden">
         <WritingWorkspace

@@ -206,6 +206,8 @@ export interface UserPreferences {
   synthesisStrategy: SynthesisStrategy;
   debateMaxRounds: number;            // Max rounds for debate mode (default: 3)
   showCritiqueDetails: boolean;       // Show detailed critique in UI
+  primaryModelProvider?: string;      // e.g., "LITELLM", "OPENAI"
+  primaryModelId?: string;            // e.g., "azure-gpt-4o", "gpt-4o"
 }
 
 // LLM reasoning for synthesis transparency

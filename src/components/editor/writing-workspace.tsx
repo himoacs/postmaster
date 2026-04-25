@@ -112,6 +112,12 @@ export function WritingWorkspace({
   
   // Knowledge base state
   const [selectedKnowledge, setSelectedKnowledge] = useState<string[]>([]);
+  
+  // Citations state
+  const [enableCitations, setEnableCitations] = useState(false);
+  
+  // User's preferred primary model for synthesis
+  const [userPrimaryModel, setUserPrimaryModel] = useState<SelectedModel | null>(null);
 
   // Load user preferences on mount
   useEffect(() => {
@@ -121,6 +127,13 @@ export function WritingWorkspace({
         if (response.ok) {
           const prefs = await response.json();
           setSynthesisStrategy(prefs.synthesisStrategy);
+          // Load user's primary model if set
+          if (prefs.primaryModelProvider && prefs.primaryModelId) {
+            setUserPrimaryModel({
+              provider: prefs.primaryModelProvider,
+              modelId: prefs.primaryModelId,
+            });
+          }
         }
       } catch (error) {
         console.error("Failed to load preferences:", error);
@@ -128,6 +141,16 @@ export function WritingWorkspace({
     }
     loadPreferences();
   }, []);
+
+  // Get the effective primary model: user preference > first selected model
+  const getEffectivePrimaryModel = (): SelectedModel => {
+    // If user has set a primary model in preferences, use it
+    if (userPrimaryModel) {
+      return userPrimaryModel;
+    }
+    // Otherwise fall back to the first selected model
+    return selectedModels[0] || { provider: "OPENAI" as const, modelId: "gpt-4o" };
+  };
 
   // Progress animation for generating state
   useEffect(() => {
@@ -241,20 +264,44 @@ export function WritingWorkspace({
 
     try {
       // Fetch selected knowledge base entries content
+      // For URL entries with subpages, use the relevance API to fetch relevant pages
       let allReferences = references.map(r => ({ type: r.type, value: r.value }));
       
       if (selectedKnowledge.length > 0) {
-        // Fetch full content for selected KB entries
+        // Fetch content for selected KB entries, using relevance API for URLs with subpages
         const kbPromises = selectedKnowledge.map(async (id) => {
-          const response = await fetch(`/api/knowledge/${id}`);
-          if (response.ok) {
-            const data = await response.json();
-            return {
-              type: "text" as const,
-              value: `[Knowledge Base: ${data.entry.title}]\n${data.entry.content}`,
-            };
+          // First check if entry has subpages by fetching metadata
+          const metaResponse = await fetch(`/api/knowledge/${id}`);
+          if (!metaResponse.ok) return null;
+          
+          const metaData = await metaResponse.json();
+          const entry = metaData.entry;
+          
+          // If URL entry with subpages, use relevance API
+          if (entry.type === "url" && entry.subpageLinks && entry.subpageLinks.length > 0) {
+            const relevantResponse = await fetch(`/api/knowledge/${id}/relevant`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt, maxPages: 3 }),
+            });
+            
+            if (relevantResponse.ok) {
+              const relevantData = await relevantResponse.json();
+              const sourceInfo = relevantData.sources
+                .map((s: { title: string }) => s.title)
+                .join(", ");
+              return {
+                type: "text" as const,
+                value: `[Knowledge Base: ${entry.title} (${relevantData.selectedCount} relevant pages from ${relevantData.availableCount} available)]\n${relevantData.content}`,
+              };
+            }
           }
-          return null;
+          
+          // Fallback: use stored content directly
+          return {
+            type: "text" as const,
+            value: `[Knowledge Base: ${entry.title}]\n${entry.content}`,
+          };
         });
         
         const kbContents = await Promise.all(kbPromises);
@@ -270,6 +317,7 @@ export function WritingWorkspace({
           contentType,
           lengthPref,
           references: allReferences,
+          enableCitations,
           ...(yoloMode 
             ? { yoloMode: true }
             : { selectedModels }
@@ -353,7 +401,7 @@ export function WritingWorkspace({
             generationId,
             outputs,
             debateModels: selectedModels,
-            primaryModel: selectedModels[0],
+            primaryModel: getEffectivePrimaryModel(),
             starredSections,
             parentSynthesisId, // For lineage tracking across regenerations
           }),
@@ -386,7 +434,7 @@ export function WritingWorkspace({
           generationId,
           outputs,
           starredSections,
-          primaryModel: selectedModels[0],
+          primaryModel: getEffectivePrimaryModel(),
           strategy: "basic",
           parentSynthesisId, // For lineage tracking across regenerations
         }),
@@ -420,7 +468,7 @@ export function WritingWorkspace({
           generationId,
           outputs,
           starredSections,
-          primaryModel: selectedModels[0],
+          primaryModel: getEffectivePrimaryModel(),
           strategy: "sequential",
           critiques: critiqueData,
           parentSynthesisId, // For lineage tracking across regenerations
@@ -503,6 +551,7 @@ export function WritingWorkspace({
           contentType,
           lengthPref,
           references: [],
+          enableCitations: false,
           ...(yoloMode 
             ? { yoloMode: true }
             : { selectedModels }
@@ -589,6 +638,8 @@ export function WritingWorkspace({
               onReferencesChange={setReferences}
               selectedKnowledge={selectedKnowledge}
               onSelectedKnowledgeChange={setSelectedKnowledge}
+              enableCitations={enableCitations}
+              onEnableCitationsChange={setEnableCitations}
             />
           </div>
 

@@ -22,6 +22,8 @@ export async function GET() {
     synthesisStrategy: preferences.synthesisStrategy as SynthesisStrategy,
     debateMaxRounds: preferences.debateMaxRounds,
     showCritiqueDetails: preferences.showCritiqueDetails,
+    primaryModelProvider: preferences.primaryModelProvider || undefined,
+    primaryModelId: preferences.primaryModelId || undefined,
   };
 
   return NextResponse.json(response);
@@ -59,6 +61,8 @@ export async function PUT(request: NextRequest) {
         ...(updates.synthesisStrategy && { synthesisStrategy: updates.synthesisStrategy }),
         ...(updates.debateMaxRounds !== undefined && { debateMaxRounds: updates.debateMaxRounds }),
         ...(updates.showCritiqueDetails !== undefined && { showCritiqueDetails: updates.showCritiqueDetails }),
+        ...(updates.primaryModelProvider !== undefined && { primaryModelProvider: updates.primaryModelProvider || null }),
+        ...(updates.primaryModelId !== undefined && { primaryModelId: updates.primaryModelId || null }),
       },
     });
   }
@@ -67,6 +71,8 @@ export async function PUT(request: NextRequest) {
     synthesisStrategy: preferences.synthesisStrategy as SynthesisStrategy,
     debateMaxRounds: preferences.debateMaxRounds,
     showCritiqueDetails: preferences.showCritiqueDetails,
+    primaryModelProvider: preferences.primaryModelProvider || undefined,
+    primaryModelId: preferences.primaryModelId || undefined,
   };
 
   return NextResponse.json(response);

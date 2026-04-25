@@ -2,7 +2,7 @@
  * URL Content Fetcher
  * 
  * Fetches and extracts readable content from URLs for use as reference material.
- * Uses a simple HTML-to-text extraction approach.
+ * Uses Jina Reader API for JavaScript-rendered pages, falls back to basic HTML extraction.
  */
 
 export interface FetchedContent {
@@ -12,10 +12,102 @@ export interface FetchedContent {
   error?: string;
 }
 
+const MIN_CONTENT_WORDS = 50; // Minimum words to consider extraction successful
+
 /**
  * Fetch content from a URL and extract readable text
+ * Uses Jina Reader API for better extraction of JavaScript-rendered content
  */
 export async function fetchUrlContent(url: string): Promise<FetchedContent> {
+  // Try Jina Reader API first (handles JavaScript rendering)
+  const jinaResult = await fetchWithJinaReader(url);
+  if (jinaResult.content && !jinaResult.error) {
+    const wordCount = jinaResult.content.split(/\s+/).filter(Boolean).length;
+    if (wordCount >= MIN_CONTENT_WORDS) {
+      return jinaResult;
+    }
+  }
+
+  // Fall back to direct fetch for simple HTML pages
+  const directResult = await fetchDirect(url);
+  if (directResult.content && !directResult.error) {
+    return directResult;
+  }
+
+  // Return whichever has more content, or the error
+  if (jinaResult.content && jinaResult.content.length > (directResult.content?.length || 0)) {
+    return jinaResult;
+  }
+  
+  return directResult;
+}
+
+/**
+ * Fetch using Jina Reader API (renders JavaScript)
+ */
+async function fetchWithJinaReader(url: string): Promise<FetchedContent> {
+  try {
+    const jinaUrl = `https://r.jina.ai/${url}`;
+    const response = await fetch(jinaUrl, {
+      headers: {
+        "Accept": "text/plain",
+      },
+      signal: AbortSignal.timeout(30000), // 30 second timeout for rendering
+    });
+
+    if (!response.ok) {
+      return {
+        url,
+        title: "",
+        content: "",
+        error: `Jina Reader failed: ${response.status}`,
+      };
+    }
+
+    const text = await response.text();
+    
+    // Jina returns markdown-like format, extract title from first heading
+    const lines = text.split("\n");
+    let title = "";
+    let contentStart = 0;
+    
+    // Look for title in first few lines
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+      const line = lines[i].trim();
+      if (line.startsWith("# ")) {
+        title = line.slice(2).trim();
+        contentStart = i + 1;
+        break;
+      }
+      // Also check for "Title:" prefix that Jina sometimes uses
+      if (line.toLowerCase().startsWith("title:")) {
+        title = line.slice(6).trim();
+        contentStart = i + 1;
+        break;
+      }
+    }
+
+    const content = lines.slice(contentStart).join("\n").trim();
+
+    return {
+      url,
+      title,
+      content: truncateContent(content, 12000), // Allow more content from Jina
+    };
+  } catch (error) {
+    return {
+      url,
+      title: "",
+      content: "",
+      error: error instanceof Error ? error.message : "Jina Reader failed",
+    };
+  }
+}
+
+/**
+ * Direct fetch with basic HTML extraction (for simple pages)
+ */
+async function fetchDirect(url: string): Promise<FetchedContent> {
   try {
     const response = await fetch(url, {
       headers: {

@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Clock, Layers, Star, TrendingUp } from "lucide-react";
+import { BarChart3, Clock, Layers, Star, TrendingUp, HeartHandshake } from "lucide-react";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { AIProvider } from "@/types";
+import { Button } from "@/components/ui/button";
 
 interface ModelStats {
   provider: string;
@@ -54,11 +55,19 @@ export default function AnalyticsPage() {
 
   return (
     <div className="h-full">
-      <header className="border-b px-6 py-4">
-        <h1 className="font-serif text-xl font-medium">Model Analytics</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">
-          Track model performance across your generations
-        </p>
+      <header className="flex items-center justify-between border-b px-6 py-4">
+        <div>
+          <h1 className="font-serif text-xl font-medium">Model Analytics</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Track model performance across your generations
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+            <HeartHandshake className="h-4 w-4" />
+            Donate
+          </a>
+        </Button>
       </header>
 
       <div className="p-6 space-y-6 max-w-5xl mx-auto">

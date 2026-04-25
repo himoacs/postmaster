@@ -96,69 +96,94 @@ You MUST respond with valid JSON in this exact format:
 
 Include 3-5 key decisions that explain your thinking. Be specific about which draft elements you chose and why.`;
 
-  try {
-    let result: { content: string; tokensUsed: number };
-
-    switch (primaryModel.provider) {
+  // Helper function to generate with a specific provider
+  async function tryGenerate(
+    provider: string,
+    modelId: string,
+    key: string
+  ): Promise<{ content: string; tokensUsed: number }> {
+    switch (provider) {
       case "OPENAI":
-        result = await generateWithOpenAI(
-          decryptedKey,
-          primaryModel.modelId,
-          systemPrompt,
-          synthesisPrompt
-        );
-        break;
+        return generateWithOpenAI(key, modelId, systemPrompt, synthesisPrompt);
       case "ANTHROPIC":
-        result = await generateWithAnthropic(
-          decryptedKey,
-          primaryModel.modelId,
-          systemPrompt,
-          synthesisPrompt
-        );
-        break;
+        return generateWithAnthropic(key, modelId, systemPrompt, synthesisPrompt);
       case "MISTRAL":
-        result = await generateWithMistral(
-          decryptedKey,
-          primaryModel.modelId,
-          systemPrompt,
-          synthesisPrompt
-        );
-        break;
+        return generateWithMistral(key, modelId, systemPrompt, synthesisPrompt);
       case "XAI":
-        result = await generateWithGrok(
-          decryptedKey,
-          primaryModel.modelId,
-          systemPrompt,
-          synthesisPrompt
-        );
-        break;
+        return generateWithGrok(key, modelId, systemPrompt, synthesisPrompt);
       case "LITELLM": {
         const litellmConfig = await prisma.liteLLMConfig.findFirst({
           where: { isEnabled: true, isValid: true },
         });
         if (!litellmConfig) {
-          return NextResponse.json(
-            { error: "LiteLLM not configured" },
-            { status: 400 }
-          );
+          throw new Error("LiteLLM not configured");
         }
         const litellmKey = litellmConfig.encryptedKey
           ? decrypt(litellmConfig.encryptedKey)
           : undefined;
-        result = await generateWithLiteLLM(
+        return generateWithLiteLLM(
           litellmConfig.endpoint,
           litellmKey,
-          primaryModel.modelId,
+          modelId,
           systemPrompt,
           synthesisPrompt
         );
-        break;
       }
       default:
-        return NextResponse.json(
-          { error: "Unsupported provider" },
-          { status: 400 }
-        );
+        throw new Error("Unsupported provider");
+    }
+  }
+
+  try {
+    let result: { content: string; tokensUsed: number };
+
+    // Try primary model first
+    try {
+      result = await tryGenerate(primaryModel.provider, primaryModel.modelId, decryptedKey);
+    } catch (primaryError) {
+      console.error(`Primary model (${primaryModel.provider}) failed:`, primaryError);
+      
+      // Fallback to LiteLLM if available and primary wasn't already LiteLLM
+      if (primaryModel.provider !== "LITELLM") {
+        const litellmConfig = await prisma.liteLLMConfig.findFirst({
+          where: { isEnabled: true, isValid: true },
+        });
+        
+        if (litellmConfig) {
+          console.log("Falling back to LiteLLM for synthesis...");
+          const litellmKey = litellmConfig.encryptedKey
+            ? decrypt(litellmConfig.encryptedKey)
+            : undefined;
+          
+          // Get first available LiteLLM model
+          let models: { id: string }[] = [];
+          try {
+            models = JSON.parse(litellmConfig.cachedModels || "[]");
+          } catch {
+            models = [];
+          }
+          
+          const fallbackModel = models[0]?.id;
+          if (fallbackModel) {
+            result = await generateWithLiteLLM(
+              litellmConfig.endpoint,
+              litellmKey,
+              fallbackModel,
+              systemPrompt,
+              synthesisPrompt
+            );
+          } else {
+            throw primaryError; // No fallback available
+          }
+        } else {
+          throw primaryError; // No LiteLLM configured
+        }
+      } else {
+        throw primaryError; // Primary was LiteLLM and it failed
+      }
+    }
+
+    // Rest of the processing continues with result...
     }
 
     // Parse the JSON response to extract content and reasoning

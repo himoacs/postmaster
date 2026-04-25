@@ -8,6 +8,7 @@ import {
   ImageIcon,
   Key,
   ArrowRight,
+  HeartHandshake,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -23,6 +24,12 @@ export default function LandingPage() {
           <nav className="flex items-center gap-4">
             <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
               <Link href="#how-it-works">How it works</Link>
+            </Button>
+            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+              <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+                <HeartHandshake className="h-4 w-4" />
+                Donate
+              </a>
             </Button>
             <Button size="sm" asChild>
               <Link href="/dashboard">Open Editor</Link>
