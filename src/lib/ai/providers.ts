@@ -39,14 +39,14 @@ export const AI_PROVIDERS: Record<AIProvider, ProviderConfig> = {
         id: "claude-sonnet-4-20250514",
         name: "Claude Sonnet 4",
         contextWindow: 200000,
-        costTier: "medium",
+        costTier: "high",
         supportsStreaming: true,
       },
       {
         id: "claude-3-5-sonnet-20241022",
         name: "Claude 3.5 Sonnet",
         contextWindow: 200000,
-        costTier: "medium",
+        costTier: "high",
         supportsStreaming: true,
       },
       {

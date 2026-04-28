@@ -36,6 +36,21 @@ interface LiteLLMState {
   models: LiteLLMModel[];
 }
 
+// Cost tier order for sorting (high quality first)
+const COST_TIER_ORDER: Record<string, number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+};
+
+const sortByCostTier = <T extends { costTier?: "low" | "medium" | "high" }>(models: T[]): T[] => {
+  return [...models].sort((a, b) => {
+    const orderA = COST_TIER_ORDER[a.costTier || "medium"] ?? 1;
+    const orderB = COST_TIER_ORDER[b.costTier || "medium"] ?? 1;
+    return orderA - orderB;
+  });
+};
+
 export function ModelSelector({
   selectedModels,
   onModelsChange,
@@ -200,8 +215,8 @@ export function ModelSelector({
                   {availableModels.length} models
                 </Badge>
               </div>
-              <div className="space-y-2">
-                {availableModels.map((model) => {
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {sortByCostTier(availableModels).map((model) => {
                   const isSelected = isModelSelected(provider.id, model.id);
                   const isDisabled =
                     !isSelected && selectedModels.length >= 4;
@@ -270,8 +285,8 @@ export function ModelSelector({
                 {models.length} models
               </Badge>
             </div>
-            <div className="space-y-2">
-              {models.slice(0, 5).map((model) => {
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {sortByCostTier(models).map((model) => {
                 const isSelected = isModelSelected("LITELLM", model.id);
                 const isDisabled = !isSelected && selectedModels.length >= 4;
 
@@ -316,11 +331,6 @@ export function ModelSelector({
                   </label>
                 );
               })}
-              {models.length > 5 && (
-                <p className="text-xs text-muted-foreground text-center py-1">
-                  +{models.length - 5} more models
-                </p>
-              )}
             </div>
           </div>
         ))}
@@ -329,7 +339,8 @@ export function ModelSelector({
       <div className="flex items-center justify-between border-t pt-4">
         <p className="text-sm text-muted-foreground">
           {selectedModels.length} of 4 models selected
-          {selectedModels.length < 2 && " (minimum 2 required)"}
+          {selectedModels.length === 0 && " (select at least 1)"}
+          {selectedModels.length === 1 && " (single model - no synthesis)"}
         </p>
         <Button
           onClick={onGenerate}

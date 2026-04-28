@@ -58,6 +58,7 @@ Your task is to combine the best elements from each draft while:
 2. Incorporating the suggested improvements
 3. Preserving consensus points that all models agreed upon
 4. Maintaining a consistent voice and flow
+5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact. These are important for credibility.
 
 You MUST respond with valid JSON in this exact format:
 {
@@ -67,18 +68,23 @@ You MUST respond with valid JSON in this exact format:
     "decisions": [
       {
         "aspect": "Structure/Opening/Tone/Key Point/etc.",
+        "from": { "provider": "PROVIDER_NAME", "model": "model-id" },
         "choice": "What you chose to do",
         "rationale": "Why you made this choice based on the drafts"
       }
     ]
   }
 }
+
+CRITICAL: For each decision, include a "from" field specifying which model's content you chose (using the exact provider name and model ID from the drafts above). If combining elements from multiple models, list the primary source.
 
 Include 3-5 key decisions that explain your thinking. Be specific about which draft elements you chose and why.`
     : `You are a skilled editor who synthesizes multiple drafts into one cohesive piece.
 Your task is to combine the best elements from each draft while maintaining a consistent voice and flow.
 Preserve the overall message and key points while improving clarity and engagement.
 
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact in the final content.
+
 You MUST respond with valid JSON in this exact format:
 {
   "content": "The final synthesized content here...",
@@ -87,12 +93,15 @@ You MUST respond with valid JSON in this exact format:
     "decisions": [
       {
         "aspect": "Structure/Opening/Tone/Key Point/etc.",
+        "from": { "provider": "PROVIDER_NAME", "model": "model-id" },
         "choice": "What you chose to do",
         "rationale": "Why you made this choice based on the drafts"
       }
     ]
   }
 }
+
+CRITICAL: For each decision, include a "from" field specifying which model's content you chose (using the exact provider name and model ID from the drafts above). If combining elements from multiple models, list the primary source.
 
 Include 3-5 key decisions that explain your thinking. Be specific about which draft elements you chose and why.`;
 
@@ -183,9 +192,6 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
       }
     }
 
-    // Rest of the processing continues with result...
-    }
-
     // Parse the JSON response to extract content and reasoning
     let finalContent: string;
     let reasoning: string | null = null;
@@ -193,22 +199,50 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
     try {
       // Strip markdown code blocks if present (LLMs often wrap JSON in ```json ... ```)
       let jsonContent = result.content.trim();
-      if (jsonContent.startsWith("```")) {
-        // Remove opening fence (```json or ```)
+      
+      // Handle multiple possible code block formats
+      // Match: ```json\n{...}\n``` or ```\n{...}\n``` or just {...}
+      const codeBlockMatch = jsonContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+      if (codeBlockMatch) {
+        jsonContent = codeBlockMatch[1].trim();
+      } else if (jsonContent.startsWith("```")) {
+        // Fallback: Remove opening fence (```json or ```)
         jsonContent = jsonContent.replace(/^```(?:json)?\s*\n?/, "");
         // Remove closing fence
         jsonContent = jsonContent.replace(/\n?```\s*$/, "");
       }
+      
+      // Find the JSON object - in case there's text before or after
+      const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        jsonContent = jsonMatch[0];
+      }
 
       // Try to parse as JSON (new format with reasoning)
       const parsed = JSON.parse(jsonContent);
-      finalContent = parsed.content || result.content;
+      
+      // Check that content exists and is a string
+      if (typeof parsed.content === "string" && parsed.content.trim()) {
+        finalContent = parsed.content;
+      } else {
+        // Fallback to raw content if no content field
+        console.warn("Synthesis JSON has no valid content field, using raw response");
+        finalContent = result.content;
+      }
+      
       if (parsed.reasoning) {
         reasoning = JSON.stringify(parsed.reasoning);
       }
-    } catch {
+    } catch (parseError) {
       // If not valid JSON, use raw content (legacy format or fallback)
+      console.warn("Could not parse synthesis JSON, using raw content:", parseError);
       finalContent = result.content;
+    }
+    
+    // Final safety check - ensure we have content
+    if (!finalContent || finalContent.trim() === "") {
+      console.error("Synthesis returned empty content, raw response:", result.content.substring(0, 500));
+      return NextResponse.json({ error: "Synthesis returned empty content" }, { status: 500 });
     }
 
     // Calculate globalVersion based on parent lineage
@@ -244,6 +278,11 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
       },
     });
 
+    // Track synthesis contributions for quality analytics
+    if (reasoning && outputs.length > 1) {
+      await trackSynthesisContributions(synthesized.id, generationId, reasoning, outputs, starredSections);
+    }
+
     // Update generation status
     await prisma.generation.update({
       where: { id: generationId },
@@ -265,6 +304,38 @@ function buildSynthesisPrompt(
   outputs: GenerationOutput[],
   starredSections?: { provider: AIProvider; text: string }[]
 ): string {
+  // Handle single output case - just polish, don't pretend to merge
+  if (outputs.length === 1) {
+    const output = outputs[0];
+    const providerName = AI_PROVIDERS[output.provider]?.name || output.provider;
+    
+    let prompt = `Here is a draft from ${providerName} (${output.model}):\n\n`;
+    prompt += output.content;
+    prompt += "\n\n";
+    
+    if (starredSections && starredSections.length > 0) {
+      prompt += "The user has specifically highlighted these sections as particularly good:\n\n";
+      starredSections.forEach((section) => {
+        const sectionProviderName = AI_PROVIDERS[section.provider]?.name || section.provider;
+        prompt += `[From ${sectionProviderName}]: "${section.text}"\n`;
+      });
+      prompt += "\n";
+    }
+    
+    prompt += `Please polish and refine this draft. Improve clarity, flow, and engagement while preserving the core message.${
+      starredSections && starredSections.length > 0
+        ? " Make sure to keep the highlighted sections, adapting them smoothly if needed."
+        : ""
+    }
+
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact.
+
+Remember to respond with valid JSON containing both "content" and "reasoning" as specified.`;
+    
+    return prompt;
+  }
+
+  // Multiple outputs - original synthesis logic
   let prompt = "Here are multiple drafts of the same content from different AI models:\n\n";
 
   outputs.forEach((output, index) => {
@@ -276,7 +347,7 @@ function buildSynthesisPrompt(
 
   if (starredSections && starredSections.length > 0) {
     prompt += "The user has specifically highlighted these sections as particularly good:\n\n";
-    starredSections.forEach((section, index) => {
+    starredSections.forEach((section) => {
       const providerName = AI_PROVIDERS[section.provider]?.name || section.provider;
       prompt += `[From ${providerName}]: "${section.text}"\n`;
     });
@@ -288,6 +359,8 @@ function buildSynthesisPrompt(
       ? "Make sure to incorporate the highlighted sections, adapting them smoothly into the flow."
       : "Take the best elements from each draft."
   }
+
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact.
 
 Remember to respond with valid JSON containing both "content" and "reasoning" as specified.`;
 
@@ -385,7 +458,88 @@ function buildConsensusPrompt(
 3. Addresses the weaknesses through the suggested improvements
 ${starredSections && starredSections.length > 0 ? "4. Includes the user-highlighted sections, adapting them smoothly" : ""}
 
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact.
+
 Remember to respond with valid JSON containing both "content" and "reasoning" as specified.`;
 
   return prompt;
+}
+
+// Track which models contributed to the synthesis for quality analytics
+async function trackSynthesisContributions(
+  synthesisId: string,
+  generationId: string,
+  reasoningJson: string,
+  outputs: GenerationOutput[],
+  starredSections?: { provider: AIProvider; text: string }[]
+) {
+  try {
+    const reasoning = JSON.parse(reasoningJson);
+    const decisions = reasoning.decisions || [];
+    const totalAspects = decisions.length;
+
+    // Count contributions per model
+    const contributions: Record<string, { aspects: string[]; count: number }> = {};
+    
+    // Initialize all participating models
+    for (const output of outputs) {
+      const key = `${output.provider}:${output.model}`;
+      contributions[key] = { aspects: [], count: 0 };
+    }
+
+    // Count decisions where each model was selected
+    for (const decision of decisions) {
+      if (decision.from?.provider && decision.from?.model) {
+        const key = `${decision.from.provider}:${decision.from.model || decision.from.modelId}`;
+        if (contributions[key]) {
+          contributions[key].count++;
+          if (decision.aspect) {
+            contributions[key].aspects.push(decision.aspect);
+          }
+        }
+      }
+    }
+
+    // Count starred sections per model
+    const starredCounts: Record<string, number> = {};
+    if (starredSections) {
+      for (const section of starredSections) {
+        // Find matching output to get the model
+        const matchingOutput = outputs.find(o => o.provider === section.provider);
+        if (matchingOutput) {
+          const key = `${matchingOutput.provider}:${matchingOutput.model}`;
+          starredCounts[key] = (starredCounts[key] || 0) + 1;
+        }
+      }
+    }
+
+    // Store contribution records
+    const contributionRecords = Object.entries(contributions).map(([key, data]) => {
+      const [provider, model] = key.split(":");
+      return {
+        synthesisId,
+        generationId,
+        provider,
+        model,
+        aspectCount: data.count,
+        totalAspects,
+        aspectTypes: JSON.stringify(data.aspects),
+        starredCount: starredCounts[key] || 0,
+      };
+    });
+
+    // Delete existing contributions for this synthesis and insert new ones
+    await prisma.synthesisContribution.deleteMany({
+      where: { synthesisId },
+    });
+
+    if (contributionRecords.length > 0) {
+      await prisma.synthesisContribution.createMany({
+        data: contributionRecords,
+      });
+    }
+  } catch (error) {
+    // Don't fail synthesis if contribution tracking fails
+    console.error("Failed to track synthesis contributions:", error);
+  }
 }

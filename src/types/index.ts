@@ -65,6 +65,7 @@ export interface GenerationOutput {
   content: string;
   tokensUsed?: number;
   latencyMs?: number;
+  error?: string; // Error message if generation failed or returned empty
 }
 
 export interface SynthesisRequest {

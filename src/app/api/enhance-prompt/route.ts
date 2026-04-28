@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       provider = preferences.primaryModelProvider;
       modelId = preferences.primaryModelId;
       
-      if (provider === "LITELLM" && liteLLMConfig) {
+      if (provider === "LITELLM" && liteLLMConfig?.encryptedKey) {
         apiKey = decrypt(liteLLMConfig.encryptedKey);
       } else {
         const keyRecord = apiKeys.find(k => k.provider === provider);
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     // Fallback to any available model if primary not set or not available
     if (!apiKey) {
       // Try LiteLLM first
-      if (liteLLMConfig) {
+      if (liteLLMConfig?.encryptedKey) {
         provider = "LITELLM";
         try {
           const models = JSON.parse(liteLLMConfig.cachedModels);

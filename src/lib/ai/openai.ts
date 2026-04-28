@@ -58,6 +58,51 @@ export async function generateWithOpenAI(
   };
 }
 
+/**
+ * Generate content with OpenAI using streaming
+ * Yields content chunks as they arrive
+ */
+export async function* generateWithOpenAIStream(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string
+): AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> {
+  const client = createOpenAIClient(apiKey);
+
+  const stream = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
+    stream: true,
+    stream_options: { include_usage: true },
+  });
+
+  let tokensUsed = 0;
+  
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    
+    // Check for usage info in the final chunk
+    if (chunk.usage) {
+      tokensUsed = chunk.usage.total_tokens || 0;
+    }
+    
+    if (content) {
+      yield { content, done: false };
+    }
+    
+    // Check if this is the final chunk
+    if (chunk.choices[0]?.finish_reason) {
+      yield { content: "", done: true, tokensUsed };
+    }
+  }
+}
+
 export async function generateImageWithOpenAI(
   apiKey: string,
   prompt: string,

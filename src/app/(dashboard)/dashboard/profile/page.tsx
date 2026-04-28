@@ -15,8 +15,8 @@ export default async function ProfilePage() {
   ]);
 
   return (
-    <div className="h-full">
-      <header className="flex items-center justify-between border-b px-6 py-4">
+    <div className="h-full flex flex-col">
+      <header className="flex items-center justify-between border-b px-6 py-4 flex-shrink-0">
         <div>
           <h1 className="font-serif text-xl font-medium">Your Profile</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -31,7 +31,7 @@ export default async function ProfilePage() {
         </Button>
       </header>
 
-      <div className="p-6">
+      <div className="flex-1 overflow-auto p-6">
         <Tabs defaultValue="style" className="mx-auto max-w-3xl">
           <TabsList className="mb-6">
             <TabsTrigger value="style">Writing Style</TabsTrigger>

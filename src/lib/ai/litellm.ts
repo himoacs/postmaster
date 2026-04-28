@@ -124,6 +124,52 @@ export async function generateWithLiteLLM(
 }
 
 /**
+ * Generate content using LiteLLM proxy with streaming
+ * Yields content chunks as they arrive
+ */
+export async function* generateWithLiteLLMStream(
+  endpoint: string,
+  apiKey: string | undefined,
+  modelId: string,
+  systemPrompt: string,
+  userPrompt: string
+): AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> {
+  const client = createLiteLLMClient(endpoint, apiKey);
+  
+  const stream = await client.chat.completions.create({
+    model: modelId,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
+    stream: true,
+    stream_options: { include_usage: true },
+  });
+  
+  let tokensUsed = 0;
+  
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    
+    // Check for usage info in the final chunk
+    if (chunk.usage) {
+      tokensUsed = chunk.usage.total_tokens || 0;
+    }
+    
+    if (content) {
+      yield { content, done: false };
+    }
+    
+    // Check if this is the final chunk
+    if (chunk.choices[0]?.finish_reason) {
+      yield { content: "", done: true, tokensUsed };
+    }
+  }
+}
+
+/**
  * Generate image using LiteLLM proxy (routes to DALL-E or other image providers)
  */
 export async function generateImageWithLiteLLM(
@@ -230,27 +276,50 @@ function inferContextWindow(modelId: string): number {
 function inferCostTier(modelId: string): "low" | "medium" | "high" {
   const id = modelId.toLowerCase();
   
-  // High-end models
+  // High-end models (most capable, most expensive)
   if (
     id.includes("opus") ||
+    id.includes("gpt-5") && !id.includes("mini") && !id.includes("nano") ||
+    id.includes("gpt5") && !id.includes("mini") && !id.includes("nano") ||
     id.includes("gpt-4o") && !id.includes("mini") ||
     id.includes("gpt-4-turbo") ||
-    id.includes("large") ||
-    id.includes("grok-2") && !id.includes("mini")
+    id.includes("gpt-4") && !id.includes("mini") ||
+    id.includes("claude-3.5-sonnet") ||
+    id.includes("claude-3-5-sonnet") ||
+    id.includes("claude-4") ||
+    id.includes("sonnet") ||
+    id.includes("large") && !id.includes("x-large") ||
+    id.includes("grok-2") && !id.includes("mini") ||
+    id.includes("gemini-1.5-pro") ||
+    id.includes("gemini-pro") ||
+    id.includes("mistral-large") ||
+    id.includes("llama-3.1-405b") ||
+    id.includes("llama-3.3-70b") ||
+    id.includes("deepseek-v3")
   ) {
     return "high";
   }
   
-  // Low-cost models
+  // Low-cost models (smaller, faster, cheaper)
   if (
     id.includes("mini") ||
     id.includes("small") ||
     id.includes("haiku") ||
-    id.includes("flash")
+    id.includes("flash") ||
+    id.includes("nano") ||
+    id.includes("tiny") ||
+    id.includes("lite") ||
+    id.includes("3.5-turbo") ||
+    id.includes("gpt-3.5") ||
+    id.includes("llama-3.2") ||
+    id.includes("llama-3.1-8b") ||
+    id.includes("mistral-7b") ||
+    id.includes("gemma")
   ) {
     return "low";
   }
   
+  // Medium tier (everything else)
   return "medium";
 }
 

@@ -216,15 +216,40 @@ function decodeHtmlEntities(text: string): string {
 }
 
 /**
- * Truncate content to a maximum length while preserving word boundaries
+ * Truncate content to a maximum length while preserving structural boundaries
+ * Prefers cutting at paragraph/heading boundaries over mid-sentence
  */
 function truncateContent(content: string, maxLength: number): string {
   if (content.length <= maxLength) return content;
   
   const truncated = content.slice(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
   
-  return (lastSpace > maxLength * 0.8 ? truncated.slice(0, lastSpace) : truncated) + "...";
+  // Try to find a good structural break point (in order of preference)
+  const breakPoints = [
+    truncated.lastIndexOf("\n\n"),     // Paragraph break
+    truncated.lastIndexOf("\n## "),    // Heading (markdown)
+    truncated.lastIndexOf("\n# "),     // Heading (markdown)
+    truncated.lastIndexOf("\n---"),    // Horizontal rule
+    truncated.lastIndexOf(".\n"),      // End of sentence with newline
+    truncated.lastIndexOf(". "),       // End of sentence
+    truncated.lastIndexOf("\n"),       // Any newline
+    truncated.lastIndexOf(" "),        // Any space
+  ];
+  
+  // Find the best break point that's not too far back (at least 70% of content)
+  const minAcceptable = maxLength * 0.7;
+  
+  for (const breakPoint of breakPoints) {
+    if (breakPoint > minAcceptable) {
+      // For sentence endings, include the period
+      const offset = truncated[breakPoint] === "." ? 1 : 0;
+      return truncated.slice(0, breakPoint + offset).trim() + "\n\n[Content truncated...]";
+    }
+  }
+  
+  // Fallback: just cut at the last space
+  const lastSpace = truncated.lastIndexOf(" ");
+  return (lastSpace > minAcceptable ? truncated.slice(0, lastSpace) : truncated).trim() + "...";
 }
 
 /**
@@ -258,5 +283,17 @@ export function formatReferencesForPrompt(
 
   if (parts.length === 0) return "";
 
-  return `\n\nREFERENCE MATERIALS (Use these to inform your writing):\n\n${parts.join("\n")}`;
+  return `
+
+=== REFERENCE MATERIALS (AUTHORITATIVE SOURCE - USE THESE) ===
+
+IMPORTANT: The following reference materials are your PRIMARY source of truth.
+- Look up ALL technical terms, acronyms, and concepts in these materials
+- Use the exact definitions and explanations found here
+- Do NOT invent or guess meanings for terms - check the references first
+
+${parts.join("\n")}
+
+=== END REFERENCE MATERIALS ===
+`;
 }

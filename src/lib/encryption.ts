@@ -1,16 +1,62 @@
 import crypto from "crypto";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { join, dirname } from "path";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
+// Cache the derived key
+let cachedKey: Buffer | null = null;
+
+/**
+ * Get or generate a machine-local encryption key.
+ * For Electron apps, we generate a key file in the user data directory.
+ * This provides local encryption without requiring environment variables.
+ */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) {
-    throw new Error("ENCRYPTION_KEY environment variable is not set");
+  if (cachedKey) return cachedKey;
+  
+  // First check environment variable
+  const envKey = process.env.ENCRYPTION_KEY;
+  if (envKey) {
+    cachedKey = crypto.scryptSync(envKey, "postmaster-salt", 32);
+    return cachedKey;
   }
-  // Ensure key is 32 bytes (256 bits)
-  return crypto.scryptSync(key, "salt", 32);
+  
+  // For local-first apps, generate a machine-specific key
+  // This key is stored alongside the database
+  const dbUrl = process.env.DATABASE_URL || "";
+  const dbPath = dbUrl.replace("file:", "");
+  
+  if (dbPath) {
+    const keyPath = join(dirname(dbPath), ".postmaster-key");
+    
+    try {
+      if (existsSync(keyPath)) {
+        // Read existing key
+        const storedKey = readFileSync(keyPath, "utf8").trim();
+        cachedKey = crypto.scryptSync(storedKey, "postmaster-salt", 32);
+        return cachedKey;
+      } else {
+        // Generate new key and save it
+        const newKey = crypto.randomBytes(32).toString("hex");
+        mkdirSync(dirname(keyPath), { recursive: true });
+        writeFileSync(keyPath, newKey, { mode: 0o600 }); // Owner read/write only
+        cachedKey = crypto.scryptSync(newKey, "postmaster-salt", 32);
+        return cachedKey;
+      }
+    } catch (error) {
+      console.error("Error managing encryption key file:", error);
+      // Fall through to default key
+    }
+  }
+  
+  // Fallback: Use a deterministic key based on environment
+  // This is less secure but ensures the app works
+  const fallbackSeed = `postmaster-local-${process.platform}-${process.arch}`;
+  cachedKey = crypto.scryptSync(fallbackSeed, "postmaster-salt", 32);
+  return cachedKey;
 }
 
 /**
@@ -46,13 +92,24 @@ export function decrypt(encryptedData: string): string {
   const authTag = Buffer.from(parts[1], "base64");
   const encrypted = parts[2];
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
+  try {
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
 
-  let decrypted = decipher.update(encrypted, "base64", "utf8");
-  decrypted += decipher.final("utf8");
+    let decrypted = decipher.update(encrypted, "base64", "utf8");
+    decrypted += decipher.final("utf8");
 
-  return decrypted;
+    return decrypted;
+  } catch (error) {
+    // GCM authentication failures happen when keys don't match
+    // (e.g., data encrypted in dev server, decrypted in packaged app)
+    if (error instanceof Error && 
+        (error.message.includes("Unsupported state") || 
+         error.message.includes("unable to authenticate"))) {
+      throw new Error("API key decryption failed. Please re-enter your API key in Settings.");
+    }
+    throw error;
+  }
 }
 
 /**

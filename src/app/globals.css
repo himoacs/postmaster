@@ -198,3 +198,87 @@
     }
   }
 }
+
+/* Editorial prose styles to match app typography */
+.prose-editorial {
+  /* Use serif for headings like the rest of the app */
+  & h1, & h2, & h3, & h4, & h5, & h6 {
+    font-family: var(--font-serif), ui-serif, Georgia, serif;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
+  }
+  
+  & h1 {
+    font-size: 1.5em;
+  }
+  
+  & h2 {
+    font-size: 1.25em;
+  }
+  
+  & h3 {
+    font-size: 1.1em;
+  }
+  
+  /* First heading shouldn't have top margin */
+  & > :first-child {
+    margin-top: 0;
+  }
+  
+  /* Body text styling */
+  & p {
+    margin-bottom: 1em;
+    line-height: 1.7;
+  }
+  
+  /* Lists */
+  & ul, & ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+  }
+  
+  & li {
+    margin-bottom: 0.25em;
+    line-height: 1.6;
+  }
+  
+  /* Bold text should be slightly heavier */
+  & strong {
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  
+  /* Blockquotes */
+  & blockquote {
+    border-left: 3px solid var(--primary);
+    padding-left: 1em;
+    margin: 1em 0;
+    font-style: italic;
+    color: var(--muted-foreground);
+  }
+  
+  /* Code blocks */
+  & code {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.9em;
+    background: var(--muted);
+    padding: 0.15em 0.3em;
+    border-radius: 0.25em;
+  }
+  
+  & pre {
+    background: var(--muted);
+    padding: 1em;
+    border-radius: 0.5em;
+    overflow-x: auto;
+    margin: 1em 0;
+  }
+  
+  & pre code {
+    background: none;
+    padding: 0;
+  }
+}

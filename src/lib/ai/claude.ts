@@ -60,3 +60,35 @@ export async function generateWithAnthropic(
     tokensUsed: message.usage.input_tokens + message.usage.output_tokens,
   };
 }
+
+/**
+ * Generate content with Anthropic using streaming
+ * Yields content chunks as they arrive
+ */
+export async function* generateWithAnthropicStream(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string
+): AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> {
+  const client = createAnthropicClient(apiKey);
+
+  const stream = await client.messages.stream({
+    model,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      yield { content: event.delta.text, done: false };
+    }
+  }
+
+  // Get final message for token usage
+  const finalMessage = await stream.finalMessage();
+  const tokensUsed = finalMessage.usage.input_tokens + finalMessage.usage.output_tokens;
+  
+  yield { content: "", done: true, tokensUsed };
+}

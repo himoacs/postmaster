@@ -156,8 +156,8 @@ export default function KnowledgePage() {
   const totalWords = entries.reduce((sum, e) => sum + e.wordCount, 0);
 
   return (
-    <div className="h-full">
-      <header className="border-b px-6 py-4">
+    <div className="h-full flex flex-col">
+      <header className="border-b px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-serif text-xl font-medium flex items-center gap-2">
@@ -183,7 +183,7 @@ export default function KnowledgePage() {
         </div>
       </header>
 
-      <div className="p-6 space-y-6">
+      <div className="flex-1 overflow-auto p-6 space-y-6">
         {/* Stats Overview */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

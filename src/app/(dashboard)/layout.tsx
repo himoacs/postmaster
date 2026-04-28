@@ -42,15 +42,41 @@ export default function DashboardLayout({
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="flex min-h-screen bg-background">
-        {/* Desktop Icon Rail */}
-        <aside className="hidden w-16 flex-col items-center border-r bg-card py-4 lg:flex">
-          <Link
-            href="/"
-            className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-colors hover:bg-accent"
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        {/* Draggable Title Bar for Electron */}
+        <div 
+          className="hidden lg:flex h-14 w-full items-center border-b bg-background/80 backdrop-blur-sm shrink-0 px-4"
+          style={{ 
+            // @ts-expect-error - Electron-specific CSS property for window dragging
+            WebkitAppRegion: 'drag',
+            appRegion: 'drag'
+          }}
+        >
+          {/* Spacer for macOS traffic lights */}
+          <div className="w-20" />
+          <Link 
+            href="/" 
+            className="flex items-center gap-2.5"
+            style={{ 
+              // @ts-expect-error - Electron-specific CSS property
+              WebkitAppRegion: 'no-drag',
+              appRegion: 'no-drag'
+            }}
           >
-            <Home className="h-5 w-5" strokeWidth={1.5} />
+            <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
+            <span className="font-serif text-lg font-medium">PostMaster</span>
           </Link>
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Desktop Icon Rail */}
+          <aside className="hidden w-16 flex-col items-center border-r bg-card pt-4 pb-4 lg:flex">
+            <Link
+              href="/"
+              className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg text-primary transition-colors hover:bg-accent"
+            >
+              <Home className="h-5 w-5" strokeWidth={1.5} />
+            </Link>
           <nav className="flex flex-1 flex-col items-center gap-1">
             {navigation.map((item) => {
               const isActive = 
@@ -146,7 +172,8 @@ export default function DashboardLayout({
           )}
 
           {/* Main Content */}
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-hidden">{children}</main>
+        </div>
         </div>
       </div>
     </TooltipProvider>

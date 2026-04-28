@@ -43,14 +43,51 @@ import {
   Pencil,
   Eye,
   Quote,
+  SearchCheck,
+  Bot,
+  Loader2,
+  AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageGenerator } from "./image-generator";
 import { ContentAnalysis } from "./content-analysis";
 import { DiffView } from "./diff-view";
+import { FactCheckPanel } from "./fact-check-panel";
 import { SynthesisStrategy, CritiqueOutput, DebateSession, SynthesisReasoning } from "@/types";
 
-type SidePanelType = "refine" | "image" | "analyze" | "history" | null;
+type SidePanelType = "refine" | "image" | "analyze" | "history" | "reasoning" | "factcheck" | "critiques" | "aicheck" | null;
+
+interface AICheckResult {
+  patternScore: {
+    score: number;
+    breakdown: {
+      highSeverityCount: number;
+      mediumSeverityCount: number;
+      lowSeverityCount: number;
+      totalMatches: number;
+    };
+    matches: Array<{
+      pattern: string;
+      category: string;
+      severity: string;
+      position: number;
+    }>;
+  };
+  aiAnalysis?: {
+    humanScore: number;
+    confidence: string;
+    overallAssessment: string;
+    aiIndicators: Array<{
+      indicator: string;
+      severity: "high" | "medium" | "low";
+      example?: string;
+      suggestion?: string;
+    }>;
+    humanIndicators: string[];
+    suggestions: string[];
+  };
+}
 
 interface SynthesisViewProps {
   content: string;
@@ -84,14 +121,21 @@ export function SynthesisView({
   const [feedback, setFeedback] = useState("");
   const [copied, setCopied] = useState(false);
   const [activePanel, setActivePanel] = useState<SidePanelType>(null);
-  const [showCritiques, setShowCritiques] = useState(false);
-  const [showReasoning, setShowReasoning] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(content);
+  const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
+  const [isCheckingAI, setIsCheckingAI] = useState(false);
+
+  // Track original content with citations for restoration
+  const [originalContentWithCitations, setOriginalContentWithCitations] = useState<string | null>(null);
+  const [citationsRemoved, setCitationsRemoved] = useState(false);
 
   // Sync draft content when content prop changes (e.g., after iteration)
   useEffect(() => {
     setDraftContent(content);
+    // Reset citation tracking when new content arrives
+    setOriginalContentWithCitations(null);
+    setCitationsRemoved(false);
   }, [content]);
 
   const hasCritiques = critiques.length > 0 || debateSession;
@@ -112,14 +156,28 @@ export function SynthesisView({
     setIsEditing(false);
   };
 
-  // Check if content has citations and provide removal function
+  // Check if content has citations and provide removal/restore function
   const hasCitations = /\[Source:[^\]]+\]/.test(draftContent);
   
   const handleRemoveCitations = () => {
-    const cleanedContent = draftContent.replace(/\s*\[Source:[^\]]+\]/g, "");
+    // Store original before removing
+    if (!originalContentWithCitations) {
+      setOriginalContentWithCitations(draftContent);
+    }
+    const cleanedContent = draftContent.replace(/\s*\[Source:[^\]]+\](\([^)]+\))?/g, "");
     setDraftContent(cleanedContent);
     onContentChange?.(cleanedContent);
+    setCitationsRemoved(true);
     toast.success("Citations removed");
+  };
+
+  const handleRestoreCitations = () => {
+    if (originalContentWithCitations) {
+      setDraftContent(originalContentWithCitations);
+      onContentChange?.(originalContentWithCitations);
+      setCitationsRemoved(false);
+      toast.success("Citations restored");
+    }
   };
 
   // Use draftContent for all operations
@@ -249,6 +307,29 @@ export function SynthesisView({
     setFeedback("");
   };
 
+  const runAICheck = async () => {
+    setIsCheckingAI(true);
+    setActivePanel("aicheck");
+    try {
+      const response = await fetch("/api/critique/ai-detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: currentContent,
+          includePatternScan: true,
+        }),
+      });
+      if (!response.ok) throw new Error("AI check failed");
+      const result = await response.json();
+      setAiCheckResult(result);
+    } catch (error) {
+      console.error("AI check error:", error);
+      toast.error("Failed to run AI check");
+    } finally {
+      setIsCheckingAI(false);
+    }
+  };
+
   const quickFeedback = [
     "Make it more casual",
     "Make it more professional",
@@ -367,6 +448,51 @@ export function SynthesisView({
             History
           </Button>
         )}
+        {reasoning && (
+          <Button
+            variant={activePanel === "reasoning" ? "default" : "outline"}
+            size="sm"
+            onClick={() => togglePanel("reasoning")}
+          >
+            <BrainCircuit className="mr-2 h-4 w-4" />
+            AI Reasoning
+          </Button>
+        )}
+        <Button
+          variant={activePanel === "factcheck" ? "default" : "outline"}
+          size="sm"
+          onClick={() => togglePanel("factcheck")}
+        >
+          <SearchCheck className="mr-2 h-4 w-4" />
+          Fact Check
+        </Button>
+        <Button
+          variant={activePanel === "aicheck" ? "default" : "outline"}
+          size="sm"
+          onClick={runAICheck}
+          disabled={isCheckingAI}
+        >
+          {isCheckingAI ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Bot className="mr-2 h-4 w-4" />
+          )}
+          AI Check
+        </Button>
+        {hasCritiques && (
+          <Button
+            variant={activePanel === "critiques" ? "default" : "outline"}
+            size="sm"
+            onClick={() => togglePanel("critiques")}
+          >
+            {isDebate ? (
+              <Swords className="mr-2 h-4 w-4" />
+            ) : (
+              <MessagesSquare className="mr-2 h-4 w-4" />
+            )}
+            {isDebate ? "Debate" : "Critiques"}
+          </Button>
+        )}
       </div>
 
       <div className={`grid gap-6 ${activePanel ? "lg:grid-cols-3" : "lg:grid-cols-1"}`}>
@@ -394,6 +520,12 @@ export function SynthesisView({
                         Remove Citations
                       </Button>
                     )}
+                    {citationsRemoved && originalContentWithCitations && !hasCitations && (
+                      <Button variant="outline" size="sm" onClick={handleRestoreCitations}>
+                        <Quote className="mr-2 h-4 w-4" />
+                        Restore Citations
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
@@ -413,8 +545,30 @@ export function SynthesisView({
               />
             ) : (
               <ScrollArea className="h-[500px] pr-4">
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown>{currentContent}</ReactMarkdown>
+                <div className="prose prose-sm prose-editorial dark:prose-invert max-w-none">
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => {
+                        // Handle citation links - show URL and open externally
+                        const handleClick = (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          if (href) {
+                            window.open(href, '_blank', 'noopener,noreferrer');
+                          }
+                        };
+                        return (
+                          <span
+                            onClick={handleClick}
+                            className="text-primary underline cursor-pointer hover:text-primary/80"
+                            title={href}
+                          >
+                            {children}
+                            {href && <span className="text-muted-foreground text-xs ml-1">({href})</span>}
+                          </span>
+                        );
+                      }
+                    }}
+                  >{currentContent}</ReactMarkdown>
                 </div>
               </ScrollArea>
             )}
@@ -533,17 +687,204 @@ export function SynthesisView({
                 />
               </div>
             )}
-          </Card>
-        )}
-      </div>
 
-      {/* Critique insights section */}
-      {hasCritiques && (
-        <Collapsible open={showCritiques} onOpenChange={setShowCritiques}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
+            {/* AI Reasoning panel */}
+            {activePanel === "reasoning" && reasoning && (
+              <>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <BrainCircuit className="h-4 w-4" />
+                    AI Reasoning
+                    <Badge variant="outline" className="ml-auto mr-6">
+                      {reasoning.decisions?.length || 0} decisions
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Summary */}
+                  {reasoning.summary && (
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <p className="text-sm text-muted-foreground italic">
+                        "{reasoning.summary}"
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Key decisions */}
+                  {reasoning.decisions && reasoning.decisions.length > 0 && (
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-medium">Key Synthesis Decisions</h4>
+                        {reasoning.decisions.map((decision, i) => (
+                          <div key={i} className="border-l-2 border-primary/30 pl-4 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {decision.aspect}
+                              </Badge>
+                            </div>
+                            <p className="text-sm font-medium">{decision.choice}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {decision.rationale}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </>
+            )}
+
+            {/* Fact Check panel */}
+            {activePanel === "factcheck" && (
+              <FactCheckPanel content={currentContent} />
+            )}
+
+            {/* AI Check panel */}
+            {activePanel === "aicheck" && (
+              <>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Bot className="h-4 w-4 text-primary" />
+                    AI Detection Check
+                    {aiCheckResult && (
+                      <Badge 
+                        variant={aiCheckResult.patternScore.score < 30 ? "default" : aiCheckResult.patternScore.score < 60 ? "secondary" : "destructive"}
+                        className="ml-auto mr-6"
+                      >
+                        {aiCheckResult.patternScore.score < 30 ? "Sounds Human" : aiCheckResult.patternScore.score < 60 ? "Some AI Patterns" : "AI-Heavy"}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {isCheckingAI ? (
+                    <div className="flex flex-col items-center justify-center py-8 gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Analyzing content for AI patterns...</p>
+                    </div>
+                  ) : aiCheckResult ? (
+                    <ScrollArea className="h-[450px] pr-4">
+                      <div className="space-y-4">
+                        {/* Score summary */}
+                        <div className="p-4 rounded-lg bg-muted/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">Human-likeness Score</span>
+                            <span className="text-2xl font-bold">
+                              {100 - aiCheckResult.patternScore.score}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${
+                                aiCheckResult.patternScore.score < 30 ? "bg-green-500" : 
+                                aiCheckResult.patternScore.score < 60 ? "bg-yellow-500" : "bg-red-500"
+                              }`}
+                              style={{ width: `${100 - aiCheckResult.patternScore.score}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Found {aiCheckResult.patternScore.breakdown.totalMatches} AI pattern matches
+                            ({aiCheckResult.patternScore.breakdown.highSeverityCount} high, 
+                            {aiCheckResult.patternScore.breakdown.mediumSeverityCount} medium, 
+                            {aiCheckResult.patternScore.breakdown.lowSeverityCount} low severity)
+                          </p>
+                        </div>
+
+                        {/* Pattern matches */}
+                        {aiCheckResult.patternScore.matches.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              AI Patterns Detected
+                            </h4>
+                            <div className="space-y-2">
+                              {aiCheckResult.patternScore.matches.slice(0, 10).map((match, i) => (
+                                <div key={i} className="flex items-start gap-2 p-2 rounded bg-muted/30">
+                                  <Badge 
+                                    variant={match.severity === "high" ? "destructive" : match.severity === "medium" ? "secondary" : "outline"}
+                                    className="text-xs shrink-0"
+                                  >
+                                    {match.severity}
+                                  </Badge>
+                                  <div className="text-sm">
+                                    <span className="font-medium">"{match.pattern}"</span>
+                                    <span className="text-muted-foreground ml-2">({match.category})</span>
+                                  </div>
+                                </div>
+                              ))}
+                              {aiCheckResult.patternScore.matches.length > 10 && (
+                                <p className="text-xs text-muted-foreground">
+                                  ... and {aiCheckResult.patternScore.matches.length - 10} more
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Suggestions */}
+                        {aiCheckResult.patternScore.matches.length > 0 && (
+                          <div className="pt-4 border-t">
+                            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              Quick Fixes
+                            </h4>
+                            <div className="space-y-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-start"
+                                onClick={() => {
+                                  setFeedback("Remove AI-sounding phrases and make the writing more natural and human. Specifically avoid: " + 
+                                    aiCheckResult.patternScore.matches.slice(0, 5).map(m => `"${m.pattern}"`).join(", "));
+                                  setActivePanel("refine");
+                                }}
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Auto-fix with AI refinement
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {aiCheckResult.patternScore.matches.length === 0 && (
+                          <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                            <CheckCircle2 className="h-12 w-12 text-green-500" />
+                            <h4 className="font-medium">Looking Good!</h4>
+                            <p className="text-sm text-muted-foreground">
+                              No obvious AI patterns detected. Your content sounds natural.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 gap-4 text-center">
+                      <Bot className="h-12 w-12 text-muted-foreground" />
+                      <div>
+                        <h4 className="font-medium">Check for AI Patterns</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Scan your content for common AI writing patterns and get suggestions to make it sound more human.
+                        </p>
+                      </div>
+                      <Button onClick={runAICheck} disabled={isCheckingAI}>
+                        {isCheckingAI ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <SearchCheck className="mr-2 h-4 w-4" />
+                        )}
+                        Run AI Check
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </>
+            )}
+
+            {/* Critique Insights panel */}
+            {activePanel === "critiques" && hasCritiques && (
+              <>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-base flex items-center gap-2">
                     {isDebate ? (
                       <Swords className="h-4 w-4 text-primary" />
@@ -551,22 +892,15 @@ export function SynthesisView({
                       <MessagesSquare className="h-4 w-4 text-primary" />
                     )}
                     {isDebate ? "Debate Insights" : "Critique Insights"}
-                    <Badge variant="outline" className="ml-2">
+                    <Badge variant="outline" className="ml-auto mr-6">
                       {isDebate 
                         ? `${debateSession?.rounds.length || 0} rounds`
                         : `${critiques.length} critiques`}
                     </Badge>
                   </CardTitle>
-                  <ChevronDown 
-                    className={`h-4 w-4 text-muted-foreground transition-transform ${
-                      showCritiques ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0">
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ScrollArea className="h-[450px] pr-4">
                 {/* Debate session info */}
                 {isDebate && debateSession && (
                   <div className="mb-4 p-3 rounded-lg bg-muted/50">
@@ -662,69 +996,13 @@ export function SynthesisView({
                     </div>
                   );
                 })()}
-              </CardContent>
-            </CollapsibleContent>
+                  </ScrollArea>
+                </CardContent>
+              </>
+            )}
           </Card>
-        </Collapsible>
-      )}
-
-      {/* AI Reasoning transparency section */}
-      {reasoning && (
-        <Collapsible open={showReasoning} onOpenChange={setShowReasoning}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BrainCircuit className="h-4 w-4 text-primary" />
-                    AI Reasoning
-                    <Badge variant="outline" className="ml-2">
-                      {reasoning.decisions?.length || 0} decisions
-                    </Badge>
-                  </CardTitle>
-                  <ChevronDown 
-                    className={`h-4 w-4 text-muted-foreground transition-transform ${
-                      showReasoning ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0 space-y-4">
-                {/* Summary */}
-                {reasoning.summary && (
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground italic">
-                      "{reasoning.summary}"
-                    </p>
-                  </div>
-                )}
-
-                {/* Key decisions */}
-                {reasoning.decisions && reasoning.decisions.length > 0 && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium">Key Synthesis Decisions</h4>
-                    {reasoning.decisions.map((decision, i) => (
-                      <div key={i} className="border-l-2 border-primary/30 pl-4 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {decision.aspect}
-                          </Badge>
-                        </div>
-                        <p className="text-sm font-medium">{decision.choice}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {decision.rationale}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -14,14 +14,41 @@ import {
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Draggable area for Electron window */}
+      <div 
+        className="fixed top-0 left-0 right-0 h-14 z-40"
+        style={{ 
+          // @ts-expect-error - Electron-specific CSS property for window dragging
+          WebkitAppRegion: 'drag',
+          appRegion: 'drag'
+        }}
+      />
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
-        <div className="container flex h-14 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
+      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm px-4">
+        <div className="flex h-14 items-center">
+          {/* Spacer for macOS traffic lights */}
+          <div className="w-20 lg:block hidden" />
+          <Link 
+            href="/" 
+            className="flex items-center gap-2.5"
+            style={{ 
+              // @ts-expect-error - Electron-specific CSS property
+              WebkitAppRegion: 'no-drag',
+              appRegion: 'no-drag'
+            }}
+          >
             <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
             <span className="font-serif text-lg font-medium">PostMaster</span>
           </Link>
-          <nav className="flex items-center gap-4">
+          <div className="flex-1" />
+          <nav 
+            className="flex items-center gap-4"
+            style={{ 
+              // @ts-expect-error - Electron-specific CSS property
+              WebkitAppRegion: 'no-drag',
+              appRegion: 'no-drag'
+            }}
+          >
             <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
               <Link href="#how-it-works">How it works</Link>
             </Button>

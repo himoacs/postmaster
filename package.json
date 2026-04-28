@@ -1,12 +1,27 @@
 {
   "name": "postmaster",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "AI-Powered Multi-Model Writing Assistant",
+  "author": "Himanshu Gupta",
+  "license": "MIT",
+  "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "npm rebuild better-sqlite3 && npx prisma generate",
+    "rebuild:native": "npm rebuild better-sqlite3",
+    "electron:deps": "node scripts/prepare-electron-deps.js",
+    "electron:dev": "concurrently \"pnpm dev\" \"wait-on http://localhost:3000 && pnpm electron:start\"",
+    "electron:start": "NODE_ENV=development electron .",
+    "electron:prepare": "rm -rf .next/standalone_flat && rsync -aL --ignore-errors .next/standalone/ .next/standalone_flat/ && node scripts/fix-standalone.js",
+    "electron:build": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder",
+    "electron:build:mac": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --mac",
+    "electron:build:win": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --win",
+    "electron:build:linux": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --linux",
+    "electron:compile": "tsc -p electron/tsconfig.json"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",
@@ -19,6 +34,7 @@
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^1.9.0",
     "mammoth": "^1.12.0",
     "next": "16.2.4",
@@ -40,14 +56,20 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@swc/helpers": "^0.5.21",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.1.0",
+    "electron": "^36.3.2",
+    "electron-builder": "^26.0.12",
+    "electron-squirrel-startup": "^1.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.3"
   }
 }

@@ -17,8 +17,8 @@
 /.next/
 /out/
 
-# production
-/build
+# production (keep /build for electron assets)
+# /build
 
 # misc
 .DS_Store
@@ -44,3 +44,13 @@ next-env.d.ts
 
 # Database
 /data/
+
+# Electron
+/dist/
+/electron/dist/
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.snap
+electron-deps/

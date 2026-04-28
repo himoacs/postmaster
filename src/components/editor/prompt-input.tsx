@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,8 +21,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Plus, X, Link2, FileText, Database, Quote, Sparkles, Loader2 } from "lucide-react";
+import { ChevronDown, Plus, X, Link2, FileText, Database, Quote, Sparkles, Loader2, Upload, File, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+
+export type ContentMode = "new" | "enhance";
 
 export interface ReferenceSource {
   id: string;
@@ -51,6 +54,11 @@ interface PromptInputProps {
   onSelectedKnowledgeChange: (ids: string[]) => void;
   enableCitations: boolean;
   onEnableCitationsChange: (enabled: boolean) => void;
+  // New props for content mode
+  contentMode: ContentMode;
+  onContentModeChange: (mode: ContentMode) => void;
+  existingContent: string | null;
+  onExistingContentChange: (content: string | null) => void;
 }
 
 const contentTypes = [
@@ -81,6 +89,10 @@ export function PromptInput({
   onSelectedKnowledgeChange,
   enableCitations,
   onEnableCitationsChange,
+  contentMode,
+  onContentModeChange,
+  existingContent,
+  onExistingContentChange,
 }: PromptInputProps) {
   const [isReferencesOpen, setIsReferencesOpen] = useState(references.length > 0);
   const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
@@ -88,6 +100,14 @@ export function PromptInput({
   const [newText, setNewText] = useState("");
   const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntryBasic[]>([]);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  
+  // File upload state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [existingContentWordCount, setExistingContentWordCount] = useState(0);
+  const [isContentPreviewOpen, setIsContentPreviewOpen] = useState(false);
+  const [pasteMode, setPasteMode] = useState<"upload" | "paste">("upload");
 
   // Fetch active knowledge entries
   useEffect(() => {
@@ -182,15 +202,243 @@ export function PromptInput({
     }
   };
 
+  // File upload handling
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Size validation: 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    // Type validation
+    const allowedExtensions = [".pdf", ".docx", ".doc", ".md", ".txt"];
+    const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
+    if (!ext || !allowedExtensions.includes(ext)) {
+      toast.error("Unsupported file type. Supported: PDF, DOCX, MD, TXT");
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/content/extract", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to extract content");
+      }
+
+      const data = await response.json();
+      onExistingContentChange(data.content);
+      setUploadedFileName(data.fileName);
+      setExistingContentWordCount(data.wordCount);
+      setIsContentPreviewOpen(true);
+      toast.success(`Extracted ${data.wordCount.toLocaleString()} words from ${data.fileName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to extract content");
+    } finally {
+      setIsExtracting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const clearExistingContent = () => {
+    onExistingContentChange(null);
+    setUploadedFileName(null);
+    setExistingContentWordCount(0);
+    setIsContentPreviewOpen(false);
+  };
+
+  const handlePastedContent = (text: string) => {
+    onExistingContentChange(text || null);
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    setExistingContentWordCount(wordCount);
+    setUploadedFileName(null);
+    if (text.trim()) {
+      setIsContentPreviewOpen(true);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Content Mode Toggle */}
+      <div className="space-y-3">
+        <Tabs value={contentMode} onValueChange={(v) => onContentModeChange(v as ContentMode)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="new" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Create New
+            </TabsTrigger>
+            <TabsTrigger value="enhance" className="gap-2">
+              <File className="h-4 w-4" />
+              Enhance Existing
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Existing Content Upload (only in enhance mode) */}
+      {contentMode === "enhance" && (
+        <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-medium">Your Existing Content</Label>
+            {existingContent && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearExistingContent}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {!existingContent ? (
+            <>
+              {/* Upload/Paste toggle */}
+              <div className="flex gap-2 mb-3">
+                <Button
+                  type="button"
+                  variant={pasteMode === "upload" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPasteMode("upload")}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload File
+                </Button>
+                <Button
+                  type="button"
+                  variant={pasteMode === "paste" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setPasteMode("paste")}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Paste Text
+                </Button>
+              </div>
+
+              {pasteMode === "upload" ? (
+                <>
+                  {/* File upload zone */}
+                  <div
+                    onClick={() => !isExtracting && fileInputRef.current?.click()}
+                    className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                      isExtracting 
+                        ? "border-muted-foreground/50 bg-muted/50 cursor-wait" 
+                        : "border-muted-foreground/30 hover:border-primary hover:bg-muted/50"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.docx,.doc,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      disabled={isExtracting}
+                    />
+                    
+                    {isExtracting ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">Extracting content...</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="h-10 w-10 text-muted-foreground" />
+                        <p className="text-sm font-medium">Drop a file here or click to upload</p>
+                        <div className="flex gap-2 flex-wrap justify-center">
+                          <Badge variant="secondary">PDF</Badge>
+                          <Badge variant="secondary">DOCX</Badge>
+                          <Badge variant="secondary">MD</Badge>
+                          <Badge variant="secondary">TXT</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Max file size: 10MB</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Paste textarea */
+                <Textarea
+                  placeholder="Paste your existing content here..."
+                  className="min-h-[150px] resize-none"
+                  onChange={(e) => handlePastedContent(e.target.value)}
+                />
+              )}
+            </>
+          ) : (
+            /* Content preview */
+            <Collapsible open={isContentPreviewOpen} onOpenChange={setIsContentPreviewOpen}>
+              <div className="flex items-center justify-between rounded-lg border bg-background p-3">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">
+                      {uploadedFileName || "Pasted content"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {existingContentWordCount.toLocaleString()} words
+                      {existingContentWordCount > 5000 && (
+                        <span className="ml-2 text-yellow-600 dark:text-yellow-500">
+                          <AlertCircle className="h-3 w-3 inline mr-1" />
+                          Large content
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isContentPreviewOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+              <CollapsibleContent className="mt-2">
+                <div className="rounded-lg border bg-muted/50 p-3 max-h-[200px] overflow-y-auto">
+                  <pre className="text-sm whitespace-pre-wrap font-mono">
+                    {existingContent.slice(0, 2000)}
+                    {existingContent.length > 2000 && (
+                      <span className="text-muted-foreground">
+                        {"\n\n...truncated preview ({(existingContent.length - 2000).toLocaleString()} more characters)"}
+                      </span>
+                    )}
+                  </pre>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
+      )}
+
       <div>
         <Label htmlFor="prompt" className="text-base font-medium">
-          What do you want to write about?
+          {contentMode === "new" 
+            ? "What do you want to write about?" 
+            : "How would you like to enhance this content?"
+          }
         </Label>
         <Textarea
           id="prompt"
-          placeholder="Describe the content you want to create. Be specific about the topic, key points, and any particular angle or perspective you want to take..."
+          placeholder={contentMode === "new" 
+            ? "Describe the content you want to create. Be specific about the topic, key points, and any particular angle or perspective you want to take..."
+            : "Describe how you'd like to improve this content. For example: 'Make it more engaging', 'Add more technical details', 'Rewrite in a conversational tone'..."
+          }
           className="mt-2 min-h-[200px] resize-none"
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
@@ -220,26 +468,6 @@ export function PromptInput({
             )}
           </Button>
         </div>
-      </div>
-
-      {/* Citations Toggle */}
-      <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
-        <div className="flex items-center gap-3">
-          <Quote className="h-4 w-4 text-muted-foreground" />
-          <div className="space-y-0.5">
-            <Label htmlFor="citations" className="text-sm font-medium cursor-pointer">
-              Include citations
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              Add inline source citations to ground content in your references
-            </p>
-          </div>
-        </div>
-        <Switch
-          id="citations"
-          checked={enableCitations}
-          onCheckedChange={onEnableCitationsChange}
-        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -454,6 +682,28 @@ export function PromptInput({
             </div>
           </CollapsibleContent>
         </Collapsible>
+      )}
+
+      {/* Citations Toggle - only visible when knowledge base items are selected */}
+      {selectedKnowledge.length > 0 && (
+        <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+          <div className="flex items-center gap-3">
+            <Quote className="h-4 w-4 text-muted-foreground" />
+            <div className="space-y-0.5">
+              <Label htmlFor="citations" className="text-sm font-medium cursor-pointer">
+                Include citations
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Add inline source citations to ground content in your knowledge base
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="citations"
+            checked={enableCitations}
+            onCheckedChange={onEnableCitationsChange}
+          />
+        </div>
       )}
     </div>
   );

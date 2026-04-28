@@ -1,0 +1,112 @@
+appId: com.postmaster.app
+productName: PostMaster
+copyright: Copyright © 2024-2026
+
+directories:
+  output: dist
+  buildResources: build
+
+# Include electron main process files
+files:
+  - electron/dist/**/*
+  - "!**/*.ts"
+
+# Copy electron-updater dependencies (prepared by scripts/prepare-electron-deps.js)
+extraFiles:
+  - from: electron-deps/node_modules
+    to: node_modules
+    filter:
+      - "**/*"
+
+extraResources:
+  - from: .next/standalone_flat
+    to: server
+    filter:
+      - "**/*"
+      - "!node_modules"
+  - from: .next/standalone_flat/node_modules
+    to: server/node_modules
+    filter:
+      - "**/*"
+  - from: .next/static
+    to: server/.next/static
+  - from: public
+    to: server/public
+  - from: data
+    to: server/data
+  - from: prisma/template.db
+    to: template.db
+
+asar: false
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: PostMaster
+
+linux:
+  icon: build/icons
+  category: Office
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+
+# Auto-update disabled - no public release repository configured
+# To enable updates, create a GitHub repo and uncomment:
+# publish:
+#   provider: github
+#   owner: YOUR_GITHUB_USERNAME
+#   repo: postmaster
+#   releaseType: release
+publish: null
+
+# Rebuild native modules for Electron
+electronVersion: "36.3.2"
+npmRebuild: true
+nodeGypRebuild: false
+
+# Native dependencies that need rebuilding
+nativeRebuilder: sequential
+
+beforePack: scripts/before-pack.js
+afterPack: scripts/after-pack.js

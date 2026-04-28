@@ -13,16 +13,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Calendar,
   Search,
   FileText,
   ImageIcon,
   Clock,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { AIProvider, ContentType, GenerationStatus } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Generation {
   id: string;
@@ -59,9 +72,30 @@ const statusColors: Record<GenerationStatus, string> = {
 };
 
 export function HistoryList({ initialGenerations }: HistoryListProps) {
-  const [generations] = useState<Generation[]>(initialGenerations);
+  const [generations, setGenerations] = useState<Generation[]>(initialGenerations);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/generations/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete");
+      }
+
+      setGenerations((prev) => prev.filter((g) => g.id !== id));
+      toast.success("Generation deleted");
+    } catch (error) {
+      toast.error("Failed to delete generation");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filteredGenerations = generations.filter((g) => {
     const matchesSearch =
@@ -197,12 +231,44 @@ export function HistoryList({ initialGenerations }: HistoryListProps) {
                     </div>
                   </div>
 
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/dashboard/history/${generation.id}`}>
-                      View
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                          disabled={deletingId === generation.id}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete generation?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete this generation and all its outputs.
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(generation.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/history/${generation.id}`}>
+                        View
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

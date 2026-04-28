@@ -56,7 +56,15 @@ model StyleProfile {
   voice       String?  // e.g., "first-person", "authoritative", "friendly"
   vocabulary  String?  // e.g., "technical", "simple", "creative"
   sentence    String?  // e.g., "short punchy", "long flowing", "varied"
-  patterns    String?  // Common phrases, structures (JSON)
+  patterns    String?  // Common phrases, structures (JSON array of 8-10 patterns)
+  
+  // Enhanced style capture (Phase 1)
+  uniqueVocabulary String?  // JSON array of distinctive words/phrases the user favors
+  avoidPatterns    String?  // JSON array of phrases the user never uses
+  writingQuirks    String?  // JSON: punctuation habits, emoji usage, caps preferences
+  sampleExcerpts   String?  // JSON array of 3-5 representative paragraphs for few-shot
+  openingStyles    String?  // JSON array of how user typically opens pieces
+  closingStyles    String?  // JSON array of how user typically closes pieces
   
   // User-provided context
   bio         String?  // About the user
@@ -95,6 +103,8 @@ model Generation {
   contentType  String   @default("BLOG_POST")
   lengthPref   String?  // short, medium, long
   styleContext String?  // JSON snapshot of style profile at generation time
+  contentMode  String   @default("new")  // "new" or "enhance"
+  sourceContent String? // Original content when enhancing existing content
   
   // State
   status       String   @default("PENDING")
@@ -231,6 +241,35 @@ model ModelAnalytics {
   updatedAt    DateTime @updatedAt
 
   @@unique([provider, modelId])
+}
+
+// ============================================================================
+// Model Quality Tracking
+// ============================================================================
+
+// Tracks which model's content was selected in each synthesis decision
+model SynthesisContribution {
+  id           String   @id @default(cuid())
+  synthesisId  String   // References SynthesizedContent.id
+  generationId String   // For easier querying
+  
+  // Model that contributed
+  provider     String   // AIProvider
+  model        String   // Specific model identifier
+  
+  // Contribution details
+  aspectCount  Int      @default(0)  // Number of decisions where this model was selected
+  totalAspects Int      @default(0)  // Total decisions in this synthesis
+  aspectTypes  String   @default("[]") // JSON array of aspect names (e.g., ["structure", "opening"])
+  
+  // Starred sections tracking
+  starredCount Int      @default(0)  // Number of starred sections from this model
+  
+  createdAt    DateTime @default(now())
+  
+  @@index([synthesisId])
+  @@index([provider, model])
+  @@index([generationId])
 }
 
 // ============================================================================

@@ -57,3 +57,51 @@ export async function generateWithMistral(
     tokensUsed: response.usage?.totalTokens || 0,
   };
 }
+
+/**
+ * Generate content with Mistral using streaming
+ * Yields content chunks as they arrive
+ */
+export async function* generateWithMistralStream(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  userPrompt: string
+): AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> {
+  const client = createMistralClient(apiKey);
+
+  const stream = await client.chat.stream({
+    model,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.7,
+    maxTokens: 4096,
+  });
+
+  let tokensUsed = 0;
+
+  for await (const event of stream) {
+    const choice = event.data?.choices?.[0];
+    const rawContent = choice?.delta?.content || "";
+    // The content could be a string or ContentChunk[], handle both cases
+    const content = typeof rawContent === 'string' 
+      ? rawContent 
+      : Array.isArray(rawContent) 
+        ? rawContent.map(c => typeof c === 'string' ? c : (c as { text?: string }).text || '').join('')
+        : "";
+    
+    if (event.data?.usage?.totalTokens) {
+      tokensUsed = event.data.usage.totalTokens;
+    }
+    
+    if (content) {
+      yield { content, done: false };
+    }
+    
+    if (choice?.finishReason) {
+      yield { content: "", done: true, tokensUsed };
+    }
+  }
+}

@@ -20,6 +20,9 @@ export async function POST() {
     );
   }
 
+  // Get user preferences to use primary model
+  const preferences = await prisma.userPreferences.findFirst();
+
   // Check for LiteLLM config first
   const litellmConfig = await prisma.liteLLMConfig.findFirst({
     where: { isEnabled: true, isValid: true },
@@ -50,19 +53,50 @@ export async function POST() {
     .join("\n\n---\n\n")
     .substring(0, 15000); // Limit to ~15k chars
 
-  const systemPrompt = `You are an expert writing analyst. Analyze the provided writing samples and extract the author's distinct writing style characteristics.
+  const systemPrompt = `You are an expert writing analyst specializing in capturing authentic human voice. Analyze the provided writing samples and extract the author's DISTINCT writing style characteristics that make them sound uniquely human.
+
+IMPORTANT: Your goal is to capture enough detail that AI-generated content can authentically match this person's voice and NOT sound like typical AI output.
 
 Respond with a JSON object containing these fields:
-- tone: The emotional tone (e.g., "conversational", "professional", "humorous", "serious")
-- voice: The narrative voice (e.g., "first-person casual", "authoritative expert", "friendly guide")
-- vocabulary: The vocabulary style (e.g., "technical jargon", "simple everyday", "creative metaphorical")
-- sentence: The sentence structure (e.g., "short punchy sentences", "long flowing prose", "varied rhythmic")
-- patterns: A JSON array of 3-5 common phrases or patterns the author uses
 
-Be specific and observational. Base your analysis only on what you see in the samples.
+CORE STYLE:
+- tone: The emotional tone (e.g., "conversational with dry humor", "professional but warm", "enthusiastic and direct")
+- voice: The narrative voice (e.g., "first-person casual storyteller", "authoritative but approachable expert", "friendly skeptic")
+- vocabulary: The vocabulary style (e.g., "technical with accessible explanations", "casual with occasional profanity", "precise academic")
+- sentence: The sentence structure (e.g., "varies between punchy one-liners and complex explanations", "consistently flowing mid-length", "fragments for emphasis, then detailed followups")
+
+DISTINCTIVE PATTERNS (capture 8-10):
+- patterns: A JSON array of 8-10 DISTINCTIVE writing patterns. Include:
+  * Signature transition phrases (e.g., "Here's the thing:", "Look,", "Real talk:")
+  * Opening hooks they favor (questions, bold statements, anecdotes)
+  * Closing styles (calls to action, reflections, questions to reader)
+  * Rhetorical devices (direct address "you", questions, parentheticals)
+  * Emphasis techniques (italics patterns, caps for humor, em-dashes)
+  * Signature expressions or idioms unique to their voice
+  DO NOT include: article titles, navigation text, generic CTAs, or common phrases everyone uses.
+
+VOCABULARY FINGERPRINT:
+- uniqueVocabulary: A JSON array of 10-15 distinctive words or short phrases this author uses that are somewhat unique to them or used more frequently than typical (e.g., specific adjectives, verbs, expressions, industry terms they favor)
+- avoidPatterns: A JSON array of 5-8 common phrases or structures this author NEVER uses or actively avoids (based on what's absent from all samples despite being common elsewhere)
+
+WRITING QUIRKS:
+- writingQuirks: A JSON object with:
+  * punctuation: How they use punctuation distinctively (e.g., "heavy em-dash user", "avoids semicolons", "uses ... for trailing thoughts")
+  * formatting: Formatting preferences (e.g., "bold for key terms", "frequent bullet lists", "avoids headers in favor of paragraphs")
+  * emoji: Emoji usage (e.g., "never", "sparingly for emphasis", "frequent casual use")
+  * caps: Capitalization style (e.g., "occasional ALL CAPS for humor", "standard", "lowercase aesthetic")
+
+REPRESENTATIVE EXCERPTS:
+- sampleExcerpts: A JSON array of 3-5 short (2-4 sentence) VERBATIM excerpts from the samples that best capture the author's distinctive voice. These will be used as few-shot examples.
+
+OPENING/CLOSING ANALYSIS:
+- openingStyles: A JSON array of 3-4 descriptions of how this author typically opens pieces (e.g., "provocative question", "personal anecdote", "bold contrarian statement")
+- closingStyles: A JSON array of 3-4 descriptions of how this author typically closes pieces (e.g., "reflective question to reader", "action item", "circling back to opening")
+
+Be extremely specific and observational. Base your analysis only on what you see in the samples. If you can't determine something from the samples, use null.
 Output only valid JSON, no explanation.`;
 
-  const userPrompt = `Analyze these writing samples and extract the author's writing style:
+  const userPrompt = `Analyze these writing samples and extract the author's complete writing style fingerprint:
 
 ${combinedText}`;
 
@@ -70,11 +104,14 @@ ${combinedText}`;
     let result: { content: string; tokensUsed: number };
 
     if (litellmConfig) {
-      // Use LiteLLM - pick a fast/cheap model for analysis
+      // Use LiteLLM - prefer user's primary model, fall back to first available
       const models = JSON.parse(litellmConfig.cachedModels || "[]") as Array<{ id: string; costTier: string }>;
-      // Prefer low-cost models for style analysis
-      const cheapModel = models.find(m => m.costTier === "low") || models[0];
-      const modelId = cheapModel?.id || "azure-gpt-4o-mini";
+      
+      // Use primary model if set and available, otherwise fall back
+      let modelId = preferences?.primaryModelId;
+      if (!modelId || !models.find(m => m.id === modelId)) {
+        modelId = models[0]?.id || "azure-gpt-4o-mini";
+      }
       
       const litellmKey = litellmConfig.encryptedKey 
         ? decrypt(litellmConfig.encryptedKey) 
@@ -123,35 +160,40 @@ ${combinedText}`;
       );
     }
 
+    // Helper to safely stringify JSON fields
+    const safeStringify = (value: unknown): string | null => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === "string") return value;
+      return JSON.stringify(value);
+    };
+
+    // Prepare the data for saving
+    const profileData = {
+      tone: analysis.tone || null,
+      voice: analysis.voice || null,
+      vocabulary: analysis.vocabulary || null,
+      sentence: analysis.sentence || null,
+      patterns: safeStringify(analysis.patterns),
+      uniqueVocabulary: safeStringify(analysis.uniqueVocabulary),
+      avoidPatterns: safeStringify(analysis.avoidPatterns),
+      writingQuirks: safeStringify(analysis.writingQuirks),
+      sampleExcerpts: safeStringify(analysis.sampleExcerpts),
+      openingStyles: safeStringify(analysis.openingStyles),
+      closingStyles: safeStringify(analysis.closingStyles),
+      analyzedAt: new Date(),
+    };
+
     // Update the style profile
     const existing = await prisma.styleProfile.findFirst();
     
     if (existing) {
       await prisma.styleProfile.update({
         where: { id: existing.id },
-        data: {
-          tone: analysis.tone || null,
-          voice: analysis.voice || null,
-          vocabulary: analysis.vocabulary || null,
-          sentence: analysis.sentence || null,
-          patterns: analysis.patterns
-            ? JSON.stringify(analysis.patterns)
-            : null,
-          analyzedAt: new Date(),
-        },
+        data: profileData,
       });
     } else {
       await prisma.styleProfile.create({
-        data: {
-          tone: analysis.tone || null,
-          voice: analysis.voice || null,
-          vocabulary: analysis.vocabulary || null,
-          sentence: analysis.sentence || null,
-          patterns: analysis.patterns
-            ? JSON.stringify(analysis.patterns)
-            : null,
-          analyzedAt: new Date(),
-        },
+        data: profileData,
       });
     }
 
@@ -168,9 +210,13 @@ ${combinedText}`;
       voice: analysis.voice,
       vocabulary: analysis.vocabulary,
       sentence: analysis.sentence,
-      patterns: analysis.patterns
-        ? JSON.stringify(analysis.patterns)
-        : null,
+      patterns: safeStringify(analysis.patterns),
+      uniqueVocabulary: safeStringify(analysis.uniqueVocabulary),
+      avoidPatterns: safeStringify(analysis.avoidPatterns),
+      writingQuirks: safeStringify(analysis.writingQuirks),
+      sampleExcerpts: safeStringify(analysis.sampleExcerpts),
+      openingStyles: safeStringify(analysis.openingStyles),
+      closingStyles: safeStringify(analysis.closingStyles),
     });
   } catch (error) {
     console.error("Style analysis error:", error);

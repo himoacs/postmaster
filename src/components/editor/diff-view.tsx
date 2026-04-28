@@ -102,6 +102,7 @@ export function DiffView({ synthesisId, currentContent, embedded = false }: Diff
 
   useEffect(() => {
     const fetchVersions = async () => {
+      setLoading(true);
       try {
         const response = await fetch(
           `/api/synthesize/versions?synthesisId=${synthesisId}`
@@ -124,7 +125,7 @@ export function DiffView({ synthesisId, currentContent, embedded = false }: Diff
     if (synthesisId) {
       fetchVersions();
     }
-  }, [synthesisId]);
+  }, [synthesisId, currentContent]); // Re-fetch when content changes (new version created)
 
   const selectedVersionData = versions.find((v) => v.id === selectedVersion);
 

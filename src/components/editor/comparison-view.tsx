@@ -6,16 +6,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Star, Sparkles, Clock, Hash, MessagesSquare, Swords } from "lucide-react";
-import { AIProvider, SynthesisStrategy } from "@/types";
+import { ArrowLeft, Star, Sparkles, Clock, Hash, MessagesSquare, Swords, RefreshCw, Replace, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
+import { AIProvider, SynthesisStrategy, SelectedModel } from "@/types";
 import { GenerationOutput } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ComparisonViewProps {
   outputs: GenerationOutput[];
   onSynthesize: (starredSections?: { provider: AIProvider; text: string }[]) => void;
   onBack: () => void;
   synthesisStrategy?: SynthesisStrategy;
+  onSynthesisStrategyChange?: (strategy: SynthesisStrategy) => void;
+  onRetry?: (index: number, provider: AIProvider, modelId: string) => Promise<void>;
+  onSwap?: (index: number, oldProvider: AIProvider, oldModelId: string, newProvider: AIProvider, newModelId: string) => Promise<void>;
+  availableModels?: SelectedModel[];
 }
 
 interface StarredSection {
@@ -28,8 +45,15 @@ export function ComparisonView({
   onSynthesize,
   onBack,
   synthesisStrategy = "basic",
+  onSynthesisStrategyChange,
+  onRetry,
+  onSwap,
+  availableModels = [],
 }: ComparisonViewProps) {
   const [starredSections, setStarredSections] = useState<StarredSection[]>([]);
+  const [retryingIndex, setRetryingIndex] = useState<number | null>(null);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [swapTarget, setSwapTarget] = useState<{ index: number; provider: AIProvider; modelId: string } | null>(null);
   const [selectedText, setSelectedText] = useState<{
     provider: AIProvider;
     text: string;
@@ -60,6 +84,44 @@ export function ComparisonView({
     return text.split(/\s+/).filter(Boolean).length;
   };
 
+  const handleRetry = async (index: number, provider: AIProvider, modelId: string) => {
+    if (!onRetry) return;
+    setRetryingIndex(index);
+    try {
+      await onRetry(index, provider, modelId);
+    } finally {
+      setRetryingIndex(null);
+    }
+  };
+
+  const handleOpenSwapDialog = (index: number, provider: AIProvider, modelId: string) => {
+    setSwapTarget({ index, provider, modelId });
+    setSwapDialogOpen(true);
+  };
+
+  const handleSwapModel = async (newProvider: AIProvider, newModelId: string) => {
+    if (!onSwap || !swapTarget) return;
+    setSwapDialogOpen(false);
+    setRetryingIndex(swapTarget.index);
+    try {
+      await onSwap(swapTarget.index, swapTarget.provider, swapTarget.modelId, newProvider, newModelId);
+    } finally {
+      setRetryingIndex(null);
+      setSwapTarget(null);
+    }
+  };
+
+  // Filter available models to exclude ones already in use
+  const getAvailableSwapModels = () => {
+    const usedModels = new Set(outputs.map(o => `${o.provider}:${o.model}`));
+    return availableModels.filter(m => !usedModels.has(`${m.provider}:${m.modelId}`));
+  };
+
+  // Check if an output has an error or is empty
+  const isOutputFailed = (output: GenerationOutput) => {
+    return output.error || !output.content || output.content.trim() === "";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -69,35 +131,86 @@ export function ComparisonView({
             Back
           </Button>
           <div>
-            <h2 className="text-xl font-semibold">Compare Outputs</h2>
+            <h2 className="text-xl font-semibold">{outputs.length === 1 ? "Review Output" : "Compare Outputs"}</h2>
             <p className="text-sm text-muted-foreground">
-              Select text you like and star it, then synthesize the best parts
+              {outputs.length === 1 
+                ? "Review your content and polish it, or star sections you like"
+                : "Select text you like and star it, then synthesize the best parts"
+              }
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {synthesisStrategy !== "basic" && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              {synthesisStrategy === "debate" ? (
-                <>
-                  <Swords className="h-3 w-3" />
-                  Debate Mode
-                </>
-              ) : (
-                <>
-                  <MessagesSquare className="h-3 w-3" />
-                  Critique Mode
-                </>
-              )}
-            </Badge>
+          {/* Synthesis Strategy Selector */}
+          {outputs.length > 1 && onSynthesisStrategyChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  {synthesisStrategy === "debate" ? (
+                    <>
+                      <Swords className="h-4 w-4" />
+                      Debate
+                    </>
+                  ) : synthesisStrategy === "sequential" ? (
+                    <>
+                      <MessagesSquare className="h-4 w-4" />
+                      Critique
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Basic
+                    </>
+                  )}
+                  <ChevronDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem 
+                  onClick={() => onSynthesisStrategyChange("basic")}
+                  className="flex flex-col items-start gap-1 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="font-medium">Basic</span>
+                    <Badge variant="outline" className="ml-auto text-xs">~1x</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground pl-6">Fast direct merge</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onSynthesisStrategyChange("sequential")}
+                  className="flex flex-col items-start gap-1 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessagesSquare className="h-4 w-4" />
+                    <span className="font-medium">Critique</span>
+                    <Badge variant="secondary" className="ml-auto text-xs">~3x</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground pl-6">Models review each other</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => onSynthesisStrategyChange("debate")}
+                  className="flex flex-col items-start gap-1 py-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <Swords className="h-4 w-4" />
+                    <span className="font-medium">Debate</span>
+                    <Badge variant="default" className="ml-auto text-xs">~5x</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground pl-6">Multi-round consensus</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button onClick={() => onSynthesize(starredSections)} size="lg">
             <Sparkles className="mr-2 h-4 w-4" />
-            {synthesisStrategy === "basic" 
-              ? `Synthesize${starredSections.length > 0 ? ` (${starredSections.length} starred)` : ""}`
-              : synthesisStrategy === "debate"
-                ? "Start Debate & Synthesize"
-                : "Critique & Synthesize"
+            {outputs.length === 1 
+              ? "Polish & Finalize"
+              : synthesisStrategy === "basic" 
+                ? `Synthesize${starredSections.length > 0 ? ` (${starredSections.length} starred)` : ""}`
+                : synthesisStrategy === "debate"
+                  ? "Start Debate & Synthesize"
+                  : "Critique & Synthesize"
             }
           </Button>
         </div>
@@ -164,43 +277,152 @@ export function ComparisonView({
 
       {/* Output cards */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {outputs.map((output, index) => (
-          <Card key={index} className="flex flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  {AI_PROVIDERS[output.provider].name}
-                  <Badge variant="secondary" className="text-xs font-normal">
-                    {output.model}
-                  </Badge>
-                </CardTitle>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Hash className="h-3 w-3" />
-                    {wordCount(output.content)} words
-                  </span>
-                  {output.latencyMs && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {(output.latencyMs / 1000).toFixed(1)}s
-                    </span>
-                  )}
+        {outputs.map((output, index) => {
+          const isFailed = isOutputFailed(output);
+          const isRetrying = retryingIndex === index;
+
+          return (
+            <Card key={index} className={`flex flex-col ${isFailed ? "border-destructive/50" : ""}`}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    {AI_PROVIDERS[output.provider]?.name || output.provider}
+                    <Badge variant="secondary" className="text-xs font-normal">
+                      {output.model}
+                    </Badge>
+                    {isFailed && (
+                      <Badge variant="destructive" className="text-xs">
+                        Failed
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    {!isFailed && (
+                      <span className="flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        {wordCount(output.content)} words
+                      </span>
+                    )}
+                    {output.latencyMs && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {(output.latencyMs / 1000).toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <ScrollArea className="h-[400px] pr-4">
-                <div
-                  className="prose prose-sm dark:prose-invert max-w-none select-text"
-                  onMouseUp={() => handleTextSelection(output.provider)}
-                >
-                  <ReactMarkdown>{output.content}</ReactMarkdown>
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent className="flex-1">
+                {isFailed ? (
+                  // Error state - show retry/swap options
+                  <div className="h-[400px] flex flex-col items-center justify-center text-center p-6 space-y-4">
+                    {isRetrying ? (
+                      <>
+                        <Loader2 className="h-10 w-10 text-muted-foreground animate-spin" />
+                        <p className="text-muted-foreground">Regenerating...</p>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-10 w-10 text-destructive/60" />
+                        <div className="space-y-1">
+                          <p className="font-medium">This model returned no content</p>
+                          <p className="text-sm text-muted-foreground">
+                            {output.error || "The model returned an empty response after automatic retry."}
+                          </p>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          {onRetry && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRetry(index, output.provider, output.model)}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Retry
+                            </Button>
+                          )}
+                          {onSwap && availableModels.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenSwapDialog(index, output.provider, output.model)}
+                            >
+                              <Replace className="mr-2 h-4 w-4" />
+                              Swap Model
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  // Success state - show content
+                  <ScrollArea className="h-[400px] pr-4">
+                    <div
+                      className="prose prose-sm prose-editorial dark:prose-invert max-w-none select-text"
+                      onMouseUp={() => handleTextSelection(output.provider)}
+                    >
+                      <ReactMarkdown
+                        components={{
+                          a: ({ href, children }) => {
+                            // Handle citation links - show URL and open externally
+                            const handleClick = (e: React.MouseEvent) => {
+                              e.preventDefault();
+                              if (href) {
+                                window.open(href, '_blank', 'noopener,noreferrer');
+                              }
+                            };
+                            return (
+                              <span
+                                onClick={handleClick}
+                                className="text-primary underline cursor-pointer hover:text-primary/80"
+                                title={href}
+                              >
+                                {children}
+                                {href && <span className="text-muted-foreground text-xs ml-1">({href})</span>}
+                              </span>
+                            );
+                          }
+                        }}
+                      >{output.content}</ReactMarkdown>
+                    </div>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Model Swap Dialog */}
+      <Dialog open={swapDialogOpen} onOpenChange={setSwapDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Swap to a Different Model</DialogTitle>
+            <DialogDescription>
+              Choose a model to replace {swapTarget && AI_PROVIDERS[swapTarget.provider]?.name} ({swapTarget?.modelId})
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {getAvailableSwapModels().map((model) => (
+              <Button
+                key={`${model.provider}:${model.modelId}`}
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleSwapModel(model.provider, model.modelId)}
+              >
+                <span className="font-medium">{AI_PROVIDERS[model.provider]?.name || model.provider}</span>
+                <span className="ml-2 text-muted-foreground">{model.modelId}</span>
+              </Button>
+            ))}
+            {getAvailableSwapModels().length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No other models available. Configure more models in Settings.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

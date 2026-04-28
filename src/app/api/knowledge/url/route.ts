@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
         content: crawlResult.rootContent,
         wordCount,
         isActive: true,
-        subpageLinks: crawlResult.subpageLinks.length > 0 ? crawlResult.subpageLinks : undefined,
+        subpageLinks: crawlResult.subpageLinks.length > 0 
+          ? JSON.parse(JSON.stringify(crawlResult.subpageLinks)) 
+          : undefined,
       },
     });
 

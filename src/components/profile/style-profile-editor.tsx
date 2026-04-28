@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ interface StyleProfileEditorProps {
 }
 
 export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) {
+  const router = useRouter();
   const [profile, setProfile] = useState<StyleProfile>(
     initialProfile || {
       bio: "",
@@ -41,6 +43,13 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
   );
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+
+  // Sync profile state when initialProfile changes (e.g., after router.refresh())
+  useEffect(() => {
+    if (initialProfile) {
+      setProfile(initialProfile);
+    }
+  }, [initialProfile]);
 
   const updateProfile = (field: keyof StyleProfile, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -66,6 +75,7 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
   };
 
   const analyzeStyle = async () => {
+    if (analyzing) return; // Prevent double-clicks
     setAnalyzing(true);
     try {
       const response = await fetch("/api/style/analyze", {
@@ -78,15 +88,21 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
         throw new Error(data.error || "Analysis failed");
       }
 
+      // Update local state with the analysis results
+      // Use nullish coalescing to allow empty strings from API
       setProfile((prev) => ({
         ...prev,
-        tone: data.tone || prev.tone,
-        voice: data.voice || prev.voice,
-        vocabulary: data.vocabulary || prev.vocabulary,
-        sentence: data.sentence || prev.sentence,
-        patterns: data.patterns || prev.patterns,
+        tone: data.tone ?? prev.tone,
+        voice: data.voice ?? prev.voice,
+        vocabulary: data.vocabulary ?? prev.vocabulary,
+        sentence: data.sentence ?? prev.sentence,
+        patterns: data.patterns ?? prev.patterns,
       }));
-      toast.success("Style analysis complete");
+      
+      toast.success("Style analysis complete! Fields have been updated.");
+      
+      // Refresh the page to ensure server data is in sync
+      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to analyze style");
     } finally {

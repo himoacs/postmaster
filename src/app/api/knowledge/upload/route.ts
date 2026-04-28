@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
-import { parseOfficeAsync } from "officeparser";
+import { parseOffice } from "officeparser";
 
 // Import the internal lib directly to avoid pdf-parse's test file execution
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -83,8 +83,13 @@ function extractExcelText(buffer: Buffer): string {
 
 // Extract text from PPTX/PPT using officeparser
 async function extractPptText(buffer: Buffer): Promise<string> {
-  const result = await parseOfficeAsync(buffer);
-  return result;
+  const result = await parseOffice(buffer);
+  // parseOffice may return an AST or string depending on version
+  if (typeof result === "string") {
+    return result;
+  }
+  // If it returns an AST, extract text from it
+  return String(result);
 }
 
 // POST /api/knowledge/upload - Create knowledge entry from file upload

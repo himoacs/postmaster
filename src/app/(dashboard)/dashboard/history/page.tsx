@@ -4,6 +4,27 @@ import { HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentType, GenerationStatus, AIProvider } from "@/types";
 
+interface GenerationOutput {
+  provider: string;
+  model: string;
+}
+
+interface SynthesizedContent {
+  content: string | null;
+  imageUrl: string | null;
+  version: number;
+}
+
+interface GenerationWithRelations {
+  id: string;
+  prompt: string;
+  contentType: string;
+  status: string;
+  createdAt: Date;
+  outputs: GenerationOutput[];
+  synthesizedContent: SynthesizedContent | null;
+}
+
 export default async function HistoryPage() {
   const generations = await prisma.generation.findMany({
     orderBy: { createdAt: "desc" },
@@ -25,13 +46,13 @@ export default async function HistoryPage() {
     },
   });
 
-  const formattedGenerations = generations.map((g) => ({
+  const formattedGenerations = generations.map((g: GenerationWithRelations) => ({
     id: g.id,
     prompt: g.prompt,
     contentType: g.contentType as ContentType,
     status: g.status as GenerationStatus,
     createdAt: g.createdAt.toISOString(),
-    models: g.outputs.map((o) => ({ 
+    models: g.outputs.map((o: { provider: string; model: string }) => ({ 
       provider: o.provider as AIProvider, 
       model: o.model 
     })),
@@ -42,8 +63,8 @@ export default async function HistoryPage() {
   }));
 
   return (
-    <div className="h-full">
-      <header className="flex items-center justify-between border-b px-6 py-4">
+    <div className="h-full flex flex-col">
+      <header className="flex items-center justify-between border-b px-6 py-4 flex-shrink-0">
         <div>
           <h1 className="font-serif text-xl font-medium">History</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -57,7 +78,7 @@ export default async function HistoryPage() {
           </a>
         </Button>
       </header>
-      <div className="p-6">
+      <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-4xl">
           <HistoryList initialGenerations={formattedGenerations} />
         </div>

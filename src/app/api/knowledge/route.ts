@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const transformedEntries = entries.map((entry) => ({
       ...entry,
       subpageCount: entry.subpageLinks 
-        ? (entry.subpageLinks as SubpageLink[]).length 
+        ? (entry.subpageLinks as unknown as SubpageLink[]).length 
         : 0,
       subpageLinks: undefined, // Don't send full array to client
     }));

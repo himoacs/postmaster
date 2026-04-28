@@ -36,7 +36,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         generationId: generation.id,
         prompt: generation.prompt,
         contentType: generation.contentType,
-        outputs: generation.outputs.map((o) => ({
+        outputs: generation.outputs.map((o: { provider: string; model: string; content: string; tokensUsed: number | null; latencyMs: number | null }) => ({
           provider: o.provider as AIProvider,
           model: o.model,
           content: o.content,
@@ -51,8 +51,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b px-6 py-4">
+    <div className="flex h-full flex-col overflow-hidden">
+      <header className="flex-shrink-0 flex items-center justify-between border-b px-6 py-4">
         <div>
           <h1 className="font-serif text-xl font-medium">
             {resumeData ? "Resume Draft" : "New Draft"}
@@ -70,7 +70,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </a>
         </Button>
       </header>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <WritingWorkspace
           initialGenerationId={resumeData?.generationId}
           initialPrompt={resumeData?.prompt}
