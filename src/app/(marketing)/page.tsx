@@ -53,6 +53,9 @@ export default function LandingPage() {
               <Link href="#how-it-works">How it works</Link>
             </Button>
             <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+              <Link href="/about">About</Link>
+            </Button>
+            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
               <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
                 <HeartHandshake className="h-4 w-4" />
                 Donate
@@ -229,7 +232,11 @@ export default function LandingPage() {
             <span className="font-serif text-sm text-muted-foreground">PostMaster</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Open source. Local-first. Made for writers.
+            Open source. Local-first. Made for writers by{" "}
+            <Link href="/about" className="underline hover:text-foreground transition-colors">
+              Himanshu Gupta
+            </Link>
+            .
           </p>
         </div>
       </footer>
