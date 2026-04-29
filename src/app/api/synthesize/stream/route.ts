@@ -10,6 +10,7 @@ import { generateWithLiteLLMStream } from "@/lib/ai/litellm";
 import { GenerationOutput, SelectedModel } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { createSSEStream } from "@/lib/streaming";
+import { calculateWeightedUsageAttribution } from "@/lib/analysis/text-similarity";
 
 interface SynthesizeStreamRequest {
   generationId: string;
@@ -192,18 +193,19 @@ Write the final synthesized content directly. Do not include any JSON formatting
         },
       });
 
-      // Track synthesis contributions for analytics (participation-only for streaming)
+      // Track synthesis contributions for analytics using text similarity analysis
       if (outputs.length > 1) {
         try {
-          // Initialize contributions for all participating models
-          const contributions: Record<string, { aspects: string[]; count: number }> = {};
-          for (const output of outputs) {
-            const key = `${output.provider}:${output.model}`;
-            contributions[key] = { aspects: [], count: 0 };
-          }
+          // Calculate actual usage attribution based on text similarity
+          const sources = outputs.map((output) => ({
+            id: `${output.provider}:${output.model}`,
+            content: output.content,
+          }));
 
-          // Track participation only (no detailed reasoning in streaming mode)
-          const totalAspects = 1;
+          const usagePercentages = calculateWeightedUsageAttribution(
+            accumulatedContent,
+            sources
+          );
 
           // Count starred sections per model
           const starredCounts: Record<string, number> = {};
@@ -217,17 +219,17 @@ Write the final synthesized content directly. Do not include any JSON formatting
             }
           }
 
-          // Store contribution records
-          const contributionRecords = Object.entries(contributions).map(([key, data]) => {
+          // Store contribution records with calculated usage percentages
+          const contributionRecords = Object.entries(usagePercentages).map(([key, percentage]) => {
             const [provider, model] = key.split(":");
             return {
               synthesisId: synthesized.id,
               generationId,
               provider,
               model,
-              aspectCount: data.count,
-              totalAspects,
-              aspectTypes: JSON.stringify(data.aspects),
+              aspectCount: percentage, // Actual usage percentage (0-100)
+              totalAspects: 100,        // Always out of 100 for percentage
+              aspectTypes: JSON.stringify([]),
               starredCount: starredCounts[key] || 0,
             };
           });
