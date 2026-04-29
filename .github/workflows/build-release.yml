@@ -135,7 +135,7 @@ jobs:
 
   # Deploy landing page to GitHub Pages
   # This is the ONLY landing page deployment workflow
-  # Source: landing/ folder (single source of truth)
+  # Source: docs/ folder (single source of truth)
   deploy-landing:
     runs-on: ubuntu-latest
     needs: release
@@ -147,5 +147,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./landing
+          publish_dir: ./docs
           cname: postmaster.app # Optional: custom domain
