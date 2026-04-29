@@ -547,7 +547,7 @@ export function PromptInput({
               }
             />
           </div>
-          <div className="flex h-10 items-center rounded-md border border-input bg-background px-3 py-2">
+          <div className="flex h-8 w-fit items-center rounded-lg border border-input bg-transparent px-2.5 py-2">
             <Switch
               id="emojis"
               checked={enableEmojis}
