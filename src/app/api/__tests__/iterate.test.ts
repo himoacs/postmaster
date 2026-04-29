@@ -566,6 +566,7 @@ describe('API: /api/iterate', () => {
         lastValidated: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
+        cachedModels: "[]",
       });
 
       vi.mocked(prisma.synthesizedContent.findUnique).mockResolvedValue({

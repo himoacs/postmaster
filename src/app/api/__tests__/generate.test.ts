@@ -334,6 +334,7 @@ describe('API: /api/generate', () => {
         sourceContent: 'Existing content to enhance',
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       vi.mocked(generateWithOpenAI).mockResolvedValue({
@@ -446,7 +447,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'professional',
         vocabulary: 'technical',
-        vocabulary_3: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -494,6 +494,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -874,6 +875,7 @@ describe('API: /api/generate', () => {
           sourceContent: null,
           createdAt: new Date(),
           updatedAt: new Date(),
+          sourceMap: null,
         });
 
         const request = new NextRequest('http://localhost/api/generate', {
@@ -1088,7 +1090,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual and conversational',
         voice: 'First person',
         vocabulary: 'Simple',
-        transitions: '["Meanwhile", "In addition"]',
         openings: '["Let me tell you", "Here\'s the thing"]',
         closings: '["That\'s all for now", "See you next time"]',
         writingQuirks: JSON.stringify({
@@ -1285,7 +1286,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual',
         voice: 'First person',
         vocabulary: 'Simple',
-        transitions: '{"not": "an array"}',
         openings: 'null',
         closings: undefined,
         writingQuirks: 'not valid json at all',
@@ -1534,7 +1534,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual',
         voice: 'First person',
         vocabulary: 'Simple',
-        transitions: '[]',
         openings: '[]',
         closings: '[]',
         writingQuirks: '{}',

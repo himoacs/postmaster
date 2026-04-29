@@ -515,7 +515,6 @@ describe('API: /api/critique', () => {
     it('should handle LiteLLM critique provider', async () => {
       vi.mocked(prisma.liteLLMConfig.findFirst).mockResolvedValue({
         id: 'litellm-1',
-        modelPrefixes: '["gpt-"]',
         isEnabled: true,
         isValid: true,
         createdAt: new Date(),
