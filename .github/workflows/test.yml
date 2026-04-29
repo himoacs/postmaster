@@ -1,0 +1,198 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: [20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: Upload coverage reports
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Lint code
+        run: pnpm lint
+
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+  check-coverage:
+    name: Coverage Check
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run coverage
+        run: pnpm test:coverage
+
+      - name: Check coverage thresholds
+        run: |
+          node -e "
+          const fs = require('fs');
+          const coverage = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json'));
+          const total = coverage.total;
+          
+          const thresholds = {
+            statements: 80,
+            branches: 75,
+            functions: 80,
+            lines: 80
+          };
+          
+          let failed = false;
+          for (const [key, threshold] of Object.entries(thresholds)) {
+            const actual = total[key].pct;
+            if (actual < threshold) {
+              console.error(\`❌ ${key} coverage (${actual.toFixed(2)}%) is below threshold (${threshold}%)\`);
+              failed = true;
+            } else {
+              console.log(\`✅ ${key} coverage: ${actual.toFixed(2)}%\`);
+            }
+          }
+          
+          if (failed) {
+            process.exit(1);
+          }
+          "
+
+  pre-release-checks:
+    name: Pre-Release Validation
+    runs-on: macos-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, e2e-test, check-coverage]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pre-release checks
+        run: pnpm pre-release
+
+      - name: Test Electron build (macOS)
+        run: |
+          pnpm electron:build:mac
+          ls -lh dist/mac-arm64/*.app || echo "Build verification needed"
+
+      - name: Verify no TypeScript errors
+        run: npx tsc --noEmit
+
+      - name: Verify lint passes
+        run: pnpm lint
