@@ -71,11 +71,38 @@ const contentTypes = [
   { value: "OTHER", label: "Other" },
 ];
 
-const lengthOptions = [
-  { value: "short", label: "Short (~300 words)" },
-  { value: "medium", label: "Medium (~600 words)" },
-  { value: "long", label: "Long (~1200 words)" },
-];
+// Content-type-aware length options
+const getLengthOptions = (contentType: string) => {
+  switch (contentType) {
+    case "TWEET_THREAD":
+      return [
+        { value: "short", label: "Short (3-5 tweets)" },
+        { value: "medium", label: "Medium (6-10 tweets)" },
+        { value: "long", label: "Long (11-15 tweets)" },
+      ];
+    case "LINKEDIN_POST":
+      return [
+        { value: "short", label: "Short (~150 words)" },
+        { value: "medium", label: "Medium (~250 words)" },
+        { value: "long", label: "Long (~400 words)" },
+      ];
+    case "EMAIL":
+      return [
+        { value: "short", label: "Short (~100 words)" },
+        { value: "medium", label: "Medium (~200 words)" },
+        { value: "long", label: "Long (~400 words)" },
+      ];
+    case "BLOG_POST":
+    case "ARTICLE":
+    case "OTHER":
+    default:
+      return [
+        { value: "short", label: "Short (~300 words)" },
+        { value: "medium", label: "Medium (~600 words)" },
+        { value: "long", label: "Long (~1200 words)" },
+      ];
+  }
+};
 
 export function PromptInput({
   prompt,
@@ -495,7 +522,7 @@ export function PromptInput({
               <SelectValue placeholder="Select length" />
             </SelectTrigger>
             <SelectContent>
-              {lengthOptions.map((option) => (
+              {getLengthOptions(contentType).map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

@@ -498,11 +498,38 @@ function buildSystemPrompt(
   existingContent?: string,
   sourceMap?: Array<{ url: string; title: string }>
 ): string {
-  const lengthGuide = {
-    short: "around 300 words",
-    medium: "around 600 words",
-    long: "around 1200 words",
-  }[lengthPref] || "a medium length";
+  // Content-type-aware length guidance
+  let lengthGuide: string;
+  
+  switch (contentType) {
+    case "TWEET_THREAD":
+      lengthGuide = {
+        short: "3-5 tweets (each under 280 characters)",
+        medium: "6-10 tweets (each under 280 characters)",
+        long: "11-15 tweets (each under 280 characters)",
+      }[lengthPref] || "6-10 tweets";
+      break;
+    case "LINKEDIN_POST":
+      lengthGuide = {
+        short: "around 150 words (1,000-1,300 characters)",
+        medium: "around 250 words (1,500-1,800 characters)",
+        long: "around 400 words (2,000-2,500 characters)",
+      }[lengthPref] || "around 250 words";
+      break;
+    case "EMAIL":
+      lengthGuide = {
+        short: "around 100 words (brief and to the point)",
+        medium: "around 200 words",
+        long: "around 400 words",
+      }[lengthPref] || "around 200 words";
+      break;
+    default: // BLOG_POST, ARTICLE, OTHER
+      lengthGuide = {
+        short: "around 300 words",
+        medium: "around 600 words",
+        long: "around 1200 words",
+      }[lengthPref] || "a medium length";
+  }
 
   let prompt = "";
   

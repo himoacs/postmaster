@@ -120,11 +120,38 @@ export async function POST(request: NextRequest) {
       OTHER: "content",
     }[contentType] || "content";
 
-    const lengthLabel = {
-      short: "~300 words",
-      medium: "~600 words",
-      long: "~1200 words",
-    }[lengthPref] || "medium length";
+    // Content-type-aware length labels for prompt enhancement
+    let lengthLabel: string;
+    
+    switch (contentType) {
+      case "TWEET_THREAD":
+        lengthLabel = {
+          short: "3-5 tweets",
+          medium: "6-10 tweets",
+          long: "11-15 tweets",
+        }[lengthPref] || "6-10 tweets";
+        break;
+      case "LINKEDIN_POST":
+        lengthLabel = {
+          short: "~150 words",
+          medium: "~250 words",
+          long: "~400 words",
+        }[lengthPref] || "~250 words";
+        break;
+      case "EMAIL":
+        lengthLabel = {
+          short: "~100 words (brief)",
+          medium: "~200 words",
+          long: "~400 words",
+        }[lengthPref] || "~200 words";
+        break;
+      default: // BLOG_POST, ARTICLE, OTHER
+        lengthLabel = {
+          short: "~300 words",
+          medium: "~600 words",
+          long: "~1200 words",
+        }[lengthPref] || "medium length";
+    }
 
     const userPrompt = `Please enhance this prompt for creating a ${contentTypeLabel} (target: ${lengthLabel}):
 
