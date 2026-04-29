@@ -141,6 +141,14 @@ function setupUpdateIPC() {
       const err = error as Error;
       updateLog(`Check for updates failed: ${err.message}`);
       
+      // Check for missing app-update.yml (old builds)
+      if (err.message.includes("ENOENT") && err.message.includes("app-update.yml")) {
+        return { 
+          status: "not-configured", 
+          message: "This version doesn't support auto-updates. Please download the latest version from https://himoacs.github.io/postmaster/" 
+        };
+      }
+      
       // Check for common configuration issues
       if (err.message.includes("404") || err.message.includes("No published versions")) {
         return { 
