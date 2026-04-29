@@ -599,6 +599,289 @@
       flex-wrap: wrap;
     }
     
+    /* Screenshots Carousel */
+    .screenshots {
+      padding: 96px 24px;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    
+    .screenshots-header {
+      max-width: 600px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+    
+    .screenshots-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    
+    .screenshots-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    
+    .screenshots-subtitle {
+      margin-top: 16px;
+      color: var(--muted-foreground);
+    }
+    
+    .carousel-container {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+    
+    .carousel-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+    
+    .carousel-track {
+      display: flex;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .carousel-slide {
+      flex: 0 0 100%;
+      padding: 0 20px;
+      box-sizing: border-box;
+    }
+    
+    /* macOS Window Frame */
+    .macos-window {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    [data-theme="dark"] .macos-window {
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+    }
+    
+    .macos-window:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.2);
+    }
+    
+    [data-theme="dark"] .macos-window:hover {
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .macos-titlebar {
+      height: 40px;
+      background: var(--muted);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+    
+    .macos-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+    }
+    
+    .macos-btn.close { background: #ff5f57; }
+    .macos-btn.minimize { background: #ffbd2e; }
+    .macos-btn.maximize { background: #28c840; }
+    
+    .macos-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted-foreground);
+      font-weight: 500;
+    }
+    
+    .macos-content {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Screenshot image with watermark cropping */
+    .macos-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+      /* Crop bottom 30px to hide watermark */
+      margin-bottom: -30px;
+    }
+    
+    /* Fallback placeholder styling */
+    .macos-content.placeholder {
+      aspect-ratio: 16 / 10;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--muted) 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 40px;
+    }
+    
+    .slide-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .slide-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .slide-label {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.75rem;
+      text-align: center;
+      color: var(--foreground);
+    }
+    
+    .slide-sublabel {
+      font-size: 1rem;
+      color: var(--muted-foreground);
+      text-align: center;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    
+    /* Carousel Navigation */
+    .carousel-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      margin-top: 32px;
+    }
+    
+    .carousel-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--foreground);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .carousel-btn:hover {
+      background: var(--accent);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    .carousel-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .carousel-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .carousel-dots {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .carousel-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: none;
+      background: var(--border);
+      cursor: pointer;
+      transition: all 0.3s;
+      padding: 0;
+    }
+    
+    .carousel-dot:hover {
+      background: var(--muted-foreground);
+    }
+    
+    .carousel-dot.active {
+      background: var(--primary);
+      transform: scale(1.2);
+    }
+    
+    /* Slide counter */
+    .carousel-counter {
+      position: absolute;
+      top: -40px;
+      right: 20px;
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+    }
+    
+    @media (max-width: 600px) {
+      .carousel-slide {
+        padding: 0 10px;
+      }
+      
+      .macos-content img {
+        margin-bottom: -20px;
+      }
+      
+      .macos-content.placeholder {
+        aspect-ratio: 4 / 3;
+        padding: 24px;
+        gap: 16px;
+      }
+      
+      .slide-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+      }
+      
+      .slide-icon svg {
+        width: 24px;
+        height: 24px;
+      }
+      
+      .slide-label {
+        font-size: 1.25rem;
+      }
+      
+      .slide-sublabel {
+        font-size: 0.875rem;
+      }
+      
+      .carousel-nav {
+        gap: 16px;
+      }
+      
+      .carousel-btn {
+        width: 36px;
+        height: 36px;
+      }
+    }
+    
     /* Footer */
     footer {
       padding: 40px 24px;
@@ -758,6 +1041,125 @@
       </div>
     </section>
 
+    <!-- Screenshots -->
+    <section class="screenshots">
+      <div class="screenshots-header">
+        <p class="screenshots-badge">See it in action</p>
+        <h2 class="screenshots-title">A Writing Experience Designed for Focus</h2>
+        <p class="screenshots-subtitle">Compare outputs, refine your voice, and craft content with intention.</p>
+      </div>
+      
+      <div class="carousel-container">
+        <div class="carousel-wrapper">
+          <div class="carousel-track" id="carousel-track">
+            <!-- Slide 1: Write Post -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Create New Content</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/write_post.png" alt="PostMaster create new content screen showing prompt input, content type selection, and knowledge base options">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Slide 2: Select AI Models -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Select Models</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/select_ai_models.png" alt="PostMaster model selection showing OpenAI, Anthropic, and Google models with context and cost indicators">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Slide 3: Compare Outputs -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Compare Outputs</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/compare_outputs.png" alt="PostMaster comparing outputs from multiple AI models side by side">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Slide 4: Final Draft -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Generate Final Output</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/final_draft.png" alt="PostMaster final draft view with critique insights and editing tools">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Slide 5: Writing Style -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Define Your Style</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/writing_style.png" alt="PostMaster writing style profile with tone, voice, and vocabulary settings">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Slide 6: Model Analytics -->
+            <div class="carousel-slide">
+              <div class="macos-window">
+                <div class="macos-titlebar">
+                  <span class="macos-btn close"></span>
+                  <span class="macos-btn minimize"></span>
+                  <span class="macos-btn maximize"></span>
+                  <span class="macos-title">PostMaster — Capture Model Performance</span>
+                </div>
+                <div class="macos-content">
+                  <img src="screenshots/model_analytics.png" alt="PostMaster model analytics showing performance metrics across generations">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="carousel-nav">
+          <button class="carousel-btn" id="carousel-prev" aria-label="Previous slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+          <div class="carousel-dots" id="carousel-dots"></div>
+          <button class="carousel-btn" id="carousel-next" aria-label="Next slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Features -->
     <section id="how-it-works" class="features">
       <div class="features-header">
@@ -903,6 +1305,121 @@
 
       // Listen for toggle clicks
       toggleButton.addEventListener('click', toggleTheme);
+    })();
+    
+    // Carousel functionality
+    (function() {
+      const track = document.getElementById('carousel-track');
+      const slides = track.querySelectorAll('.carousel-slide');
+      const dotsContainer = document.getElementById('carousel-dots');
+      const prevBtn = document.getElementById('carousel-prev');
+      const nextBtn = document.getElementById('carousel-next');
+      
+      let currentIndex = 0;
+      let autoplayInterval = null;
+      const AUTOPLAY_DELAY = 5000; // 5 seconds
+      
+      // Create dots
+      slides.forEach((_, index) => {
+        const dot = document.createElement('button');
+        dot.className = 'carousel-dot' + (index === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', 'Go to slide ' + (index + 1));
+        dot.addEventListener('click', () => goToSlide(index));
+        dotsContainer.appendChild(dot);
+      });
+      
+      const dots = dotsContainer.querySelectorAll('.carousel-dot');
+      
+      function updateCarousel() {
+        track.style.transform = 'translateX(-' + (currentIndex * 100) + '%)';
+        
+        dots.forEach((dot, index) => {
+          dot.classList.toggle('active', index === currentIndex);
+        });
+      }
+      
+      function goToSlide(index) {
+        currentIndex = index;
+        updateCarousel();
+        resetAutoplay();
+      }
+      
+      function nextSlide() {
+        currentIndex = (currentIndex + 1) % slides.length;
+        updateCarousel();
+      }
+      
+      function prevSlide() {
+        currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+        updateCarousel();
+      }
+      
+      function startAutoplay() {
+        autoplayInterval = setInterval(nextSlide, AUTOPLAY_DELAY);
+      }
+      
+      function stopAutoplay() {
+        if (autoplayInterval) {
+          clearInterval(autoplayInterval);
+          autoplayInterval = null;
+        }
+      }
+      
+      function resetAutoplay() {
+        stopAutoplay();
+        startAutoplay();
+      }
+      
+      // Event listeners
+      prevBtn.addEventListener('click', () => {
+        prevSlide();
+        resetAutoplay();
+      });
+      
+      nextBtn.addEventListener('click', () => {
+        nextSlide();
+        resetAutoplay();
+      });
+      
+      // Pause on hover
+      track.addEventListener('mouseenter', stopAutoplay);
+      track.addEventListener('mouseleave', startAutoplay);
+      
+      // Touch/swipe support
+      let touchStartX = 0;
+      let touchEndX = 0;
+      
+      track.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        stopAutoplay();
+      }, { passive: true });
+      
+      track.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) {
+            nextSlide();
+          } else {
+            prevSlide();
+          }
+        }
+        startAutoplay();
+      }, { passive: true });
+      
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          prevSlide();
+          resetAutoplay();
+        } else if (e.key === 'ArrowRight') {
+          nextSlide();
+          resetAutoplay();
+        }
+      });
+      
+      // Start autoplay
+      startAutoplay();
     })();
   </script>
 </body>
