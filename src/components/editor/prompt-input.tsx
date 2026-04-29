@@ -502,11 +502,11 @@ export function PromptInput({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="content-type">Content Type</Label>
           <Select value={contentType} onValueChange={onContentTypeChange}>
-            <SelectTrigger id="content-type">
+            <SelectTrigger id="content-type" className="w-full">
               <SelectValue placeholder="Select content type" />
             </SelectTrigger>
             <SelectContent>
@@ -522,7 +522,7 @@ export function PromptInput({
         <div className="space-y-2">
           <Label htmlFor="length">Target Length</Label>
           <Select value={lengthPref} onValueChange={onLengthPrefChange}>
-            <SelectTrigger id="length">
+            <SelectTrigger id="length" className="w-full">
               <SelectValue placeholder="Select length" />
             </SelectTrigger>
             <SelectContent>
@@ -547,7 +547,7 @@ export function PromptInput({
               }
             />
           </div>
-          <div className="flex h-8 w-fit items-center rounded-lg border border-input bg-transparent px-2.5 py-2">
+          <div className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2.5 py-2">
             <Switch
               id="emojis"
               checked={enableEmojis}
