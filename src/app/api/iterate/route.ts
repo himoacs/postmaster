@@ -186,9 +186,16 @@ Output only the revised content.`;
       },
     });
 
-    const currentFeedback = existing.feedback
-      ? JSON.parse(existing.feedback)
-      : [];
+    let currentFeedback = [];
+    try {
+      if (existing.feedback) {
+        const parsed = JSON.parse(existing.feedback);
+        currentFeedback = Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (e) {
+      // If parsing fails, start with empty array
+      currentFeedback = [];
+    }
 
     await prisma.synthesizedContent.update({
       where: { generationId },
