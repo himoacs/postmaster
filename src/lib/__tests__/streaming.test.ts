@@ -2,7 +2,7 @@
  * Tests for streaming utilities (SSE)
  */
 import { describe, it, expect } from 'vitest';
-import { formatSSE, createSSEStream, parseSSEStream } from '@/lib/streaming';
+import { formatSSE, createSSEStream, parseSSEStream, type StreamEvent } from '@/lib/streaming';
 
 describe('Streaming utilities', () => {
   describe('formatSSE', () => {
@@ -208,7 +208,7 @@ describe('Streaming utilities', () => {
       const sseData = 'event: model-start\ndata: {"provider":"OPENAI"}\n\n';
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -225,7 +225,7 @@ describe('Streaming utilities', () => {
         'event: model-complete\ndata: {"tokensUsed":50}\n\n';
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -241,7 +241,7 @@ describe('Streaming utilities', () => {
     it('should handle empty response body', async () => {
       const mockResponse = new Response('');
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -252,7 +252,7 @@ describe('Streaming utilities', () => {
     it('should handle response with no body', async () => {
       const mockResponse = new Response(null);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -267,7 +267,7 @@ describe('Streaming utilities', () => {
         'event: model-complete\ndata: {"tokensUsed":50}\n\n';
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -284,7 +284,7 @@ describe('Streaming utilities', () => {
         'event: model-chunk\ndata: {"content":"test"}'; // Missing final newlines
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -310,7 +310,7 @@ describe('Streaming utilities', () => {
 
       const mockResponse = new Response(stream);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -333,7 +333,7 @@ describe('Streaming utilities', () => {
         'event: synthesis-complete\ndata: {"id":"syn-1"}\n\n';
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -363,7 +363,7 @@ describe('Streaming utilities', () => {
       const sseData = `event: model-complete\ndata: ${JSON.stringify(complexData)}\n\n`;
       const mockResponse = new Response(sseData);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }
@@ -387,7 +387,7 @@ describe('Streaming utilities', () => {
 
       const mockResponse = new Response(stream);
 
-      const events = [];
+      const events: StreamEvent[] = [];
       for await (const event of parseSSEStream(mockResponse)) {
         events.push(event);
       }

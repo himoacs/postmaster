@@ -115,6 +115,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -207,6 +208,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -398,6 +400,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -471,6 +474,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -530,6 +534,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -590,6 +595,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -665,6 +671,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -747,6 +754,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -839,6 +847,7 @@ describe('API: /api/generate', () => {
           status: 'GENERATING',
           contentMode: 'new',
           sourceContent: null,
+        sourceMap: null,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -921,6 +930,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         sourceMap: JSON.stringify([{ url: 'https://example.com/article', title: 'Example Article' }]),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1014,6 +1024,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         sourceMap: JSON.stringify([{ url: 'https://example.com/research', title: 'Research Paper' }]),
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1126,6 +1137,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1218,6 +1230,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1318,6 +1331,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1395,6 +1409,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1474,6 +1489,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1567,6 +1583,7 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

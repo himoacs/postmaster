@@ -114,6 +114,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -201,6 +202,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -361,6 +363,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -450,6 +453,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -524,6 +528,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -595,6 +600,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -670,6 +676,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -759,6 +766,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -859,6 +867,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -956,6 +965,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1036,6 +1046,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1111,6 +1122,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1202,6 +1214,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1284,6 +1297,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1357,6 +1371,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1430,6 +1445,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1502,6 +1518,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1582,6 +1599,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1589,14 +1607,14 @@ describe('API: /api/synthesize', () => {
       vi.mocked(prisma.synthesisContribution.upsert).mockResolvedValue({
         id: 'contrib-1',
         synthesisId: 'synth-1',
+        generationId: 'gen-1',
         provider: 'OPENAI',
         model: 'gpt-4o',
-        outputId: 'output-1',
-        aspectsContributed: 3,
-        participationOnly: false,
+        aspectCount: 3,
+        totalAspects: 5,
+        aspectTypes: '[]',
         starredCount: 2,
         createdAt: new Date(),
-        updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/synthesize', {
@@ -1682,6 +1700,7 @@ describe('API: /api/synthesize', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
+        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1689,14 +1708,14 @@ describe('API: /api/synthesize', () => {
       vi.mocked(prisma.synthesisContribution.upsert).mockResolvedValue({
         id: 'contrib-1',
         synthesisId: 'synth-1',
+        generationId: 'gen-1',
         provider: 'OPENAI',
         model: 'gpt-4o',
-        outputId: 'output-1',
-        aspectsContributed: 0,
-        participationOnly: true,
+        aspectCount: 0,
+        totalAspects: 5,
+        aspectTypes: '[]',
         starredCount: 0,
         createdAt: new Date(),
-        updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/synthesize', {

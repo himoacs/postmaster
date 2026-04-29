@@ -417,7 +417,7 @@ describe('OpenAI Provider', () => {
 
       mockOpenAI.chat.completions.create = vi.fn().mockResolvedValue(mockStream);
 
-      const chunks = [];
+      const chunks: Array<{ content: string; done: boolean; tokensUsed?: number }> = [];
       for await (const chunk of generateWithOpenAIStream(
         'test-api-key',
         'gpt-4o',
