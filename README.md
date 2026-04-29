@@ -142,7 +142,7 @@ postmaster/
 ├── prisma/               # Database schema & migrations
 ├── test/                 # Test utilities & fixtures
 ├── e2e/                  # E2E tests (Playwright)
-├── landing/              # Landing page (GitHub Pages)
+├── docs/                 # Landing page (GitHub Pages) - auto-updated on release
 ├── scripts/              # Build & release scripts
 └── .github/workflows/    # CI/CD pipelines
 ```

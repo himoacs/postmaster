@@ -42,14 +42,18 @@ Update version numbers in **all** of these files:
 
 ### 3. Landing Page Updates
 
-Before release, update the landing page to reflect new version features:
+**The landing page download links are automatically updated** when you create a release tag!
 
-- [ ] Update `landing/index.html` with new feature highlights
-- [ ] Update version number in landing page (if displayed)
-- [ ] Test landing page locally: `open landing/index.html`
-- [ ] Commit landing page changes to `main` branch
+Optionally, for major releases with new features:
 
-**Note**: The landing page is automatically deployed when you create a release tag (see [Landing Page Deployment](#landing-page-deployment)).
+- [ ] Update `docs/index.html` with new feature highlights (if applicable)
+- [ ] Test landing page locally: `open docs/index.html`
+
+**Note**: The `deploy-landing` job in `.github/workflows/build-release.yml` automatically:
+1. Updates download links to the new version
+2. Updates the version text (e.g., "v1.2.2 •")
+3. Commits the changes
+4. Deploys to GitHub Pages
 
 ---
 
@@ -188,9 +192,11 @@ For support or feedback, please open an issue on GitHub.
 ### Commit Version Changes
 
 ```bash
-git add package.json RELEASE_NOTES_vX.Y.Z.md landing/index.html
+git add package.json RELEASE_NOTES_vX.Y.Z.md
 git commit -m "chore: bump version to vX.Y.Z"
 git push origin main
+
+# Note: docs/index.html download links are updated automatically during release
 ```
 
 ---
@@ -259,7 +265,9 @@ https://github.com/himoacs/postmaster/actions
    - Uploads all installers/packages
 
 4. **deploy-landing**:
-   - Deploys `landing/` folder to GitHub Pages
+   - **Auto-updates** download links in `docs/index.html` to new version
+   - Commits the version update to `main` branch
+   - Deploys `docs/` folder to GitHub Pages
    - Updates https://himoacs.github.io/postmaster/
 
 ### Step 3: Verify Artifacts
@@ -307,42 +315,28 @@ The landing page is **automatically deployed** when you create a release tag. He
 **Workflow**: `.github/workflows/build-release.yml` → `deploy-landing` job
 
 **Steps**:
-1. Checks out repository
-2. Deploys `landing/` folder to `gh-pages` branch
-3. GitHub Pages serves it at https://himoacs.github.io/postmaster/
+1. Checks out repository (main branch)
+2. Extracts version from tag
+3. **Auto-updates** download links in `docs/index.html`
+4. Commits the changes to main
+5. Deploys `docs/` folder to GitHub Pages
+6. GitHub Pages serves it at https://himoacs.github.io/postmaster/
 
-**Configuration**:
-```yaml
-# In .github/workflows/build-release.yml
-- uses: peaceiris/actions-gh-pages@v4
-  with:
-    github_token: ${{ secrets.GITHUB_TOKEN }}
-    publish_dir: ./landing
-    cname: postmaster.app  # Custom domain (optional)
-```
+**Important**: The landing page source is `docs/index.html` (NOT `landing/`)
 
 **DNS Setup** (if using custom domain):
 - CNAME record: `postmaster.app` → `himoacs.github.io`
 
-### Manual Deployment (Fallback)
+### Manual Version Update (Fallback)
 
-If automatic deployment fails:
+If automatic update fails, manually update the version:
 
 ```bash
-# Option 1: Trigger workflow manually
-gh workflow run deploy-landing.yml
-
-# Option 2: Push to main (triggers docs deployment)
-# Note: This deploys docs/ folder, not landing/
+# Update download links in docs/index.html
+sed -i '' 's/v[0-9.]*\/PostMaster-[0-9.]*/vX.Y.Z\/PostMaster-X.Y.Z/g' docs/index.html
+git add docs/index.html
+git commit -m "Update landing page to vX.Y.Z"
 git push origin main
-
-# Option 3: Manual gh-pages deployment
-git checkout gh-pages
-cp -r landing/* .
-git add .
-git commit -m "Deploy landing page for vX.Y.Z"
-git push origin gh-pages
-git checkout main
 ```
 
 ### Verify Landing Page Deployment

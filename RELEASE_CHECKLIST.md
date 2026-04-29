@@ -15,9 +15,11 @@ Quick reference for releasing PostMaster. Print this and check off items as you 
 ### Version Updates
 - [ ] Update `package.json` version: `"version": "X.Y.Z"`
 - [ ] Create `RELEASE_NOTES_vX.Y.Z.md`
-- [ ] Update `landing/index.html` (feature highlights, version)
+- [ ] (Optional) Update `docs/index.html` feature highlights for major releases
 - [ ] Commit: `git commit -m "chore: bump version to vX.Y.Z"`
 - [ ] Push: `git push origin main`
+
+**Note**: Download links in `docs/index.html` are auto-updated during release!
 
 ---
 
