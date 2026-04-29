@@ -515,7 +515,6 @@ describe('API: /api/critique', () => {
     it('should handle LiteLLM critique provider', async () => {
       vi.mocked(prisma.liteLLMConfig.findFirst).mockResolvedValue({
         id: 'litellm-1',
-        apiKey: 'litellm-key',
         modelPrefixes: '["gpt-"]',
         isEnabled: true,
         isValid: true,
@@ -699,7 +698,6 @@ describe('API: /api/critique', () => {
         encryptedKey: 'corrupted-litellm-key',
         isEnabled: true,
         isValid: true,
-        models: JSON.stringify([{ id: 'custom-model', name: 'Custom Model' }]),
         cachedModels: null,
         lastValidated: new Date(),
         createdAt: new Date(),

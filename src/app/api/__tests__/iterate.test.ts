@@ -523,7 +523,6 @@ describe('API: /api/iterate', () => {
         encryptedKey: 'encrypted-litellm-key',
         isEnabled: true,
         isValid: true,
-        models: JSON.stringify([{ id: 'custom-model', name: 'Custom Model' }]),
         lastValidated: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
