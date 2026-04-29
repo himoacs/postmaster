@@ -6,6 +6,16 @@
   <title>PostMaster - AI-Powered Multi-Model Writing Assistant</title>
   <meta name="description" content="Write better content with multiple AI models. PostMaster lets you compare outputs from GPT-4, Claude, Mistral, and more, then synthesize the best version.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script>
+    // Apply theme immediately to prevent flash - defaults to light
+    (function() {
+      const savedTheme = localStorage.getItem('postmaster-theme');
+      // Default to light theme if no preference saved
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: oklch(0.985 0.008 85);
