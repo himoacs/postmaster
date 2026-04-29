@@ -166,7 +166,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Debate error:", error);
-    return NextResponse.json({ error: "Debate failed" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error during debate";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

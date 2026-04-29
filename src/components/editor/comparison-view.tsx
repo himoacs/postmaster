@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Star, Sparkles, Clock, Hash, MessagesSquare, Swords, RefreshCw, Replace, AlertTriangle, Loader2, ChevronDown } from "lucide-react";
 import { AIProvider, SynthesisStrategy, SelectedModel } from "@/types";
@@ -143,7 +144,32 @@ export function ComparisonView({
         <div className="flex items-center gap-3">
           {/* Synthesis Strategy Selector */}
           {outputs.length > 1 && onSynthesisStrategyChange && (
-            <DropdownMenu>
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Synthesis:</span>
+                <HelpTooltip
+                  content={
+                    <div className="space-y-3">
+                      <p className="font-semibold text-foreground">Choose Your Synthesis Approach</p>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium text-foreground">Basic (~1x time)</p>
+                          <p className="text-muted-foreground">Fast direct merge of outputs without critique.</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">Critique (~3x time)</p>
+                          <p className="text-muted-foreground">Models review each other's work before synthesis.</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">Debate (~5x time)</p>
+                          <p className="text-muted-foreground">Multi-round debate to reach consensus and best quality.</p>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                />
+              </div>
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
                   {synthesisStrategy === "debate" ? (
@@ -201,6 +227,7 @@ export function ComparisonView({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           )}
           <Button onClick={() => onSynthesize(starredSections)} size="lg">
             <Sparkles className="mr-2 h-4 w-4" />

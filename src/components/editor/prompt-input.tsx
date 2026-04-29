@@ -22,6 +22,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, Plus, X, Link2, FileText, Database, Quote, Sparkles, Loader2, Upload, File, AlertCircle } from "lucide-react";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { toast } from "sonner";
 
 export type ContentMode = "new" | "enhance";
@@ -623,10 +624,19 @@ export function PromptInput({
             <Button
               variant="ghost"
               className="flex w-full items-center justify-between p-0 hover:bg-transparent"
+              data-tour="knowledge-base"
             >
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4" />
                 <span className="text-sm font-medium">Knowledge Base</span>
+                <HelpTooltip
+                  content={
+                    <div className="space-y-1">
+                      <p>Select knowledge entries to provide context and reference material to AI models.</p>
+                      <p className="text-xs text-muted-foreground">Selected entries will be included in the prompt, helping models generate more accurate and informed content.</p>
+                    </div>
+                  }
+                />
                 {selectedKnowledge.length > 0 && (
                   <Badge variant="default" className="ml-2">
                     {selectedKnowledge.length} selected
@@ -690,9 +700,19 @@ export function PromptInput({
           <div className="flex items-center gap-3">
             <Quote className="h-4 w-4 text-muted-foreground" />
             <div className="space-y-0.5">
-              <Label htmlFor="citations" className="text-sm font-medium cursor-pointer">
-                Include citations
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="citations" className="text-sm font-medium cursor-pointer">
+                  Include citations
+                </Label>
+                <HelpTooltip
+                  content={
+                    <div className="space-y-1">
+                      <p>When enabled, AI models will include citations and references to your knowledge base sources in the generated content.</p>
+                      <p className="text-xs text-muted-foreground">Best for factual content, research-based writing, and when attribution is important.</p>
+                    </div>
+                  }
+                />
+              </div>
               <p className="text-xs text-muted-foreground">
                 Add inline source citations to ground content in your knowledge base
               </p>

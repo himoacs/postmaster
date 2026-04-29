@@ -85,6 +85,9 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "incredibly powerful", category: "enthusiasm", severity: "high" },
   { pattern: "absolutely essential", category: "enthusiasm", severity: "high" },
   { pattern: "truly remarkable", category: "enthusiasm", severity: "high" },
+  
+  // Structure/Punctuation
+  { pattern: "—", category: "structure", severity: "high", replacement: "Use commas, parentheses, or split into separate sentences" },
 ];
 
 /**

@@ -37,13 +37,19 @@ extraResources:
   - from: prisma/template.db
     to: template.db
 
-asar: false
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/better-sqlite3/**"
 
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
   target:
     - target: dmg
       arch:
@@ -91,14 +97,12 @@ linux:
       arch:
         - x64
 
-# Auto-update disabled - no public release repository configured
-# To enable updates, create a GitHub repo and uncomment:
-# publish:
-#   provider: github
-#   owner: YOUR_GITHUB_USERNAME
-#   repo: postmaster
-#   releaseType: release
-publish: null
+# Auto-update configuration
+publish:
+  provider: github
+  owner: himoacs
+  repo: postmaster
+  releaseType: release
 
 # Rebuild native modules for Electron
 electronVersion: "36.3.2"

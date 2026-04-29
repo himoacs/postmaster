@@ -196,7 +196,7 @@ Output only the revised content.`;
       },
     });
 
-    let currentFeedback = [];
+    let currentFeedback: any[] = [];
     try {
       if (existing.feedback) {
         const parsed = JSON.parse(existing.feedback);
@@ -219,6 +219,7 @@ Output only the revised content.`;
     return NextResponse.json({ content: result.content, synthesisId: existing.id });
   } catch (error) {
     console.error("Iteration error:", error);
-    return NextResponse.json({ error: "Iteration failed" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error during iteration";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

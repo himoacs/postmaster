@@ -291,13 +291,30 @@ export function PrimaryModelSettings() {
             </div>
 
             {currentValue && (
-              <button
-                onClick={handleClearModel}
-                disabled={saving}
-                className="text-sm text-muted-foreground hover:text-foreground underline"
-              >
-                Clear selection
-              </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 flex-1">
+                  <Star className="h-3.5 w-3.5 flex-shrink-0 fill-current" />
+                  <span>
+                    <strong>{currentModelDisplay?.split(" - ")[1] || "Model"}</strong> is your primary model for synthesis and refinement.
+                  </span>
+                </div>
+                <button
+                  onClick={handleClearModel}
+                  disabled={saving}
+                  className="ml-2 text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
+            {!currentValue && availableModels.length > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-200">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  A primary model will be auto-selected from your highest quality available models when you start using the app.
+                </span>
+              </div>
             )}
 
             <div className="text-xs text-muted-foreground">

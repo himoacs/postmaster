@@ -73,15 +73,15 @@ export default function AboutPage() {
                 <p>
                   But when I started using AI to help with writing, I kept running into the 
                   same frustrating problem: the content sounded generic. It had that 
-                  unmistakable AI quality—what people call &quot;AI slop.&quot; The tone was off, 
+                  unmistakable AI quality that people call &quot;AI slop.&quot; The tone was off, 
                   the phrasing felt cookie-cutter, and most importantly, it didn&apos;t sound 
                   like me.
                 </p>
                 
                 <p>
                   I realized I wasn&apos;t alone. Many writers want to leverage AI&apos;s 
-                  capabilities—its speed, its ability to handle research, its knack for 
-                  generating variations—but they don&apos;t want to sacrifice their voice or 
+                  capabilities (its speed, its ability to handle research, its knack for 
+                  generating variations), but they don&apos;t want to sacrifice their voice or 
                   settle for mediocre output.
                 </p>
                 
@@ -95,7 +95,7 @@ export default function AboutPage() {
                 
                 <p>
                   PostMaster is designed to help writers like you generate superior content 
-                  that sounds like you—not like a bot. It&apos;s about leveraging AI as a tool 
+                  that sounds like you, not like a bot. It&apos;s about leveraging AI as a tool 
                   for amplification, not replacement.
                 </p>
               </div>
@@ -145,7 +145,7 @@ export default function AboutPage() {
                   <p>
                     When I&apos;m not designing systems or writing code, 
                     I&apos;m usually tinkering with AI to build practical applications that solve 
-                    real problems—like PostMaster.
+                    real problems, like PostMaster.
                   </p>
                   
                   <p>

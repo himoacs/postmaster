@@ -1,4 +1,5 @@
 import { WritingWorkspace } from "@/components/editor/writing-workspace";
+import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { prisma } from "@/lib/db";
 import { AIProvider, GenerationOutput, ContentType } from "@/types";
 import { HeartHandshake } from "lucide-react";
@@ -10,6 +11,19 @@ interface PageProps {
 
 export default async function DashboardPage({ searchParams }: PageProps) {
   const { resumeId } = await searchParams;
+  
+  // Check if user has any valid API keys
+  const apiKeyCount = await prisma.aPIKey.count({
+    where: { isValid: true },
+  });
+  const hasApiKeys = apiKeyCount > 0;
+  
+  // Also check if LiteLLM is configured
+  const litellmConfig = await prisma.liteLLMConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+  const hasLiteLLM = !!litellmConfig;
+  const hasAnyProvider = hasApiKeys || hasLiteLLM;
   
   // If resumeId is provided, fetch the generation to resume
   let resumeData: {
@@ -51,25 +65,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      <header className="flex-shrink-0 flex items-center justify-between border-b px-6 py-4">
-        <div>
-          <h1 className="font-serif text-xl font-medium">
-            {resumeData ? "Resume Draft" : "New Draft"}
-          </h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {resumeData 
-              ? "Continue working on your previous content" 
-              : "Compare outputs from multiple AI models"}
-          </p>
+    <div className="h-full flex flex-col">
+      {/* Welcome Banner */}
+      {!hasAnyProvider && (
+        <div className="flex-shrink-0 p-6 pb-0">
+          <WelcomeBanner hasApiKeys={hasAnyProvider} />
         </div>
-        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-            <HeartHandshake className="h-4 w-4" />
-            Donate
-          </a>
-        </Button>
-      </header>
+      )}
+      
       <div className="flex-1 min-h-0 overflow-hidden">
         <WritingWorkspace
           initialGenerationId={resumeData?.generationId}

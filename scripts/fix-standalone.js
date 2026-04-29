@@ -22,6 +22,7 @@ const modulesToCopy = [
   'server-only',
   'bindings',
   'file-uri-to-path',
+  '@prisma/client', // .prisma/client is handled separately below
 ];
 
 function copyModuleRecursive(src, dest) {
@@ -99,6 +100,41 @@ for (const moduleName of modulesToCopy) {
       copyModuleRecursive(srcPath, destPath);
     } else {
       console.log(`  ✗ Could not find ${moduleName} in node_modules`);
+    }
+  }
+}
+
+// Special handling for Prisma - copy .prisma/client directory into @prisma/client
+const prismaClientPath = path.join(standaloneDir, '@prisma', 'client');
+if (fs.existsSync(prismaClientPath)) {
+  console.log('Copying .prisma/client for Prisma...');
+  
+  // Find the .prisma/client directory in pnpm structure
+  const pnpmDir = path.join(nodeModulesDir, '.pnpm');
+  if (fs.existsSync(pnpmDir)) {
+    const entries = fs.readdirSync(pnpmDir);
+    let foundPrismaClient = false;
+    
+    for (const entry of entries) {
+      if (entry.startsWith('@prisma+client@')) {
+        const prismaGenPath = path.join(pnpmDir, entry, 'node_modules', '.prisma', 'client');
+        if (fs.existsSync(prismaGenPath)) {
+          const destPrismaPath = path.join(prismaClientPath, '.prisma', 'client');
+          fs.mkdirSync(path.dirname(destPrismaPath), { recursive: true });
+          try {
+            execSync(`cp -R "${prismaGenPath}" "${path.dirname(destPrismaPath)}/"`, { stdio: 'ignore' });
+            console.log('  ✓ Copied .prisma/client');
+            foundPrismaClient = true;
+            break;
+          } catch (e) {
+            console.log('  ✗ Failed to copy .prisma/client:', e.message);
+          }
+        }
+      }
+    }
+    
+    if (!foundPrismaClient) {
+      console.log('  ✗ Could not find .prisma/client in pnpm structure');
     }
   }
 }

@@ -106,6 +106,9 @@ model Generation {
   contentMode  String   @default("new")  // "new" or "enhance"
   sourceContent String? // Original content when enhancing existing content
   
+  // Citation source mapping for URL references
+  sourceMap    String?  // JSON: Array<{ url: string; title: string }>
+  
   // State
   status       String   @default("PENDING")
   
@@ -290,6 +293,40 @@ model SynthesisVersion {
 
   @@index([synthesizedContentId])
   @@unique([synthesizedContentId, version])
+}
+
+// ============================================================================
+// Draft Auto-Save
+// ============================================================================
+
+// Stores in-progress work to prevent loss on refresh/close
+model Draft {
+  id        String   @id @default(cuid())
+  
+  // Editor state snapshot
+  prompt        String
+  contentType   String   @default("BLOG_POST")
+  lengthPref    String?
+  contentMode   String   @default("new")
+  existingContent String?
+  
+  // Model selection
+  selectedModels String   // JSON: Array<{ provider, modelId }>
+  yoloMode      Boolean  @default(false)
+  
+  // References and knowledge
+  references         String   @default("[]") // JSON: ReferenceSource[]
+  selectedKnowledge  String   @default("[]") // JSON: string[] (knowledge IDs)
+  enableCitations    Boolean  @default(false)
+  
+  // Synthesis settings
+  synthesisStrategy String   @default("basic")
+  
+  // Timestamps
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([updatedAt])
 }
 
 // ============================================================================

@@ -32,23 +32,24 @@ interface GenerationRequest {
 
 // POST /api/generate - Generate content with multiple models
 export async function POST(request: NextRequest) {
-  const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, contentMode, existingContent } =
-    (await request.json()) as GenerationRequest;
+  try {
+    const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, contentMode, existingContent } =
+      (await request.json()) as GenerationRequest;
 
-  console.log("[Generate API] Received request:", {
-    promptLength: prompt?.length,
-    contentType,
-    yoloMode,
-    requestedModelsCount: requestedModels?.length,
-    requestedModels: requestedModels?.map(m => `${m.provider}:${m.modelId}`),
-  });
+    console.log("[Generate API] Received request:", {
+      promptLength: prompt?.length,
+      contentType,
+      yoloMode,
+      requestedModelsCount: requestedModels?.length,
+      requestedModels: requestedModels?.map(m => `${m.provider}:${m.modelId}`),
+    });
 
-  if (!prompt) {
-    return NextResponse.json(
-      { error: "Prompt is required" },
-      { status: 400 }
-    );
-  }
+    if (!prompt) {
+      return NextResponse.json(
+        { error: "Prompt is required" },
+        { status: 400 }
+      );
+    }
 
   // Fetch URL content if references provided
   let referenceContext = "";
@@ -70,7 +71,13 @@ export async function POST(request: NextRequest) {
     // Build source map for citations with links
     sourceMap = fetchedContent
       .filter(fc => fc.content && !fc.error)
-      .map(fc => ({ url: fc.url, title: fc.title || new URL(fc.url).hostname }));
+      .map(fc => {
+        try {
+          return { url: fc.url, title: fc.title || new URL(fc.url).hostname };
+        } catch {
+          return { url: fc.url, title: fc.title || fc.url };
+        }
+      });
     
     // Add Knowledge Base entries to source map
     const textRefs = references.filter(r => r.type === "text");
@@ -180,6 +187,7 @@ export async function POST(request: NextRequest) {
       status: "GENERATING",
       contentMode: contentMode || "new",
       sourceContent: contentMode === "enhance" ? existingContent : null,
+      sourceMap: sourceMap.length > 0 ? JSON.stringify(sourceMap) : null,
     },
   });
 
@@ -371,6 +379,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     generationId: generation.id,
     outputs,
+    sourceMap, // Include sourceMap for frontend use
     ...(failedModels.length > 0 && { failedModels }),
     ...(yoloMode && {
       yoloSelection: {
@@ -379,6 +388,16 @@ export async function POST(request: NextRequest) {
       },
     }),
   });
+  } catch (error) {
+    console.error("[Generate API] Unhandled error:", error);
+    return NextResponse.json(
+      { 
+        error: "Failed to generate content", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      },
+      { status: 500 }
+    );
+  }
 }
 
 function getContentTypeGuidance(contentType: string): string {

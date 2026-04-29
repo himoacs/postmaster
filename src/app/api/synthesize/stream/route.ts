@@ -19,6 +19,7 @@ interface SynthesizeStreamRequest {
   strategy?: SynthesisStrategy;
   critiques?: CritiqueOutput[];
   parentSynthesisId?: string;
+  sourceMap?: Array<{ url: string; title: string }>; // Citation sources for URL references
 }
 
 // POST /api/synthesize/stream - Synthesize with streaming
@@ -30,7 +31,8 @@ export async function POST(request: NextRequest) {
     primaryModel, 
     strategy = "basic", 
     critiques, 
-    parentSynthesisId 
+    parentSynthesisId,
+    sourceMap: providedSourceMap 
   } = (await request.json()) as SynthesizeStreamRequest;
 
   if (!generationId || !outputs || outputs.length === 0 || !primaryModel) {
@@ -38,6 +40,22 @@ export async function POST(request: NextRequest) {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Retrieve sourceMap from Generation if not provided
+  let sourceMap: Array<{ url: string; title: string }> = providedSourceMap || [];
+  if (!sourceMap || sourceMap.length === 0) {
+    const generation = await prisma.generation.findUnique({
+      where: { id: generationId },
+      select: { sourceMap: true },
+    });
+    if (generation?.sourceMap) {
+      try {
+        sourceMap = JSON.parse(generation.sourceMap);
+      } catch {
+        sourceMap = [];
+      }
+    }
   }
 
   // Get API key for the primary model (skip for LITELLM)
@@ -62,6 +80,20 @@ export async function POST(request: NextRequest) {
     ? buildConsensusPrompt(outputs, critiques, starredSections)
     : buildSynthesisPrompt(outputs, starredSections);
 
+  // Build citation context if sourceMap is available
+  let citationContext = "";
+  if (sourceMap && sourceMap.length > 0) {
+    citationContext = "\n\nAVAILABLE CITATION SOURCES:\n";
+    sourceMap.forEach((source, i) => {
+      if (source.url) {
+        citationContext += `${i + 1}. "${source.title}" - ${source.url}\n`;
+      } else {
+        citationContext += `${i + 1}. "${source.title}" (Knowledge Base entry)\n`;
+      }
+    });
+    citationContext += "\nWhen preserving citations, ensure they are in the format [Source: Title](URL) for web sources with URLs, or [Source: Title] for Knowledge Base entries without URLs.\n";
+  }
+
   // For streaming, we use a simpler prompt that just returns content directly
   const systemPrompt = strategy === "sequential"
     ? `You are a skilled editor who synthesizes multiple drafts into one cohesive piece, informed by critical analysis.
@@ -70,14 +102,14 @@ Your task is to combine the best elements from each draft while:
 2. Incorporating the suggested improvements
 3. Preserving consensus points that all models agreed upon
 4. Maintaining a consistent voice and flow
-5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact.
+5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact.${citationContext}
 
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`
     : `You are a skilled editor who synthesizes multiple drafts into one cohesive piece.
 Your task is to combine the best elements from each draft while maintaining a consistent voice and flow.
 Preserve the overall message and key points while improving clarity and engagement.
 
-IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL).
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL).${citationContext}
 
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`;
 

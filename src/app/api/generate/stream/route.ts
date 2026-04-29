@@ -33,24 +33,25 @@ interface GenerationRequest {
 
 // POST /api/generate/stream - Generate content with streaming
 export async function POST(request: NextRequest) {
-  let requestBody: GenerationRequest;
   try {
-    requestBody = (await request.json()) as GenerationRequest;
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid request body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+    let requestBody: GenerationRequest;
+    try {
+      requestBody = (await request.json()) as GenerationRequest;
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
-  const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, contentMode, existingContent } = requestBody;
+    const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, contentMode, existingContent } = requestBody;
 
-  if (!prompt) {
-    return new Response(JSON.stringify({ error: "Prompt is required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+    if (!prompt) {
+      return new Response(JSON.stringify({ error: "Prompt is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
   // Fetch URL content if references provided
   let referenceContext = "";
@@ -62,7 +63,13 @@ export async function POST(request: NextRequest) {
     
     sourceMap = fetchedContent
       .filter(fc => fc.content && !fc.error)
-      .map(fc => ({ url: fc.url, title: fc.title || new URL(fc.url).hostname }));
+      .map(fc => {
+        try {
+          return { url: fc.url, title: fc.title || new URL(fc.url).hostname };
+        } catch {
+          return { url: fc.url, title: fc.title || fc.url };
+        }
+      });
     
     const textRefs = references.filter(r => r.type === "text");
     for (const ref of textRefs) {
@@ -158,6 +165,7 @@ export async function POST(request: NextRequest) {
       status: "GENERATING",
       contentMode: contentMode || "new",
       sourceContent: contentMode === "enhance" ? existingContent : null,
+      sourceMap: sourceMap.length > 0 ? JSON.stringify(sourceMap) : null,
     },
   });
 
@@ -178,6 +186,7 @@ export async function POST(request: NextRequest) {
         data: {
           generationId: generation.id,
           models: selectedModels,
+          sourceMap, // Include sourceMap for frontend use
           yoloSelection: yoloMode ? { models: selectedModels, reasoning: yoloReasoning } : undefined,
         },
       });
@@ -353,6 +362,19 @@ export async function POST(request: NextRequest) {
       "Connection": "keep-alive",
     },
   });
+  } catch (error) {
+    console.error("[Stream API] Unhandled error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Failed to start content generation", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      }),
+      { 
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 }
 
 // Helper to get streaming generator for a model

@@ -12,7 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Zap, PenLine, MessagesSquare, Sparkles, Swords, RefreshCw } from "lucide-react";
+import { Zap, PenLine, MessagesSquare, Sparkles, Swords, RefreshCw, Loader2, CheckCircle2, Database } from "lucide-react";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
+import { WorkflowProgress } from "./workflow-progress";
+import { ProductTour } from "@/components/onboarding/product-tour";
 import { toast } from "sonner";
 import { AIProvider, YoloSelection, SynthesisStrategy, CritiqueOutput, DebateSession, SynthesisReasoning } from "@/types";
 import { GenerationOutput } from "@/types";
@@ -111,6 +114,7 @@ export function WritingWorkspace({
   const [synthesisReasoning, setSynthesisReasoning] = useState<SynthesisReasoning | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(initialGenerationId);
   const [references, setReferences] = useState<ReferenceSource[]>([]);
+  const [sourceMap, setSourceMap] = useState<Array<{ url: string; title: string }>>([]);
   
   // Progress state
   const [progressMessage, setProgressMessage] = useState("");
@@ -191,12 +195,47 @@ export function WritingWorkspace({
         if (response.ok) {
           const prefs = await response.json();
           setSynthesisStrategy(prefs.synthesisStrategy);
+          
           // Load user's primary model if set
           if (prefs.primaryModelProvider && prefs.primaryModelId) {
             setUserPrimaryModel({
               provider: prefs.primaryModelProvider,
               modelId: prefs.primaryModelId,
             });
+          } else if (allAvailableModels.length > 0) {
+            // Auto-select best available model if no primary model is set
+            const { selectBestAvailableModel } = await import("@/lib/ai/providers");
+            const bestModel = selectBestAvailableModel(allAvailableModels);
+            
+            if (bestModel) {
+              setUserPrimaryModel(bestModel);
+              
+              // Save the auto-selected model to preferences
+              try {
+                await fetch("/api/preferences", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    primaryModelProvider: bestModel.provider,
+                    primaryModelId: bestModel.modelId,
+                  }),
+                });
+                
+                // Notify user about auto-selection
+                const { getModelById, getProviderById } = await import("@/lib/ai/providers");
+                const modelInfo = getModelById(bestModel.provider as AIProvider, bestModel.modelId);
+                const providerInfo = getProviderById(bestModel.provider as AIProvider);
+                const modelName = modelInfo?.name || bestModel.modelId;
+                const providerName = providerInfo?.name || bestModel.provider;
+                
+                toast.success("Primary model auto-selected", {
+                  description: `Using ${providerName} - ${modelName} for synthesis. You can change this in Settings.`,
+                  duration: 5000,
+                });
+              } catch (error) {
+                console.error("Failed to save auto-selected primary model:", error);
+              }
+            }
           }
         }
       } catch (error) {
@@ -204,7 +243,7 @@ export function WritingWorkspace({
       }
     }
     loadPreferences();
-  }, []);
+  }, [allAvailableModels]);
 
   // Get the effective primary model: user preference > first selected model
   const getEffectivePrimaryModel = (): SelectedModel => {
@@ -350,6 +389,109 @@ export function WritingWorkspace({
     return () => clearInterval(interval);
   }, [state, synthesisStrategy]);
 
+  // Auto-save draft state
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load draft on mount (only if not resuming a generation)
+  useEffect(() => {
+    if (initialGenerationId) return; // Don't load draft if resuming
+    
+    async function loadDraft() {
+      try {
+        const response = await fetch("/api/drafts");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.draft && data.draft.prompt) {
+            // Ask user if they want to resume
+            const shouldResume = confirm(
+              `Resume your previous draft from ${new Date(data.draft.updatedAt).toLocaleString()}?`
+            );
+            
+            if (shouldResume) {
+              setPrompt(data.draft.prompt);
+              setContentType(data.draft.contentType);
+              setLengthPref(data.draft.lengthPref || "medium");
+              setContentMode(data.draft.contentMode);
+              setExistingContent(data.draft.existingContent);
+              setSelectedModels(data.draft.selectedModels);
+              setYoloMode(data.draft.yoloMode);
+              setReferences(data.draft.references);
+              setSelectedKnowledge(data.draft.selectedKnowledge);
+              setEnableCitations(data.draft.enableCitations);
+              setSynthesisStrategy(data.draft.synthesisStrategy);
+              toast.success("Draft restored");
+            } else {
+              // User declined, clear draft
+              await fetch("/api/drafts", { method: "DELETE" });
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load draft:", error);
+      }
+    }
+    
+    loadDraft();
+  }, [initialGenerationId]);
+
+  // Auto-save draft when input changes (debounced)
+  useEffect(() => {
+    // Only auto-save in input state with valid prompt
+    if (state !== "input" || !prompt || prompt.trim().length < 10) return;
+    
+    const timeoutId = setTimeout(async () => {
+      setIsSaving(true);
+      try {
+        await fetch("/api/drafts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            contentType,
+            lengthPref,
+            contentMode,
+            existingContent,
+            selectedModels,
+            yoloMode,
+            references,
+            selectedKnowledge,
+            enableCitations,
+            synthesisStrategy,
+          }),
+        });
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error("Failed to auto-save draft:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 2000); // Debounce 2 seconds
+    
+    return () => clearTimeout(timeoutId);
+  }, [
+    state,
+    prompt,
+    contentType,
+    lengthPref,
+    contentMode,
+    existingContent,
+    selectedModels,
+    yoloMode,
+    references,
+    selectedKnowledge,
+    enableCitations,
+    synthesisStrategy,
+  ]);
+
+  // Clear draft when generation completes
+  useEffect(() => {
+    if (state === "complete") {
+      fetch("/api/drafts", { method: "DELETE" }).catch(console.error);
+    }
+  }, [state]);
+
+
   const handleGenerate = async () => {
     // In YOLO mode, we don't need selected models - server will pick them
     if (!prompt.trim()) return;
@@ -480,7 +622,8 @@ export function WritingWorkspace({
         let errorMessage = "Generation failed";
         try {
           const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
+          // Check for details first (more specific), then error (generic), then fallback
+          errorMessage = errorData.details || errorData.error || errorMessage;
         } catch {
           // Response body was empty or not JSON
           errorMessage = `Server error (${response.status})`;
@@ -494,12 +637,16 @@ export function WritingWorkspace({
 
         switch (event.type) {
           case "model-start": {
-            const { generationId: gId, models, yoloSelection: ys } = data as {
+            const { generationId: gId, models, sourceMap: sm, yoloSelection: ys } = data as {
               generationId: string;
               models: SelectedModel[];
+              sourceMap?: Array<{ url: string; title: string }>;
               yoloSelection?: YoloSelection;
             };
             setGenerationId(gId);
+            if (sm) {
+              setSourceMap(sm);
+            }
             if (ys) {
               setYoloSelection(ys);
               setSelectedModels(ys.models);
@@ -660,10 +807,29 @@ export function WritingWorkspace({
         });
 
         if (!critiqueResponse.ok) {
-          throw new Error("Critique failed");
+          let errorMessage = "Critique failed";
+          try {
+            const errorData = await critiqueResponse.json();
+            errorMessage = errorData.details || errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Server error (${critiqueResponse.status})`;
+          }
+          throw new Error(errorMessage);
         }
 
         const critiqueData = await critiqueResponse.json();
+        
+        // Show warnings if some models failed
+        if (critiqueData.warnings) {
+          const deprecatedModels = critiqueData.warnings.failedModels?.filter((f: { isDeprecated: boolean }) => f.isDeprecated);
+          if (deprecatedModels && deprecatedModels.length > 0) {
+            const modelNames = deprecatedModels.map((f: { model: { modelId: string } }) => f.model.modelId).join(", ");
+            toast.warning(`Deprecated model(s): ${modelNames}. Please update your selection.`);
+          } else if (critiqueData.warnings.failedModels?.length > 0) {
+            toast.warning(`${critiqueData.warnings.failedModels.length} model(s) failed during critique`);
+          }
+        }
+        
         setCritiques(critiqueData.critiques);
 
         // Now synthesize with critique insights
@@ -686,7 +852,14 @@ export function WritingWorkspace({
         });
 
         if (!debateResponse.ok) {
-          throw new Error("Debate failed");
+          let errorMessage = "Debate failed";
+          try {
+            const errorData = await debateResponse.json();
+            errorMessage = errorData.details || errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Server error (${debateResponse.status})`;
+          }
+          throw new Error(errorMessage);
         }
 
         const debateData = await debateResponse.json();
@@ -718,11 +891,19 @@ export function WritingWorkspace({
           primaryModel: getEffectivePrimaryModel(),
           strategy: "basic",
           parentSynthesisId,
+          sourceMap, // Pass sourceMap for citation URLs
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Synthesis failed");
+        let errorMessage = "Synthesis failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Process streaming response
@@ -778,11 +959,19 @@ export function WritingWorkspace({
           strategy: "sequential",
           critiques: critiqueData,
           parentSynthesisId,
+          sourceMap, // Pass sourceMap for citation URLs
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Synthesis failed");
+        let errorMessage = "Synthesis failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Process streaming response
@@ -838,7 +1027,8 @@ export function WritingWorkspace({
       });
 
       if (!response.ok) {
-        throw new Error("Iteration failed");
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errorData.error || `Iteration failed with status ${response.status}`);
       }
 
       const data = await response.json();
@@ -852,6 +1042,9 @@ export function WritingWorkspace({
       setState("complete");
     } catch (error) {
       console.error("Iteration error:", error);
+      toast.error("Iteration failed", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      });
       setState("complete");
     }
   };
@@ -901,9 +1094,15 @@ export function WritingWorkspace({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("[Regenerate] API error:", errorData);
-        throw new Error("Regeneration failed");
+        let errorMessage = "Regeneration failed";
+        try {
+          const errorData = await response.json();
+          console.error("[Regenerate] API error:", errorData);
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -975,7 +1174,14 @@ export function WritingWorkspace({
       });
       
       if (!response.ok) {
-        throw new Error("Retry failed");
+        let errorMessage = "Retry failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
       
       const result = await response.json();
@@ -1009,7 +1215,14 @@ export function WritingWorkspace({
       });
       
       if (!response.ok) {
-        throw new Error("Swap failed");
+        let errorMessage = "Swap failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
       
       const result = await response.json();
@@ -1042,7 +1255,25 @@ export function WritingWorkspace({
       {state === "input" && (
         <div className="flex-1 min-h-0 overflow-auto">
           <div className="mx-auto max-w-4xl space-y-6 p-6">
-          <div className="rounded-lg border bg-card p-6">
+          
+          {/* Auto-save indicator */}
+          {(isSaving || lastSaved) && prompt && prompt.trim().length >= 10 && (
+            <div className="flex items-center justify-end text-xs text-muted-foreground">
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                  <span>Saving draft...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-1.5 h-3 w-3" />
+                  <span>Saved {lastSaved ? new Date(lastSaved).toLocaleTimeString() : ""}</span>
+                </>
+              )}
+            </div>
+          )}
+          
+          <div className="rounded-lg border bg-card p-6" data-tour="prompt-input">
             <PromptInput
               prompt={prompt}
               onPromptChange={setPrompt}
@@ -1064,16 +1295,27 @@ export function WritingWorkspace({
           </div>
 
           {/* YOLO Mode Toggle */}
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-6" data-tour="yolo-mode">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <Zap className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <Label htmlFor="yolo-mode" className="text-base font-medium cursor-pointer">
-                    YOLO Mode
-                  </Label>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="yolo-mode" className="text-base font-medium cursor-pointer">
+                      YOLO Mode
+                    </Label>
+                    <HelpTooltip 
+                      content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Auto-Select Optimal Models</p>
+                          <p>PostMaster analyzes your content type and selects 3 high-quality models from different providers for diverse perspectives.</p>
+                          <p className="text-xs">Selection criteria: model capabilities, cost tier, and provider diversity.</p>
+                        </div>
+                      }
+                    />
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Auto-select optimal models — just write and generate
                   </p>
@@ -1087,29 +1329,42 @@ export function WritingWorkspace({
             </div>
 
             {yoloMode && (
-              <div className="mt-4 rounded-lg bg-primary/5 p-4">
-                <p className="text-sm text-muted-foreground">
-                  PostMaster will automatically select 3 high-quality models from different providers 
-                  for diverse perspectives. Just enter your prompt and hit generate.
-                </p>
-                <div className="mt-4">
-                  <Button
-                    onClick={handleGenerate}
-                    disabled={!prompt.trim()}
-                    size="lg"
-                    className="w-full sm:w-auto"
-                  >
-                    <Zap className="mr-2 h-4 w-4" />
-                    Generate with YOLO
-                  </Button>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg bg-primary/5 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    PostMaster will automatically select 3 high-quality models from different providers 
+                    for diverse perspectives. Just enter your prompt and hit generate.
+                  </p>
+                  <div className="mt-4">
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={!prompt.trim()}
+                      size="lg"
+                      className="w-full sm:w-auto"
+                    >
+                      <Zap className="mr-2 h-4 w-4" />
+                      Generate with YOLO
+                    </Button>
+                  </div>
                 </div>
+                
+                {yoloSelection?.reasoning && yoloSelection.reasoning.length > 0 && (
+                  <div className="rounded-lg border bg-muted/50 p-3">
+                    <p className="text-xs font-medium mb-2">Previous Selection:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {yoloSelection.reasoning.map((reason, i) => (
+                        <li key={i}>• {reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Manual Model Selection (hidden in YOLO mode) */}
           {!yoloMode && (
-            <div className="rounded-lg border bg-card p-6">
+            <div className="rounded-lg border bg-card p-6" data-tour="model-selector">
               <ModelSelector
                 selectedModels={selectedModels}
                 onModelsChange={setSelectedModels}
@@ -1124,7 +1379,13 @@ export function WritingWorkspace({
       )}
 
       {state === "generating" && (
-        <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
           {/* Left side - Progress info (centered) */}
           <div className="h-full border-r bg-muted/20 flex items-center justify-center px-12 py-8">
             <div className="w-full max-w-md text-center">
@@ -1144,29 +1405,63 @@ export function WritingWorkspace({
               
               {/* Model badges with status */}
               {(yoloSelection?.models || selectedModels).length > 0 && (
-                <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  {(yoloSelection?.models || selectedModels).map((m) => {
-                    const key = `${m.provider}:${m.modelId}`;
-                    const streamOutput = streamingOutputs.get(key);
-                    const hasContent = streamOutput && streamOutput.content.length > 0;
-                    const isComplete = streamOutput?.isComplete;
-                    
-                    return (
-                      <Badge 
-                        key={key} 
-                        variant={isComplete ? "default" : "secondary"}
-                        className="text-xs transition-all"
-                      >
-                        {hasContent && !isComplete && (
-                          <span className="mr-1 h-1.5 w-1.5 rounded-full bg-primary animate-pulse inline-block" />
-                        )}
-                        {isComplete && (
-                          <span className="mr-1 text-green-500">✓</span>
-                        )}
-                        {m.modelId.split("/").pop()?.split("-").slice(0, 2).join("-") || m.modelId}
-                      </Badge>
-                    );
-                  })}
+                <div className="mt-6 space-y-3">
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {(yoloSelection?.models || selectedModels).map((m) => {
+                      const key = `${m.provider}:${m.modelId}`;
+                      const streamOutput = streamingOutputs.get(key);
+                      const hasContent = streamOutput && streamOutput.content.length > 0;
+                      const isComplete = streamOutput?.isComplete;
+                      
+                      return (
+                        <Badge 
+                          key={key} 
+                          variant={isComplete ? "default" : "secondary"}
+                          className="text-xs transition-all"
+                        >
+                          {hasContent && !isComplete && (
+                            <span className="mr-1 h-1.5 w-1.5 rounded-full bg-primary animate-pulse inline-block" />
+                          )}
+                          {isComplete && (
+                            <span className="mr-1 text-green-500">✓</span>
+                          )}
+                          {m.modelId.split("/").pop()?.split("-").slice(0, 2).join("-") || m.modelId}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* YOLO Reasoning */}
+                  {yoloMode && yoloSelection?.reasoning && yoloSelection.reasoning.length > 0 && (
+                    <div className="mt-3 rounded-lg bg-primary/5 border border-primary/20 p-3 text-left">
+                      <div className="flex items-start gap-2">
+                        <Zap className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-foreground">YOLO Mode Selection</p>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            {yoloSelection.reasoning.map((reason, i) => (
+                              <li key={i} className="leading-relaxed">• {reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Knowledge Base Indicator */}
+                  {selectedKnowledge.length > 0 && (
+                    <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 text-left">
+                      <div className="flex items-start gap-2">
+                        <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-foreground">Using Knowledge Base</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedKnowledge.length} {selectedKnowledge.length === 1 ? "source" : "sources"} providing context for generation
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -1198,12 +1493,19 @@ export function WritingWorkspace({
               className="h-full overflow-hidden"
             />
           </div>
+          </div>
         </div>
       )}
 
       {state === "comparing" && (
-        <div className="flex-1 min-h-0 overflow-auto p-6">
-          <ComparisonView
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 overflow-auto p-6">
+            <ComparisonView
             outputs={outputs}
             onSynthesize={handleSynthesize}
             onBack={handleReset}
@@ -1216,11 +1518,18 @@ export function WritingWorkspace({
             onSwap={handleSwapModel}
             availableModels={allAvailableModels}
           />
+          </div>
         </div>
       )}
 
       {state === "critiquing" && (
-        <div className="flex-1 min-h-0 overflow-auto">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 overflow-auto">
           <CritiqueView
             outputs={outputs}
             selectedModels={selectedModels}
@@ -1228,11 +1537,18 @@ export function WritingWorkspace({
             progressMessage={progressMessage}
             progressPercent={progressPercent}
           />
+          </div>
         </div>
       )}
 
       {state === "synthesizing" && (
-        <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
           {/* Left side - Progress info (centered) */}
           <div className="h-full border-r bg-muted/20 flex items-center justify-center px-12 py-8">
             <div className="w-full max-w-md text-center">
@@ -1286,11 +1602,18 @@ export function WritingWorkspace({
               className="h-full overflow-hidden"
             />
           </div>
+          </div>
         </div>
       )}
 
       {state === "iterating" && (
-        <div className="flex-1 min-h-0 flex items-center justify-center">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="w-full max-w-md text-center px-6">
             <div className="relative mx-auto h-16 w-16">
               <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
@@ -1311,11 +1634,18 @@ export function WritingWorkspace({
               </p>
             </div>
           </div>
+          </div>
         </div>
       )}
 
       {state === "complete" && (
-        <div className="flex-1 min-h-0 overflow-auto p-6">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          {/* Workflow Progress */}
+          <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
+            <WorkflowProgress currentStep={state} />
+          </div>
+          
+          <div className="flex-1 min-h-0 overflow-auto p-6">
           <SynthesisView
             content={synthesis}
             generationId={generationId}
@@ -1331,7 +1661,11 @@ export function WritingWorkspace({
             debateSession={debateSession}
           />
         </div>
+        </div>
       )}
+      
+      {/* Product Tour for first-time users */}
+      <ProductTour />
     </div>
   );
 }

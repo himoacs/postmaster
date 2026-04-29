@@ -168,7 +168,7 @@ export function UpdateSettings() {
   }, [isElectron]);
 
   const handleOpenReleases = useCallback(() => {
-    const url = "https://github.com/himanshugupta/postmaster/releases";
+    const url = "https://github.com/himoacs/postmaster/releases";
     if (isElectron && window.electron) {
       window.electron.openExternal(url);
     } else {

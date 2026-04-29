@@ -18,15 +18,32 @@ interface SynthesizeRequest {
   strategy?: SynthesisStrategy;
   critiques?: CritiqueOutput[];
   parentSynthesisId?: string; // For parent-child versioning across regenerations
+  sourceMap?: Array<{ url: string; title: string }>; // Citation sources for URL references
 }
 
 // POST /api/synthesize - Combine outputs into one
 export async function POST(request: NextRequest) {
-  const { generationId, outputs, starredSections, primaryModel, strategy = "basic", critiques, parentSynthesisId } =
+  const { generationId, outputs, starredSections, primaryModel, strategy = "basic", critiques, parentSynthesisId, sourceMap: providedSourceMap } =
     (await request.json()) as SynthesizeRequest;
 
   if (!generationId || !outputs || outputs.length === 0 || !primaryModel) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // Retrieve sourceMap from Generation if not provided
+  let sourceMap: Array<{ url: string; title: string }> = providedSourceMap || [];
+  if (!sourceMap || sourceMap.length === 0) {
+    const generation = await prisma.generation.findUnique({
+      where: { id: generationId },
+      select: { sourceMap: true },
+    });
+    if (generation?.sourceMap) {
+      try {
+        sourceMap = JSON.parse(generation.sourceMap);
+      } catch {
+        sourceMap = [];
+      }
+    }
   }
 
   // Get API key for the primary model (skip for LITELLM - handled separately)
@@ -51,6 +68,20 @@ export async function POST(request: NextRequest) {
     ? buildConsensusPrompt(outputs, critiques, starredSections)
     : buildSynthesisPrompt(outputs, starredSections);
 
+  // Build citation context if sourceMap is available
+  let citationContext = "";
+  if (sourceMap && sourceMap.length > 0) {
+    citationContext = "\n\nAVAILABLE CITATION SOURCES:\n";
+    sourceMap.forEach((source, i) => {
+      if (source.url) {
+        citationContext += `${i + 1}. "${source.title}" - ${source.url}\n`;
+      } else {
+        citationContext += `${i + 1}. "${source.title}" (Knowledge Base entry)\n`;
+      }
+    });
+    citationContext += "\nWhen preserving citations, ensure they are in the format [Source: Title](URL) for web sources with URLs, or [Source: Title] for Knowledge Base entries without URLs.\n";
+  }
+
   const systemPrompt = strategy === "sequential"
     ? `You are a skilled editor who synthesizes multiple drafts into one cohesive piece, informed by critical analysis.
 Your task is to combine the best elements from each draft while:
@@ -58,7 +89,7 @@ Your task is to combine the best elements from each draft while:
 2. Incorporating the suggested improvements
 3. Preserving consensus points that all models agreed upon
 4. Maintaining a consistent voice and flow
-5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact. These are important for credibility.
+5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact. These are important for credibility.${citationContext}
 
 You MUST respond with valid JSON in this exact format:
 {
@@ -83,7 +114,7 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
 Your task is to combine the best elements from each draft while maintaining a consistent voice and flow.
 Preserve the overall message and key points while improving clarity and engagement.
 
-IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact in the final content.
+IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact in the final content.${citationContext}
 
 You MUST respond with valid JSON in this exact format:
 {
@@ -279,7 +310,8 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
     });
 
     // Track synthesis contributions for quality analytics
-    if (reasoning && outputs.length > 1) {
+    // Track even without reasoning to ensure participations are counted
+    if (outputs.length > 1) {
       await trackSynthesisContributions(synthesized.id, generationId, reasoning, outputs, starredSections);
     }
 
@@ -296,7 +328,8 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
     });
   } catch (error) {
     console.error("Synthesis error:", error);
-    return NextResponse.json({ error: "Synthesis failed" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error during synthesis";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -469,35 +502,50 @@ Remember to respond with valid JSON containing both "content" and "reasoning" as
 async function trackSynthesisContributions(
   synthesisId: string,
   generationId: string,
-  reasoningJson: string,
+  reasoningJson: string | null,
   outputs: GenerationOutput[],
   starredSections?: { provider: AIProvider; text: string }[]
 ) {
   try {
-    const reasoning = JSON.parse(reasoningJson);
-    const decisions = reasoning.decisions || [];
-    const totalAspects = decisions.length;
-
-    // Count contributions per model
+    // Initialize contributions for all participating models
     const contributions: Record<string, { aspects: string[]; count: number }> = {};
-    
-    // Initialize all participating models
     for (const output of outputs) {
       const key = `${output.provider}:${output.model}`;
       contributions[key] = { aspects: [], count: 0 };
     }
 
-    // Count decisions where each model was selected
-    for (const decision of decisions) {
-      if (decision.from?.provider && decision.from?.model) {
-        const key = `${decision.from.provider}:${decision.from.model || decision.from.modelId}`;
-        if (contributions[key]) {
-          contributions[key].count++;
-          if (decision.aspect) {
-            contributions[key].aspects.push(decision.aspect);
+    let totalAspects = 0;
+
+    // If we have reasoning, parse detailed contributions
+    if (reasoningJson) {
+      try {
+        const reasoning = JSON.parse(reasoningJson);
+        const decisions = reasoning.decisions || [];
+        totalAspects = decisions.length;
+
+        // Count decisions where each model was selected
+        for (const decision of decisions) {
+          if (decision.from?.provider && decision.from?.model) {
+            const key = `${decision.from.provider}:${decision.from.model || decision.from.modelId}`;
+            if (contributions[key]) {
+              contributions[key].count++;
+              if (decision.aspect) {
+                contributions[key].aspects.push(decision.aspect);
+              }
+            }
           }
         }
+      } catch (parseError) {
+        console.error("Failed to parse reasoning for contributions:", parseError);
+        // Fall through to participation-only tracking
       }
+    }
+
+    // If no reasoning or parsing failed, track participation only
+    // This ensures all models get credit for participating even without detailed reasoning
+    if (totalAspects === 0) {
+      totalAspects = 1; // Set to 1 so participations are tracked
+      // Don't assign aspect counts - leave at 0 to indicate no detailed tracking
     }
 
     // Count starred sections per model

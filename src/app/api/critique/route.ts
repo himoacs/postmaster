@@ -27,29 +27,99 @@ export async function POST(request: NextRequest) {
 
   try {
     // Generate critiques in parallel - each model critiques all outputs
-    const critiquePromises = critiqueModels.map(async (critiqueModel) => {
-      const critique = await generateCritique(critiqueModel, outputs);
-      
-      // Store critique in database
-      await prisma.generationCritique.create({
-        data: {
-          generationId,
-          fromProvider: critiqueModel.provider,
-          fromModel: critiqueModel.modelId,
-          critiques: JSON.stringify(critique),
-          debateRound,
-        },
-      });
+    // Use Promise.allSettled to handle individual model failures gracefully
+    const critiqueResults = await Promise.allSettled(
+      critiqueModels.map(async (critiqueModel): Promise<
+        | { success: true; critique: CritiqueOutput; model: SelectedModel }
+        | { success: false; error: string; model: SelectedModel; isDeprecated: boolean }
+      > => {
+        try {
+          const critique = await generateCritique(critiqueModel, outputs);
+          
+          // Store critique in database
+          await prisma.generationCritique.create({
+            data: {
+              generationId,
+              fromProvider: critiqueModel.provider,
+              fromModel: critiqueModel.modelId,
+              critiques: JSON.stringify(critique),
+              debateRound,
+            },
+          });
 
-      return critique;
+          return { success: true, critique, model: critiqueModel };
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          console.error(`Critique failed for ${critiqueModel.provider}:${critiqueModel.modelId}:`, errorMsg);
+          
+          // Check if it's a model deprecation error
+          const isDeprecated = errorMsg.includes("end of its life") || 
+                              errorMsg.includes("deprecated") ||
+                              errorMsg.includes("no longer available");
+          
+          return { 
+            success: false, 
+            error: errorMsg,
+            model: critiqueModel,
+            isDeprecated
+          };
+        }
+      })
+    );
+
+    // Extract successful critiques
+    const successfulCritiques: CritiqueOutput[] = [];
+    const failedModels: Array<{ model: SelectedModel; error: string; isDeprecated: boolean }> = [];
+
+    critiqueResults.forEach((result) => {
+      if (result.status === "fulfilled") {
+        if (result.value.success) {
+          successfulCritiques.push(result.value.critique);
+        } else {
+          failedModels.push({
+            model: result.value.model,
+            error: result.value.error,
+            isDeprecated: result.value.isDeprecated
+          });
+        }
+      }
     });
 
-    const critiques = await Promise.all(critiquePromises);
+    // If all models failed, return error
+    if (successfulCritiques.length === 0) {
+      const deprecatedModels = failedModels.filter(f => f.isDeprecated);
+      if (deprecatedModels.length > 0) {
+        return NextResponse.json(
+          { 
+            error: "All selected models are deprecated or unavailable",
+            details: `The following models have reached end-of-life: ${deprecatedModels.map(f => f.model.modelId).join(", ")}. Please update your model selection.`,
+            failedModels
+          },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { 
+          error: "All critique models failed",
+          details: failedModels[0]?.error || "Unknown error",
+          failedModels
+        },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ critiques });
+    // Return successful critiques with warnings about failed models
+    return NextResponse.json({ 
+      critiques: successfulCritiques,
+      warnings: failedModels.length > 0 ? {
+        message: `${failedModels.length} model(s) failed`,
+        failedModels
+      } : undefined
+    });
   } catch (error) {
     console.error("Critique error:", error);
-    return NextResponse.json({ error: "Critique generation failed" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Unknown error during critique generation";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

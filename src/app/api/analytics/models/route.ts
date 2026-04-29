@@ -15,6 +15,54 @@ export interface ModelStats {
   totalAspectsSelected: number;              // Total aspects where this model was chosen
   starredRate: number | null;               // % of participations with starred content
   totalStarredSections: number;             // Total starred sections from this model
+  // Detailed rating metrics
+  ratingDistribution: {
+    min: number;
+    max: number;
+    median: number;
+    stdDev: number;
+    count: number;
+  } | null;
+  ratingHistogram: Record<number, number> | null; // score -> count mapping
+  critiqueCount: number;                          // Total number of critiques received
+  qualityPercentile: number | null;               // 0-100 percentile rank
+}
+
+// Helper function to calculate rating distribution statistics
+function calculateRatingDistribution(ratings: number[]) {
+  if (ratings.length === 0) return null;
+  
+  const sorted = [...ratings].sort((a, b) => a - b);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const median = sorted.length % 2 === 0
+    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+    : sorted[Math.floor(sorted.length / 2)];
+  
+  const mean = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+  const variance = ratings.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / ratings.length;
+  const stdDev = Math.sqrt(variance);
+  
+  return {
+    min: Math.round(min * 10) / 10,
+    max: Math.round(max * 10) / 10,
+    median: Math.round(median * 10) / 10,
+    stdDev: Math.round(stdDev * 100) / 100,
+    count: ratings.length,
+  };
+}
+
+// Helper function to create rating histogram
+function createRatingHistogram(ratings: number[]): Record<number, number> | null {
+  if (ratings.length === 0) return null;
+  
+  const histogram: Record<number, number> = {};
+  for (const rating of ratings) {
+    const rounded = Math.round(rating);
+    histogram[rounded] = (histogram[rounded] || 0) + 1;
+  }
+  
+  return histogram;
 }
 
 // GET /api/analytics/models - Get model performance analytics
@@ -143,8 +191,31 @@ export async function GET() {
         totalAspectsSelected: contribData?.totalAspectsSelected || 0,
         starredRate,
         totalStarredSections: contribData?.totalStarred || 0,
+        // Detailed rating metrics
+        ratingDistribution: calculateRatingDistribution(ratings),
+        ratingHistogram: createRatingHistogram(ratings),
+        critiqueCount: ratings.length,
+        qualityPercentile: null, // Will calculate after all stats are collected
       };
     });
+
+    // Calculate quality percentiles based on avgRating
+    const modelsWithRatings = stats.filter(s => s.avgRating !== null);
+    if (modelsWithRatings.length > 0) {
+      // Sort by rating to calculate percentile
+      const sortedByRating = [...modelsWithRatings].sort((a, b) => 
+        (a.avgRating || 0) - (b.avgRating || 0)
+      );
+      
+      for (const stat of stats) {
+        if (stat.avgRating !== null) {
+          const rank = sortedByRating.findIndex(s => 
+            s.provider === stat.provider && s.modelId === stat.modelId
+          );
+          stat.qualityPercentile = Math.round((rank / sortedByRating.length) * 100);
+        }
+      }
+    }
 
     // Sort by total runs descending
     stats.sort((a, b) => b.totalRuns - a.totalRuns);

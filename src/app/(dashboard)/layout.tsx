@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ApiKeyStatus } from "@/components/settings/api-key-status";
 import {
   PenLine,
   History,
@@ -66,6 +67,16 @@ export default function DashboardLayout({
             <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
             <span className="font-serif text-lg font-medium">PostMaster</span>
           </Link>
+          <div 
+            className="ml-auto"
+            style={{ 
+              // @ts-expect-error - Electron-specific CSS property
+              WebkitAppRegion: 'no-drag',
+              appRegion: 'no-drag'
+            }}
+          >
+            <ApiKeyStatus />
+          </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden">
@@ -126,6 +137,9 @@ export default function DashboardLayout({
               <PenLine className="h-4 w-4 text-primary" strokeWidth={1.5} />
               <span className="font-serif text-base font-medium">PostMaster</span>
             </Link>
+            <div className="ml-auto">
+              <ApiKeyStatus />
+            </div>
           </header>
 
           {/* Mobile Menu */}

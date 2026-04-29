@@ -159,3 +159,69 @@ export function getTextGenerationProviders(): ProviderConfig[] {
 export function getImageGenerationProviders(): ProviderConfig[] {
   return [AI_PROVIDERS.STABILITY, AI_PROVIDERS.OPENAI];
 }
+
+// Provider priority for text generation (higher = better)
+const PROVIDER_PRIORITY: Record<AIProvider, number> = {
+  ANTHROPIC: 4,
+  OPENAI: 3,
+  XAI: 2,
+  MISTRAL: 1,
+  STABILITY: 0,
+  LITELLM: 0,
+};
+
+// Cost tier priority (higher = better quality)
+const COST_TIER_PRIORITY: Record<string, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
+interface AvailableModel {
+  provider: AIProvider;
+  modelId: string;
+}
+
+/**
+ * Select the best available model from a list of available models.
+ * Prioritizes by cost tier (high > medium > low), then by provider preference.
+ * Returns null if no models are available.
+ */
+export function selectBestAvailableModel(
+  availableModels: AvailableModel[]
+): AvailableModel | null {
+  if (availableModels.length === 0) return null;
+
+  // Filter to text generation models only
+  const textProviders = new Set(getTextGenerationProviders().map((p) => p.id));
+  const textModels = availableModels.filter((m) => 
+    textProviders.has(m.provider) || m.provider === "LITELLM"
+  );
+
+  if (textModels.length === 0) return null;
+
+  // Sort by quality: cost tier first, then provider priority
+  const sorted = [...textModels].sort((a, b) => {
+    const aModel = getModelById(a.provider as AIProvider, a.modelId);
+    const bModel = getModelById(b.provider as AIProvider, b.modelId);
+
+    // For LiteLLM, we don't have model info, so treat as medium tier
+    const aTier = aModel?.costTier || "medium";
+    const bTier = bModel?.costTier || "medium";
+
+    const aTierPriority = COST_TIER_PRIORITY[aTier] || 2;
+    const bTierPriority = COST_TIER_PRIORITY[bTier] || 2;
+
+    // First compare by cost tier
+    if (aTierPriority !== bTierPriority) {
+      return bTierPriority - aTierPriority;
+    }
+
+    // If same tier, compare by provider priority
+    const aProviderPriority = PROVIDER_PRIORITY[a.provider] || 0;
+    const bProviderPriority = PROVIDER_PRIORITY[b.provider] || 0;
+    return bProviderPriority - aProviderPriority;
+  });
+
+  return sorted[0];
+}
