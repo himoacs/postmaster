@@ -50,8 +50,6 @@ export default function AboutPage() {
           </div>
         </div>
       </header>
-        </div>
-      </header>
 
       <main className="flex-1 pt-14">
         {/* Story Section - First */}
