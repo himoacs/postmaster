@@ -458,7 +458,11 @@ Multiple AI models have analyzed and debated the drafts. Your task is to create 
 3. Applies the best suggestions from all models
 4. Maintains a cohesive, engaging voice
 
-TARGET LENGTH: ${lengthGuide}
+⚠️ CRITICAL LENGTH REQUIREMENT ⚠️
+YOU MUST STRICTLY ADHERE TO THIS LENGTH: ${lengthGuide}
+This is a hard constraint. Do NOT exceed this length under any circumstances.
+${contentType === "LINKEDIN_POST" && lengthPref === "short" ? "For LinkedIn short posts, keep it UNDER 100 words total. Be concise and punchy." : ""}
+
 ${enableEmojis ? '✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately.' : '📝 NO EMOJIS: Do not include any emojis or emoticons in the content.'}
 
 Output ONLY the final content, no meta-commentary.`;
