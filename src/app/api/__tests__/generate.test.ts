@@ -1395,7 +1395,6 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
-        sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

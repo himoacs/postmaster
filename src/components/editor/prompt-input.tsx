@@ -82,11 +82,11 @@ const getLengthOptions = (contentType: string) => {
         { value: "medium", label: "Medium (6-10 tweets)" },
         { value: "long", label: "Long (11-15 tweets)" },
       ];
-    case "LINKEDIN_POST":50-100 words)" },
+    case "LINKEDIN_POST":
+      return [
+        { value: "short", label: "Short (50-100 words)" },
         { value: "medium", label: "Medium (150-200 words)" },
-        { value: "long", label: "Long (300-(~150 words)" },
-        { value: "medium", label: "Medium (~250 words)" },
-        { value: "long", label: "Long (~400 words)" },
+        { value: "long", label: "Long (300-400 words)" },
       ];
     case "EMAIL":
       return [
