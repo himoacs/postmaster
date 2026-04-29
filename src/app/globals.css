@@ -282,3 +282,21 @@
     padding: 0;
   }
 }
+
+/* Toast customization - match terracotta/brown theme */
+[data-sonner-toast][data-type="info"] {
+  background-color: var(--accent) !important;
+  border-color: var(--primary) !important;
+  color: var(--accent-foreground) !important;
+}
+
+[data-sonner-toast][data-type="info"] [data-icon] {
+  color: var(--primary) !important;
+}
+
+/* Ensure dark mode also uses theme colors */
+.dark [data-sonner-toast][data-type="info"] {
+  background-color: var(--accent) !important;
+  border-color: var(--primary) !important;
+  color: var(--accent-foreground) !important;
+}
