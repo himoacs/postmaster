@@ -1517,6 +1517,8 @@ export function WritingWorkspace({
             outputs={outputs}
             onSynthesize={handleSynthesize}
             onBack={handleReset}
+            onBackToSynthesis={synthesis ? () => setState("complete") : undefined}
+            hasSynthesis={!!synthesis}
             synthesisStrategy={synthesisStrategy}
             onSynthesisStrategyChange={(strategy) => {
               setSynthesisStrategy(strategy);

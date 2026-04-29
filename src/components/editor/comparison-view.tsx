@@ -29,6 +29,8 @@ interface ComparisonViewProps {
   outputs: GenerationOutput[];
   onSynthesize: (starredSections?: { provider: AIProvider; text: string }[]) => void;
   onBack: () => void;
+  onBackToSynthesis?: () => void;
+  hasSynthesis?: boolean;
   synthesisStrategy?: SynthesisStrategy;
   onSynthesisStrategyChange?: (strategy: SynthesisStrategy) => void;
   onRetry?: (index: number, provider: AIProvider, modelId: string) => Promise<void>;
@@ -45,6 +47,8 @@ export function ComparisonView({
   outputs,
   onSynthesize,
   onBack,
+  onBackToSynthesis,
+  hasSynthesis = false,
   synthesisStrategy = "basic",
   onSynthesisStrategyChange,
   onRetry,
@@ -131,6 +135,12 @@ export function ComparisonView({
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
+          {hasSynthesis && onBackToSynthesis && (
+            <Button variant="default" size="sm" onClick={onBackToSynthesis}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              View Final Draft
+            </Button>
+          )}
           <div>
             <h2 className="text-xl font-semibold">{outputs.length === 1 ? "Review Output" : "Compare Outputs"}</h2>
             <p className="text-sm text-muted-foreground">
