@@ -536,7 +536,7 @@ export function PromptInput({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex h-5 items-center gap-2">
             <Label htmlFor="emojis">Add Emojis</Label>
             <HelpTooltip
               content={
