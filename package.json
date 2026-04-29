@@ -11,7 +11,7 @@
     "url": "https://github.com/himoacs/postmaster.git"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3456",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -26,7 +26,7 @@
     "postinstall": "npm rebuild better-sqlite3 && npx prisma generate",
     "rebuild:native": "npm rebuild better-sqlite3",
     "electron:deps": "node scripts/prepare-electron-deps.js",
-    "electron:dev": "concurrently \"pnpm dev\" \"wait-on http://localhost:3000 && pnpm electron:start\"",
+    "electron:dev": "concurrently \"pnpm dev\" \"wait-on http://localhost:3456 && pnpm electron:start\"",
     "electron:start": "NODE_ENV=development electron .",
     "electron:prepare": "rm -rf .next/standalone_flat && rsync -aL --ignore-errors .next/standalone/ .next/standalone_flat/ && node scripts/fix-standalone.js",
     "electron:build": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder",

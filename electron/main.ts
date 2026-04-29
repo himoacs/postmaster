@@ -18,7 +18,7 @@ process.stderr.on("error", (err) => {
 let mainWindow: BrowserWindow | null = null;
 let nextServer: ChildProcess | null = null;
 const isDev = process.env.NODE_ENV === "development";
-const PORT = 3000;
+const PORT = 3456;
 
 // =============================================================================
 // Update Logger - Persistent logging for debugging auto-updates
