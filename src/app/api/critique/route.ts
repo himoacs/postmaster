@@ -85,6 +85,24 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Check for critical errors that should fail the entire request
+    const criticalError = failedModels.find(f => 
+      f.error.includes("Decryption failed") || 
+      f.error.includes("decryption failed")
+    );
+    
+    if (criticalError) {
+      // Decryption failures are critical infrastructure errors
+      return NextResponse.json(
+        { 
+          error: criticalError.error,
+          details: "Encryption/decryption error - please check your configuration",
+          failedModels
+        },
+        { status: 500 }
+      );
+    }
+
     // If all models failed, return error
     if (successfulCritiques.length === 0) {
       const deprecatedModels = failedModels.filter(f => f.isDeprecated);
@@ -98,10 +116,13 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      
+      // Return the specific error message instead of generic message
+      const firstError = failedModels[0]?.error || "Unknown error";
       return NextResponse.json(
         { 
-          error: "All critique models failed",
-          details: failedModels[0]?.error || "Unknown error",
+          error: firstError,
+          details: failedModels.length > 1 ? "Multiple models failed" : undefined,
           failedModels
         },
         { status: 500 }
