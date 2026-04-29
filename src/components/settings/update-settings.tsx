@@ -237,16 +237,17 @@ export function UpdateSettings() {
 
           {updateState.status === "available" && (
             <div className="space-y-3">
-              <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-3 text-primary">
                 <Download className="h-5 w-5" />
                 <span>
                   New version available: <strong>v{updateState.version}</strong>
                 </span>
               </div>
               {updateState.releaseNotes && (
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                  {updateState.releaseNotes}
-                </p>
+                <div 
+                  className="text-sm text-muted-foreground line-clamp-3"
+                  dangerouslySetInnerHTML={{ __html: updateState.releaseNotes }}
+                />
               )}
             </div>
           )}

@@ -49,7 +49,12 @@ export default async function ProfilePage() {
                       voice: styleProfile.voice || "",
                       vocabulary: styleProfile.vocabulary || "",
                       sentence: styleProfile.sentence || "",
-                      patterns: styleProfile.patterns || "",
+                      // Parse JSON strings back to strings for display
+                      patterns: styleProfile.patterns 
+                        ? (typeof styleProfile.patterns === 'string' 
+                          ? styleProfile.patterns 
+                          : JSON.stringify(styleProfile.patterns, null, 2))
+                        : "",
                       overrides: styleProfile.overrides || "",
                     }
                   : null

@@ -85,18 +85,20 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || "Analysis failed");
+        // Show more detailed error message if available
+        const errorMsg = data.error || "Analysis failed";
+        const details = data.details ? `\n${data.details}` : "";
+        throw new Error(errorMsg + details);
       }
 
-      // Update local state with the analysis results
-      // Use nullish coalescing to allow empty strings from API
+      // Update local state immediately with the analysis results
       setProfile((prev) => ({
         ...prev,
-        tone: data.tone ?? prev.tone,
-        voice: data.voice ?? prev.voice,
-        vocabulary: data.vocabulary ?? prev.vocabulary,
-        sentence: data.sentence ?? prev.sentence,
-        patterns: data.patterns ?? prev.patterns,
+        tone: data.tone || "",
+        voice: data.voice || "",
+        vocabulary: data.vocabulary || "",
+        sentence: data.sentence || "",
+        patterns: data.patterns || "",
       }));
       
       toast.success("Style analysis complete! Fields have been updated.");
@@ -104,6 +106,7 @@ export function StyleProfileEditor({ initialProfile }: StyleProfileEditorProps) 
       // Refresh the page to ensure server data is in sync
       router.refresh();
     } catch (error) {
+      console.error("Style analysis error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to analyze style");
     } finally {
       setAnalyzing(false);

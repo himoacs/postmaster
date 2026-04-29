@@ -50,8 +50,18 @@ export async function POST() {
   const combinedText = samples
     .map((s) => s.extractedText || "")
     .filter(Boolean)
-    .join("\n\n---\n\n")
-    .substring(0, 15000); // Limit to ~15k chars
+    .join("\n\n---\n\n");
+  
+  // Validate we have enough content
+  if (combinedText.length < 100) {
+    return NextResponse.json(
+      { error: "Not enough content in samples to analyze. Please add more substantial writing samples." },
+      { status: 400 }
+    );
+  }
+  
+  // Limit to ~15k chars
+  const limitedText = combinedText.substring(0, 15000);
 
   const systemPrompt = `You are an expert writing analyst specializing in capturing authentic human voice. Analyze the provided writing samples and extract the author's DISTINCT writing style characteristics that make them sound uniquely human.
 
@@ -98,7 +108,7 @@ Output only valid JSON, no explanation.`;
 
   const userPrompt = `Analyze these writing samples and extract the author's complete writing style fingerprint:
 
-${combinedText}`;
+${limitedText}`;
 
   try {
     let result: { content: string; tokensUsed: number };
@@ -145,17 +155,55 @@ ${combinedText}`;
     // Parse the response
     let analysis;
     try {
-      // Try to extract JSON from response
-      const jsonMatch = result.content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found in response");
+      // Try to extract JSON from response with multiple strategies
+      let jsonString = result.content.trim();
+      
+      // Strategy 1: Check if wrapped in markdown code block
+      const codeBlockMatch = jsonString.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonString = codeBlockMatch[1].trim();
+      }
+      
+      // Strategy 2: Extract JSON object (handle nested braces properly)
+      if (!codeBlockMatch) {
+        let braceCount = 0;
+        let startIndex = -1;
+        let endIndex = -1;
+        
+        for (let i = 0; i < jsonString.length; i++) {
+          if (jsonString[i] === '{') {
+            if (braceCount === 0) startIndex = i;
+            braceCount++;
+          } else if (jsonString[i] === '}') {
+            braceCount--;
+            if (braceCount === 0 && startIndex !== -1) {
+              endIndex = i;
+              break;
+            }
+          }
+        }
+        
+        if (startIndex !== -1 && endIndex !== -1) {
+          jsonString = jsonString.substring(startIndex, endIndex + 1);
+        }
+      }
+      
+      // Parse the JSON
+      analysis = JSON.parse(jsonString);
+      
+      // Validate that we have at least some expected fields
+      if (!analysis || typeof analysis !== 'object') {
+        throw new Error("Invalid analysis object");
       }
     } catch (parseError) {
-      console.error("Failed to parse analysis:", result.content);
+      console.error("Failed to parse analysis. Error:", parseError);
+      console.error("Raw response:", result.content);
+      console.error("Response length:", result.content.length);
       return NextResponse.json(
-        { error: "Failed to parse style analysis" },
+        { 
+          error: "Failed to parse style analysis. The AI response was not in the expected format.",
+          details: parseError instanceof Error ? parseError.message : "Unknown parse error"
+        },
         { status: 500 }
       );
     }
