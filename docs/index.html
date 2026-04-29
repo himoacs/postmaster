@@ -3,108 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PostMaster - AI-Powered Multi-Model Writing Assistant</title>
-  <meta name="description" content="Write better content with multiple AI models. PostMaster lets you compare outputs from GPT-4, Claude, Mistral, and more, then synthesize the best version.">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <script>
-    // Apply theme immediately to prevent flash - defaults to light
-    (function() {
-      const savedTheme = localStorage.getItem('postmaster-theme');
-      // Default to light theme if no preference saved
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    })();
-  </script>
+  <title>PostMaster - Multi-model AI Writing Assistant</title>
+  <meta name="description" content="Write with clarity, refine with precision. PostMaster runs your prompts through multiple AI models simultaneously so you can compare outputs and synthesize the best content.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0522d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z'/><path d='m15 5 3 3'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: oklch(0.985 0.008 85);
-      --surface: oklch(0.995 0.005 85);
-      --border: oklch(0.90 0.01 80);
-      --text: oklch(0.18 0.02 60);
-      --text-muted: oklch(0.48 0.015 60);
-      --primary: oklch(0.52 0.14 35);
-      --primary-hover: oklch(0.45 0.14 35);
-      --gradient-start: oklch(0.52 0.14 35);
-      --gradient-end: oklch(0.55 0.12 250);
+      --background: #faf8f5;
+      --foreground: #2d2a26;
+      --card: #fdfcfa;
+      --card-foreground: #2d2a26;
+      --primary: #a0522d;
+      --primary-foreground: #faf8f5;
+      --muted: #f0ede8;
+      --muted-foreground: #6b6560;
+      --border: #e8e4de;
+      --accent: #f5f0e8;
     }
-
+    
     [data-theme="dark"] {
-      --bg: oklch(0.16 0.015 55);
-      --surface: oklch(0.20 0.015 55);
-      --border: oklch(0.30 0.01 55);
-      --text: oklch(0.92 0.01 85);
-      --text-muted: oklch(0.65 0.01 80);
-      --primary: oklch(0.65 0.15 35);
-      --primary-hover: oklch(0.70 0.15 35);
-      --gradient-start: oklch(0.65 0.15 35);
-      --gradient-end: oklch(0.60 0.12 250);
+      --background: #1c1a17;
+      --foreground: #e8e4de;
+      --card: #252320;
+      --card-foreground: #e8e4de;
+      --primary: #c97a4a;
+      --primary-foreground: #1c1a17;
+      --muted: #2d2a26;
+      --muted-foreground: #a09890;
+      --border: #3d3a35;
+      --accent: #322f2a;
     }
-
+    
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
       min-height: 100vh;
+      line-height: 1.6;
     }
-
-    .container {
+    
+    .serif {
+      font-family: 'Instrument Serif', Georgia, serif;
+    }
+    
+    /* Header */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--border);
+      background: var(--background);
+      backdrop-filter: blur(8px);
+    }
+    
+    .header-content {
       max-width: 1200px;
       margin: 0 auto;
       padding: 0 24px;
-    }
-
-    /* Header */
-    header {
-      padding: 20px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .header-content {
+      height: 56px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
-
+    
     .logo {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-size: 1.5rem;
-      font-weight: 700;
       text-decoration: none;
-      color: var(--text);
+      color: var(--foreground);
     }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
+    
+    .logo svg {
+      width: 20px;
+      height: 20px;
+      color: var(--primary);
     }
-
-    .github-link {
+    
+    .logo span {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.125rem;
+      font-weight: 400;
+    }
+    
+    nav {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: var(--text-muted);
+      gap: 16px;
+    }
+    
+    nav a {
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
       text-decoration: none;
-      transition: color 0.2s;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
     }
-
-    .github-link:hover {
-      color: var(--text);
+    
+    nav a:hover {
+      color: var(--foreground);
     }
-
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      color: var(--foreground);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-outline:hover {
+      background: var(--accent);
+    }
+    
     .theme-toggle {
       background: none;
       border: 1px solid var(--border);
-      color: var(--text);
+      color: var(--foreground);
       cursor: pointer;
       padding: 8px;
       border-radius: 6px;
@@ -112,270 +159,494 @@
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
-      margin-left: 16px;
     }
-
+    
     .theme-toggle:hover {
-      background: var(--surface);
+      background: var(--accent);
       border-color: var(--primary);
     }
-
+    
     .theme-toggle svg {
       width: 18px;
       height: 18px;
     }
-
-    .header-right {
-      display: flex;
-      align-items: center;
+    
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 1rem;
     }
-
+    
+    /* Main */
+    main {
+      padding-top: 56px;
+    }
+    
     /* Hero */
     .hero {
-      padding: 100px 0 80px;
-      text-align: center;
+      border-bottom: 1px solid var(--border);
     }
-
+    
+    .hero-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      min-height: calc(100vh - 56px);
+    }
+    
+    @media (max-width: 900px) {
+      .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+        min-height: auto;
+        padding: 60px 24px;
+      }
+    }
+    
+    .hero-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+    
     .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 24px;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 400;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
     }
-
-    .hero p {
-      font-size: 1.25rem;
-      color: var(--text-muted);
-      max-width: 600px;
-      margin: 0 auto 48px;
+    
+    .hero h1 span {
+      color: var(--muted-foreground);
     }
-
-    /* Download buttons */
-    .download-section {
+    
+    .hero-description {
+      margin-top: 24px;
+      font-size: 1.125rem;
+      color: var(--muted-foreground);
+      line-height: 1.7;
+      max-width: 540px;
+    }
+    
+    @media (max-width: 900px) {
+      .hero-description {
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+    
+    .hero-actions {
       display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 40px;
+    }
+    
+    @media (max-width: 900px) {
+      .hero-actions {
+        justify-content: center;
+      }
+    }
+    
+    /* Download callout */
+    .download-callout {
+      margin-top: 32px;
+      padding: 20px 24px;
+      background: var(--accent);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: inline-flex;
       flex-direction: column;
+      gap: 12px;
+    }
+    
+    @media (max-width: 900px) {
+      .download-callout {
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+    
+    .download-callout-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .download-meta {
+      font-size: 0.8rem;
+      color: var(--muted-foreground);
+      display: flex;
       align-items: center;
       gap: 16px;
     }
-
-    .download-buttons {
+    
+    .download-meta span {
       display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 6px;
     }
-
-    .download-btn {
+    
+    .version-badge {
+      background: var(--muted);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    /* Hero Visual */
+    .hero-visual {
+      position: relative;
+    }
+    
+    @media (max-width: 900px) {
+      .hero-visual {
+        display: none;
+      }
+    }
+    
+    .stacked-cards {
+      position: relative;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .stacked-card {
+      position: absolute;
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    
+    .stacked-card:nth-child(1) {
+      top: -16px;
+      left: -16px;
+      opacity: 0.5;
+    }
+    
+    .stacked-card:nth-child(2) {
+      top: -8px;
+      left: -8px;
+      opacity: 0.7;
+    }
+    
+    .stacked-card-main {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+    
+    .card-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+      font-family: monospace;
+    }
+    
+    .card-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+    
+    .model-bars {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .model-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .model-bar-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .model-bar-track {
+      width: 140px;
+      height: 6px;
+      background: var(--muted);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .model-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 3px;
+    }
+    
+    .card-footer {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+    }
+    
+    .card-footer-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 16px;
+    }
+    
+    .card-footer-text {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 0.875rem;
+      font-style: italic;
+      color: var(--muted-foreground);
+    }
+    
+    /* Features */
+    .features {
+      padding: 96px 24px;
+    }
+    
+    .features-header {
+      max-width: 600px;
+      margin: 0 auto 64px;
+      text-align: center;
+    }
+    
+    .features-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    
+    .features-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    
+    .features-subtitle {
+      margin-top: 16px;
+      color: var(--muted-foreground);
+    }
+    
+    .features-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .feature-card {
+      padding: 32px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    
+    .feature-card:hover {
+      background: var(--accent);
+    }
+    
+    .feature-card:nth-child(3n) {
+      border-right: none;
+    }
+    
+    @media (max-width: 900px) {
+      .feature-card:nth-child(3n) {
+        border-right: 1px solid var(--border);
+      }
+      .feature-card:nth-child(2n) {
+        border-right: none;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .feature-card {
+        border-right: none;
+      }
+    }
+    
+    .feature-card:nth-last-child(-n+3) {
+      border-bottom: none;
+    }
+    
+    @media (max-width: 900px) {
+      .feature-card:nth-last-child(-n+3) {
+        border-bottom: 1px solid var(--border);
+      }
+      .feature-card:nth-last-child(-n+2) {
+        border-bottom: none;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .feature-card:nth-last-child(-n+2) {
+        border-bottom: 1px solid var(--border);
+      }
+      .feature-card:last-child {
+        border-bottom: none;
+      }
+    }
+    
+    .feature-header {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 16px 32px;
-      background: var(--primary);
-      color: white;
-      text-decoration: none;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      border: none;
-      cursor: pointer;
-    }
-
-    .download-btn:hover {
-      background: var(--primary-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-    }
-
-    .download-btn svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .download-btn.secondary {
-      background: var(--surface);
-      border: 1px solid var(--border);
-    }
-
-    .download-btn.secondary:hover {
-      background: var(--border);
-      box-shadow: none;
-    }
-
-    .version-info {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* Features */
-    .features {
-      padding: 80px 0;
-    }
-
-    .features h2 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 48px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 24px;
-    }
-
-    .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-    }
-
-    .feature-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       margin-bottom: 16px;
     }
-
-    .feature-icon svg {
-      width: 24px;
-      height: 24px;
-      color: white;
+    
+    .feature-number {
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
     }
-
-    .feature-card h3 {
-      font-size: 1.25rem;
-      margin-bottom: 8px;
+    
+    .feature-icon {
+      color: var(--primary);
     }
-
-    .feature-card p {
-      color: var(--text-muted);
+    
+    .feature-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.125rem;
+      font-weight: 400;
     }
-
-    /* Screenshot */
-    .screenshot-section {
-      padding: 40px 0 80px;
-      text-align: center;
+    
+    .feature-description {
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+      line-height: 1.6;
     }
-
-    .screenshot {
-      max-width: 100%;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
-    }
-
-    /* How it works */
-    .how-it-works {
-      padding: 80px 0;
-      background: var(--surface);
-    }
-
-    .how-it-works h2 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 48px;
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 32px;
-    }
-
-    .step {
-      text-align: center;
-    }
-
-    .step-number {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin: 0 auto 16px;
-    }
-
-    .step h3 {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-
-    .step p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-    }
-
-    /* Footer */
-    footer {
-      padding: 40px 0;
+    
+    /* CTA */
+    .cta {
+      padding: 96px 24px;
+      background: var(--muted);
       border-top: 1px solid var(--border);
       text-align: center;
-      color: var(--text-muted);
     }
-
-    footer a {
+    
+    .cta-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    
+    .cta-subtitle {
+      margin-top: 16px;
+      color: var(--muted-foreground);
+    }
+    
+    .cta-actions {
+      margin-top: 32px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    /* Footer */
+    footer {
+      padding: 40px 24px;
+      border-top: 1px solid var(--border);
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted-foreground);
+    }
+    
+    .footer-logo svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .footer-logo span {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 0.875rem;
+    }
+    
+    .footer-text {
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+    }
+    
+    .footer-link {
       color: var(--primary);
       text-decoration: none;
     }
-
-    footer a:hover {
+    
+    .footer-link:hover {
       text-decoration: underline;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .hero h1 {
-        font-size: 2.5rem;
-      }
-
-      .hero p {
-        font-size: 1.1rem;
-      }
-
-      .download-buttons {
-        flex-direction: column;
-        width: 100%;
-        max-width: 300px;
-      }
-
-      .download-btn {
-        justify-content: center;
-      }
     }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <header>
-    <div class="container header-content">
-      <a href="/" class="logo">
-        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
+    <div class="header-content">
+      <a href="#" class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>
+          <path d="m15 5 3 3"/>
         </svg>
-        PostMaster
+        <span class="serif">PostMaster</span>
       </a>
-      <div class="header-right">
-        <a href="https://github.com/himanshugupta/postmaster" class="github-link">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-          </svg>
-          GitHub
-        </a>
+      <nav>
+        <a href="#how-it-works">How it works</a>
+        <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer">Donate</a>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
           <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
@@ -392,148 +663,189 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
-      </div>
+        <a href="https://github.com/himoacs/postmaster" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </nav>
     </div>
   </header>
 
   <main>
+    <!-- Hero -->
     <section class="hero">
-      <div class="container">
-        <h1>Write Better with<br>Multiple AI Models</h1>
-        <p>Compare outputs from GPT-4, Claude, Mistral, and more. Synthesize the best ideas into polished content. All running locally on your machine.</p>
+      <div class="hero-content">
+        <div>
+          <p class="hero-badge">Multi-model writing assistant</p>
+          <h1 class="serif">
+            Write with clarity.<br>
+            <span>Refine with precision.</span>
+          </h1>
+          <p class="hero-description">
+            PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
+          </p>
+          <div class="hero-actions">
+            <a href="https://github.com/himoacs/postmaster/releases/download/v1.1.0/PostMaster-1.1.0-arm64.dmg" class="btn btn-primary btn-lg">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              Download for macOS
+            </a>
+            <a href="#how-it-works" class="btn btn-outline btn-lg">Learn More</a>
+          </div>
+          <div class="download-callout">
+            <div class="download-callout-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17.18 3.03 13.31 4.67 10.8c.8-1.22 2.23-2 3.76-2.02 1.3-.02 2.52.87 3.31.87.79 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+              Desktop App Available
+            </div>
+            <div class="download-meta">
+              <span>macOS (Apple Silicon)</span>
+              <span class="version-badge">v1.1.0</span>
+            </div>
+          </div>
+        </div>
         
-        <div class="download-section">
-          <div class="download-buttons">
-            <a href="https://github.com/himanshugupta/postmaster/releases/latest/download/PostMaster-mac-arm64.dmg" class="download-btn">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              Download for Mac (Apple Silicon)
-            </a>
-            <a href="https://github.com/himanshugupta/postmaster/releases/latest/download/PostMaster-mac-x64.dmg" class="download-btn secondary">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              Mac (Intel)
-            </a>
-          </div>
-          <div class="download-buttons">
-            <a href="https://github.com/himanshugupta/postmaster/releases/latest/download/PostMaster-win-x64.exe" class="download-btn secondary">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
-              </svg>
-              Download for Windows
-            </a>
-          </div>
-          <p class="version-info">Version 1.0.0 • Requires macOS 12+ or Windows 10+</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="features">
-      <div class="container">
-        <h2>Why PostMaster?</h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
+        <!-- Visual -->
+        <div class="hero-visual">
+          <div class="stacked-cards">
+            <div class="stacked-card"></div>
+            <div class="stacked-card"></div>
+            <div class="stacked-card-main">
+              <div class="card-indicator">
+                <div class="card-indicator-dot"></div>
+                <span>comparing 4 models...</span>
+              </div>
+              <div class="model-bars">
+                <div class="model-bar">
+                  <span class="model-bar-name">OpenAI</span>
+                  <div class="model-bar-track">
+                    <div class="model-bar-fill" style="width: 85%"></div>
+                  </div>
+                </div>
+                <div class="model-bar">
+                  <span class="model-bar-name">Claude</span>
+                  <div class="model-bar-track">
+                    <div class="model-bar-fill" style="width: 92%"></div>
+                  </div>
+                </div>
+                <div class="model-bar">
+                  <span class="model-bar-name">Grok</span>
+                  <div class="model-bar-track">
+                    <div class="model-bar-fill" style="width: 75%"></div>
+                  </div>
+                </div>
+                <div class="model-bar">
+                  <span class="model-bar-name">Mistral</span>
+                  <div class="model-bar-track">
+                    <div class="model-bar-fill" style="width: 80%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <div class="card-footer-divider"></div>
+                <p class="card-footer-text">"Synthesize the best elements..."</p>
+              </div>
             </div>
-            <h3>Multi-Model Generation</h3>
-            <p>Send your prompt to multiple AI models simultaneously and compare their outputs side by side.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4"/>
-              </svg>
-            </div>
-            <h3>Smart Synthesis</h3>
-            <p>Combine the best parts of each output into a single polished piece with AI-powered synthesis.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
-              </svg>
-            </div>
-            <h3>Style Learning</h3>
-            <p>Analyze your existing writing samples and train the AI to match your unique voice and tone.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4"/>
-              </svg>
-            </div>
-            <h3>Privacy First</h3>
-            <p>Everything runs locally. Your API keys and content never leave your machine.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-            </div>
-            <h3>Knowledge Base</h3>
-            <p>Import URLs, documents, and notes. Reference them to generate contextually accurate content.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-              </svg>
-            </div>
-            <h3>Fact Checking</h3>
-            <p>Verify claims in your content against your knowledge base with built-in fact checking.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="how-it-works">
-      <div class="container">
-        <h2>How It Works</h2>
-        <div class="steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <h3>Add Your API Keys</h3>
-            <p>Connect OpenAI, Anthropic, Mistral, or any provider. Your keys are encrypted locally.</p>
+    <!-- Features -->
+    <section id="how-it-works" class="features">
+      <div class="features-header">
+        <p class="features-badge">The workflow</p>
+        <h2 class="features-title">How PostMaster Works</h2>
+        <p class="features-subtitle">A deliberate approach to AI-assisted writing that keeps you in control.</p>
+      </div>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">01</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/><path d="M14 14h3v3h-3z"/></svg>
           </div>
-          <div class="step">
-            <div class="step-number">2</div>
-            <h3>Write Your Prompt</h3>
-            <p>Describe what you want to write. Add references from your knowledge base if needed.</p>
-          </div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <h3>Select Models</h3>
-            <p>Choose 2-5 models to generate content, or use YOLO mode for automatic selection.</p>
-          </div>
-          <div class="step">
-            <div class="step-number">4</div>
-            <h3>Compare & Synthesize</h3>
-            <p>Review outputs side by side, then synthesize the best parts into your final piece.</p>
-          </div>
+          <h3 class="feature-title">Compare Models</h3>
+          <p class="feature-description">Submit your prompt once, receive outputs from multiple AI models. See how each interprets your request.</p>
         </div>
+        
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">02</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg>
+          </div>
+          <h3 class="feature-title">Synthesize Results</h3>
+          <p class="feature-description">Pick the strongest elements from each output. Combine them into a cohesive draft that captures your intent.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">03</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </div>
+          <h3 class="feature-title">Refine & Iterate</h3>
+          <p class="feature-description">Provide feedback, adjust tone, tighten phrasing. Iterate until every sentence feels intentional.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">04</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+          </div>
+          <h3 class="feature-title">Learn Your Style</h3>
+          <p class="feature-description">Share examples of your writing. PostMaster analyzes your voice to generate content that sounds like you.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">05</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </div>
+          <h3 class="feature-title">Generate Images</h3>
+          <p class="feature-description">Create matching visuals with DALL-E or Stable Diffusion, integrated directly into your workflow.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-number">06</span>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          </div>
+          <h3 class="feature-title">Use Your Own Keys</h3>
+          <p class="feature-description">Bring your API keys for complete control. No subscriptions, just pay for what you use.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <h2 class="cta-title serif">Ready to write with intention?</h2>
+      <p class="cta-subtitle">PostMaster runs locally. Your API keys, your content, your control.</p>
+      <div class="cta-actions">
+        <a href="https://github.com/himoacs/postmaster/releases/download/v1.1.0/PostMaster-1.1.0-arm64.dmg" class="btn btn-primary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/himoacs/postmaster" class="btn btn-outline btn-lg">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          View on GitHub
+        </a>
       </div>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer>
-    <div class="container">
-      <p>PostMaster is open source. <a href="https://github.com/himanshugupta/postmaster">View on GitHub</a></p>
-      <p style="margin-top: 8px;">Made with ❤️ for writers who want the best of every AI model.</p>
+    <div class="footer-content">
+      <div class="footer-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/>
+          <path d="m15 5 3 3"/>
+        </svg>
+        <span class="serif">PostMaster</span>
+      </div>
+      <p class="footer-text">
+        Open source. Local-first. Made for writers. 
+        <a href="https://github.com/himoacs/postmaster" class="footer-link">View on GitHub</a>
+      </p>
     </div>
   </footer>
 
