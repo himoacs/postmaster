@@ -138,6 +138,9 @@ export function WritingWorkspace({
   // Citations state
   const [enableCitations, setEnableCitations] = useState(false);
   
+  // Emojis state
+  const [enableEmojis, setEnableEmojis] = useState(false);
+  
   // Content mode state (new vs enhance existing)
   const [contentMode, setContentMode] = useState<ContentMode>("new");
   const [existingContent, setExistingContent] = useState<string | null>(null);
@@ -457,6 +460,7 @@ export function WritingWorkspace({
             references,
             selectedKnowledge,
             enableCitations,
+            enableEmojis,
             synthesisStrategy,
           }),
         });
@@ -609,6 +613,7 @@ export function WritingWorkspace({
           lengthPref,
           references: allReferences,
           enableCitations,
+          enableEmojis,
           contentMode,
           existingContent: contentMode === "enhance" ? existingContent : undefined,
           ...(yoloMode 
@@ -1077,6 +1082,7 @@ export function WritingWorkspace({
         lengthPref,
         references: [],
         enableCitations: false,
+        enableEmojis,
         contentMode: "enhance" as const,
         existingContent: draftContent,
         ...(yoloMode 
@@ -1287,6 +1293,8 @@ export function WritingWorkspace({
               onSelectedKnowledgeChange={setSelectedKnowledge}
               enableCitations={enableCitations}
               onEnableCitationsChange={setEnableCitations}
+              enableEmojis={enableEmojis}
+              onEnableEmojisChange={setEnableEmojis}
               contentMode={contentMode}
               onContentModeChange={setContentMode}
               existingContent={existingContent}

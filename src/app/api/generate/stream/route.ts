@@ -27,6 +27,7 @@ interface GenerationRequest {
   yoloMode?: boolean;
   references?: ReferenceInput[];
   enableCitations?: boolean;
+  enableEmojis?: boolean;
   contentMode?: "new" | "enhance";
   existingContent?: string;
 }
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, contentMode, existingContent } = requestBody;
+    const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, enableEmojis, contentMode, existingContent } = requestBody;
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
 
   // Build prompts
   const hasReferences = references && references.length > 0;
-  const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences, contentMode, existingContent, sourceMap);
+  const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences, enableEmojis, contentMode, existingContent, sourceMap);
   const userPrompt = prompt + referenceContext;
 
   // Create SSE stream
@@ -563,6 +564,7 @@ function buildSystemPrompt(
   lengthPref: string,
   enableCitations?: boolean,
   hasReferences?: boolean,
+  enableEmojis?: boolean,
   contentMode?: "new" | "enhance",
   existingContent?: string,
   sourceMap?: Array<{ url: string; title: string }>
@@ -580,10 +582,10 @@ function buildSystemPrompt(
       break;
     case "LINKEDIN_POST":
       lengthGuide = {
-        short: "around 150 words (1,000-1,300 characters)",
-        medium: "around 250 words (1,500-1,800 characters)",
-        long: "around 400 words (2,000-2,500 characters)",
-      }[lengthPref] || "around 250 words";
+        short: "around 50-100 words (600-800 characters)",
+        medium: "around 150-200 words (1,000-1,300 characters)",
+        long: "around 300-400 words (2,000-2,500 characters)",
+      }[lengthPref] || "around 150-200 words";
       break;
     case "EMAIL":
       lengthGuide = {
@@ -768,6 +770,13 @@ When in doubt, quote directly from the references rather than paraphrasing.
         // Ignore JSON parse errors
       }
     }
+  }
+
+  // Emoji preferences
+  if (enableEmojis) {
+    prompt += `\n✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately for the content type. For social media posts (LinkedIn, Twitter), use 2-4 emojis. For professional content (emails, articles), use sparingly (0-2 emojis).\n`;
+  } else {
+    prompt += `\n📝 NO EMOJIS: Do not include any emojis or emoticons in the generated content.\n`;
   }
 
   // Add AI anti-patterns section (always include, but style-aware patterns take precedence)

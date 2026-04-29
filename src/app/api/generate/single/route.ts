@@ -362,6 +362,7 @@ function buildSimpleSystemPrompt(
   contentType: string,
   lengthPref: string,
   contentMode?: "new" | "enhance" | null,
+  enableEmojis?: boolean,
   existingContent?: string | null
 ): string {
   // Content-type-aware length guidance
@@ -377,10 +378,10 @@ function buildSimpleSystemPrompt(
       break;
     case "LINKEDIN_POST":
       lengthGuide = {
-        short: "around 150 words (1,000-1,300 characters)",
-        medium: "around 250 words (1,500-1,800 characters)",
-        long: "around 400 words (2,000-2,500 characters)",
-      }[lengthPref] || "around 250 words";
+        short: "around 50-100 words (600-800 characters)",
+        medium: "around 150-200 words (1,000-1,300 characters)",
+        long: "around 300-400 words (2,000-2,500 characters)",
+      }[lengthPref] || "around 150-200 words";
       break;
     case "EMAIL":
       lengthGuide = {

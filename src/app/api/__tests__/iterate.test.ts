@@ -97,6 +97,7 @@ describe('API: /api/iterate', () => {
         content: 'Original content',
         feedback: 'Make it shorter',
         createdAt: new Date(),
+        reasoning: null,
       });
 
       vi.mocked(prisma.synthesizedContent.update).mockResolvedValue({
@@ -765,8 +766,6 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
-        parentSynthesisId: null,
-        globalVersion: 1,
         imageUrl: null,
         imagePrompt: null,
       });
@@ -818,8 +817,6 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
-        parentSynthesisId: null,
-        globalVersion: 1,
         imageUrl: null,
         imagePrompt: null,
       });
@@ -836,6 +833,7 @@ describe('API: /api/iterate', () => {
         content: 'Original content',
         feedback: '',
         createdAt: new Date(),
+        reasoning: null,
       });
 
       vi.mocked(prisma.synthesizedContent.update).mockResolvedValue({
@@ -850,8 +848,6 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
-        parentSynthesisId: null,
-        globalVersion: 1,
         imageUrl: null,
         imagePrompt: null,
       });

@@ -55,6 +55,8 @@ interface PromptInputProps {
   onSelectedKnowledgeChange: (ids: string[]) => void;
   enableCitations: boolean;
   onEnableCitationsChange: (enabled: boolean) => void;
+  enableEmojis: boolean;
+  onEnableEmojisChange: (enabled: boolean) => void;
   // New props for content mode
   contentMode: ContentMode;
   onContentModeChange: (mode: ContentMode) => void;
@@ -80,9 +82,9 @@ const getLengthOptions = (contentType: string) => {
         { value: "medium", label: "Medium (6-10 tweets)" },
         { value: "long", label: "Long (11-15 tweets)" },
       ];
-    case "LINKEDIN_POST":
-      return [
-        { value: "short", label: "Short (~150 words)" },
+    case "LINKEDIN_POST":50-100 words)" },
+        { value: "medium", label: "Medium (150-200 words)" },
+        { value: "long", label: "Long (300-(~150 words)" },
         { value: "medium", label: "Medium (~250 words)" },
         { value: "long", label: "Long (~400 words)" },
       ];
@@ -117,6 +119,8 @@ export function PromptInput({
   onSelectedKnowledgeChange,
   enableCitations,
   onEnableCitationsChange,
+  enableEmojis,
+  onEnableEmojisChange,
   contentMode,
   onContentModeChange,
   existingContent,
@@ -752,6 +756,33 @@ export function PromptInput({
           />
         </div>
       )}
+
+      {/* Emoji/Emoticon Toggle */}
+      <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+        <div className="flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="emojis" className="cursor-pointer">
+              Add Emojis
+            </Label>
+            <HelpTooltip
+              content={
+                <div className="space-y-1">
+                  <p>When enabled, the AI will include relevant emojis and emoticons in the generated content.</p>
+                  <p className="text-xs text-muted-foreground">Great for social media posts, casual emails, and engaging content.</p>
+                </div>
+              }
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Enhance content with relevant emojis for better engagement
+          </p>
+        </div>
+        <Switch
+          id="emojis"
+          checked={enableEmojis}
+          onCheckedChange={onEnableEmojisChange}
+        />
+      </div>
     </div>
   );
 }
