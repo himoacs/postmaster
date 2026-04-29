@@ -104,12 +104,22 @@ Your task is to combine the best elements from each draft while:
 4. Maintaining a consistent voice and flow
 5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact.${citationContext}
 
+STYLE REQUIREMENTS:
+- Write naturally and authentically to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
+- Vary sentence structure and avoid formulaic patterns
+
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`
     : `You are a skilled editor who synthesizes multiple drafts into one cohesive piece.
 Your task is to combine the best elements from each draft while maintaining a consistent voice and flow.
 Preserve the overall message and key points while improving clarity and engagement.
 
 IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL).${citationContext}
+
+STYLE REQUIREMENTS:
+- Write naturally and authentically to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
+- Vary sentence structure and avoid formulaic patterns
 
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`;
 

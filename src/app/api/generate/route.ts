@@ -723,6 +723,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
   prompt += `
 Guidelines:
 - Write naturally and authentically - your goal is to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
 - Be engaging and provide value to the reader
 - Use markdown formatting for structure (## for headings, **bold**, *italic*, bullet lists with -, etc.)
 - Start with something that hooks the reader's attention

@@ -91,6 +91,11 @@ Your task is to combine the best elements from each draft while:
 4. Maintaining a consistent voice and flow
 5. PRESERVING ALL CITATIONS - Keep all [Source: ...] citations and links intact. These are important for credibility.${citationContext}
 
+STYLE REQUIREMENTS:
+- Write naturally and authentically to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
+- Vary sentence structure and avoid formulaic patterns
+
 You MUST respond with valid JSON in this exact format:
 {
   "content": "The final synthesized content here...",
@@ -115,6 +120,11 @@ Your task is to combine the best elements from each draft while maintaining a co
 Preserve the overall message and key points while improving clarity and engagement.
 
 IMPORTANT: Preserve all source citations in the format [Source: Title] or [Source: Title](URL). These citations provide credibility and should be kept intact in the final content.${citationContext}
+
+STYLE REQUIREMENTS:
+- Write naturally and authentically to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
+- Vary sentence structure and avoid formulaic patterns
 
 You MUST respond with valid JSON in this exact format:
 {

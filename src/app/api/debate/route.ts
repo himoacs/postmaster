@@ -465,6 +465,11 @@ ${contentType === "LINKEDIN_POST" && lengthPref === "short" ? "For LinkedIn shor
 
 ${enableEmojis ? '✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately.' : '📝 NO EMOJIS: Do not include any emojis or emoticons in the content.'}
 
+STYLE REQUIREMENTS:
+- Write naturally and authentically to sound like a real person, not AI
+- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
+- Vary sentence structure and avoid formulaic patterns
+
 Output ONLY the final content, no meta-commentary.`;
 
   let userPrompt = "=== ORIGINAL DRAFTS ===\n\n";
