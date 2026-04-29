@@ -420,6 +420,7 @@ async function synthesizeWithDebateInsights(
   // Build length guidance based on content type and preference
   let lengthGuide: string;
   const { contentType, lengthPref = "medium", enableEmojis } = generation;
+  const safeLength = (lengthPref || "medium") as "short" | "medium" | "long";
   
   switch (contentType) {
     case "TWEET_THREAD":
@@ -427,28 +428,28 @@ async function synthesizeWithDebateInsights(
         short: "3-5 tweets (each under 280 characters)",
         medium: "6-10 tweets (each under 280 characters)",
         long: "11-15 tweets (each under 280 characters)",
-      }[lengthPref] || "6-10 tweets";
+      }[safeLength] || "6-10 tweets";
       break;
     case "LINKEDIN_POST":
       lengthGuide = {
         short: "around 50-100 words (600-800 characters)",
         medium: "around 150-200 words (1,000-1,300 characters)",
         long: "around 300-400 words (2,000-2,500 characters)",
-      }[lengthPref] || "around 150-200 words";
+      }[safeLength] || "around 150-200 words";
       break;
     case "EMAIL":
       lengthGuide = {
         short: "around 100 words (brief and to the point)",
         medium: "around 200 words",
         long: "around 400 words",
-      }[lengthPref] || "around 200 words";
+      }[safeLength] || "around 200 words";
       break;
     default: // BLOG_POST, ARTICLE, OTHER
       lengthGuide = {
         short: "around 300 words",
         medium: "around 600 words",
         long: "around 1200 words",
-      }[lengthPref] || "a medium length";
+      }[safeLength] || "a medium length";
   }
 
   const systemPrompt = `You are a skilled editor synthesizing content after a thorough multi-model debate.
