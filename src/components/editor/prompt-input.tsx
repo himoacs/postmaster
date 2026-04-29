@@ -502,7 +502,7 @@ export function PromptInput({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="content-type">Content Type</Label>
           <Select value={contentType} onValueChange={onContentTypeChange}>
@@ -533,6 +533,27 @@ export function PromptInput({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="emojis">Add Emojis</Label>
+            <HelpTooltip
+              content={
+                <div className="space-y-1">
+                  <p>When enabled, the AI will include relevant emojis and emoticons in the generated content.</p>
+                  <p className="text-xs text-muted-foreground">Great for social media posts, casual emails, and engaging content.</p>
+                </div>
+              }
+            />
+          </div>
+          <div className="flex h-10 items-center">
+            <Switch
+              id="emojis"
+              checked={enableEmojis}
+              onCheckedChange={onEnableEmojisChange}
+            />
+          </div>
         </div>
       </div>
 
@@ -756,33 +777,6 @@ export function PromptInput({
           />
         </div>
       )}
-
-      {/* Emoji/Emoticon Toggle */}
-      <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
-        <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="emojis" className="cursor-pointer">
-              Add Emojis
-            </Label>
-            <HelpTooltip
-              content={
-                <div className="space-y-1">
-                  <p>When enabled, the AI will include relevant emojis and emoticons in the generated content.</p>
-                  <p className="text-xs text-muted-foreground">Great for social media posts, casual emails, and engaging content.</p>
-                </div>
-              }
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Enhance content with relevant emojis for better engagement
-          </p>
-        </div>
-        <Switch
-          id="emojis"
-          checked={enableEmojis}
-          onCheckedChange={onEnableEmojisChange}
-        />
-      </div>
     </div>
   );
 }
