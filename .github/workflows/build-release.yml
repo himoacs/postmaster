@@ -133,6 +133,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Deploy landing page to GitHub Pages
+  # This is the ONLY landing page deployment workflow
+  # Source: landing/ folder (single source of truth)
   deploy-landing:
     runs-on: ubuntu-latest
     needs: release

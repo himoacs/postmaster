@@ -138,7 +138,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 200,
         latencyMs: 1500,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -443,7 +442,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'professional',
         vocabulary: 'technical',
-        sentenceStyle: 'varied',
         perspective: 'third-person',
         formality: 'formal',
         idioms: false,
@@ -613,7 +611,6 @@ describe('API: /api/generate', () => {
         content: 'Generated after retry',
         tokensUsed: 150,
         latencyMs: 1000,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -687,7 +684,6 @@ describe('API: /api/generate', () => {
         content: '',
         tokensUsed: 0,
         latencyMs: 1000,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -775,7 +771,6 @@ describe('API: /api/generate', () => {
         content: 'OpenAI generated content',
         tokensUsed: 150,
         latencyMs: 1000,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -860,7 +855,6 @@ describe('API: /api/generate', () => {
           content: 'Generated content',
           tokensUsed: 80,
           latencyMs: 1000,
-          error: null,
           createdAt: new Date(),
         });
 
@@ -900,7 +894,6 @@ describe('API: /api/generate', () => {
           url: 'https://example.com/article',
           title: 'Example Article',
           content: 'Article content about AI',
-          error: null,
         },
       ]);
 
@@ -949,7 +942,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 200,
         latencyMs: 1500,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -996,7 +988,6 @@ describe('API: /api/generate', () => {
           url: 'https://example.com/research',
           title: 'Research Paper',
           content: 'Research findings',
-          error: null,
         },
       ]);
 
@@ -1043,7 +1034,6 @@ describe('API: /api/generate', () => {
         content: 'Summary with citation',
         tokensUsed: 180,
         latencyMs: 1400,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -1092,7 +1082,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'Casual and conversational',
         voice: 'First person',
-        pacing: 'Fast-paced',
         sentenceVariety: 'Mix short and long',
         vocabulary: 'Simple',
         idioms: '["Piece of cake", "Hit the nail on the head"]',
@@ -1155,7 +1144,6 @@ describe('API: /api/generate', () => {
         content: 'Styled content',
         tokensUsed: 250,
         latencyMs: 1600,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -1203,7 +1191,6 @@ describe('API: /api/generate', () => {
           url: 'https://broken-url.com',
           title: 'Broken URL',
           content: '',
-          error: 'Network timeout',
         },
       ]);
       vi.mocked(formatReferencesForPrompt).mockReturnValue('');
@@ -1249,7 +1236,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 150,
         latencyMs: 1400,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -1293,7 +1279,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'Casual',
         voice: 'First person',
-        pacing: 'Fast',
         sentenceVariety: 'Mixed',
         vocabulary: 'Simple',
         idioms: 'invalid json [',
@@ -1349,7 +1334,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 180,
         latencyMs: 1500,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -1428,7 +1412,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 140,
         latencyMs: 1300,
-        error: null,
         createdAt: new Date(),
       });
 
@@ -1505,7 +1488,6 @@ describe('API: /api/generate', () => {
         content: '',
         tokensUsed: 0,
         latencyMs: 100,
-        error: 'Service unavailable',
         createdAt: new Date(),
       });
 
@@ -1545,7 +1527,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'Casual',
         voice: 'First person',
-        pacing: 'Fast',
         sentenceVariety: 'Mixed',
         vocabulary: 'Simple',
         idioms: '[]',
@@ -1601,7 +1582,6 @@ describe('API: /api/generate', () => {
         content: 'Generated content',
         tokensUsed: 170,
         latencyMs: 1500,
-        error: null,
         createdAt: new Date(),
       });
 

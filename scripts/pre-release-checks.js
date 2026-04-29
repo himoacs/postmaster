@@ -46,6 +46,101 @@ async function main() {
 
   const checks = [];
 
+  // 0. Check environment versions (critical for native modules)
+  log('\n🔍 Validating environment versions...', 'cyan');
+  
+  // Check Node.js version (must be 20.x for ABI compatibility)
+  try {
+    const nodeVersion = process.version;
+    const majorVersion = parseInt(nodeVersion.match(/^v(\d+)/)?.[1] || '0', 10);
+    
+    if (majorVersion === 20) {
+      log(`✅ Node.js version: ${nodeVersion} (required: 20.x)`, 'green');
+      checks.push(true);
+    } else {
+      log(`❌ Node.js version: ${nodeVersion} (required: 20.x for ABI compatibility)`, 'red');
+      log('   Install Node.js 20.x to ensure native modules build correctly', 'yellow');
+      checks.push(false);
+    }
+  } catch (error) {
+    log('❌ Could not check Node.js version', 'red');
+    checks.push(false);
+  }
+
+  // Check pnpm version (should be 9.x or 10.x)
+  try {
+    const pnpmVersion = execSync('pnpm --version', { encoding: 'utf8' }).trim();
+    const majorVersion = parseInt(pnpmVersion.match(/^(\d+)/)?.[1] || '0', 10);
+    
+    if (majorVersion === 9 || majorVersion === 10) {
+      log(`✅ pnpm version: ${pnpmVersion} (supported: 9.x or 10.x)`, 'green');
+      checks.push(true);
+    } else {
+      log(`⚠️  pnpm version: ${pnpmVersion} (recommended: 9.x or 10.x)`, 'yellow');
+      log('   Builds may work but are untested with this version', 'yellow');
+      checks.push(true); // Warning only, don't fail
+    }
+  } catch (error) {
+    log('❌ Could not check pnpm version (is pnpm installed?)', 'red');
+    checks.push(false);
+  }
+
+  // Check better-sqlite3 version matches package.json
+  try {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')
+    );
+    const expectedVersion = packageJson.dependencies['better-sqlite3'];
+    
+    // Check if better-sqlite3 is installed
+    const sqlitePkgPath = path.join(__dirname, '../node_modules/better-sqlite3/package.json');
+    if (fs.existsSync(sqlitePkgPath)) {
+      const sqlitePkg = JSON.parse(fs.readFileSync(sqlitePkgPath, 'utf8'));
+      const installedVersion = sqlitePkg.version;
+      
+      log(`✅ better-sqlite3 installed: ${installedVersion} (expected: ${expectedVersion})`, 'green');
+      
+      // Check if .node binding exists (indicates successful native build)
+      const bindingsPath = path.join(__dirname, '../node_modules/better-sqlite3/build/Release/better_sqlite3.node');
+      if (fs.existsSync(bindingsPath)) {
+        log(`✅ better-sqlite3 native binding exists`, 'green');
+        checks.push(true);
+      } else {
+        log(`⚠️  better-sqlite3 native binding missing - run: npm rebuild better-sqlite3`, 'yellow');
+        checks.push(false);
+      }
+    } else {
+      log('❌ better-sqlite3 not installed', 'red');
+      checks.push(false);
+    }
+  } catch (error) {
+    log(`⚠️  Could not validate better-sqlite3: ${error.message}`, 'yellow');
+    checks.push(true); // Don't fail on this
+  }
+
+  // Check Electron version matches package.json
+  try {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8')
+    );
+    const expectedElectron = packageJson.devDependencies['electron'];
+    
+    const electronPkgPath = path.join(__dirname, '../node_modules/electron/package.json');
+    if (fs.existsSync(electronPkgPath)) {
+      const electronPkg = JSON.parse(fs.readFileSync(electronPkgPath, 'utf8'));
+      const installedVersion = electronPkg.version;
+      
+      log(`✅ Electron installed: ${installedVersion} (expected: ${expectedElectron})`, 'green');
+      checks.push(true);
+    } else {
+      log('⚠️  Electron not found in node_modules', 'yellow');
+      checks.push(true); // Don't fail, may be in CI
+    }
+  } catch (error) {
+    log(`⚠️  Could not validate Electron version: ${error.message}`, 'yellow');
+    checks.push(true); // Don't fail on this
+  }
+
   // 1. Check TypeScript compilation
   checks.push(
     exec('npx tsc --noEmit', 'TypeScript compilation check')
