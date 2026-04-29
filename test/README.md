@@ -188,7 +188,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Feature Name', () => {
   test('should complete user flow', async ({ page }) => {
-    await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:3456');
     await page.click('button:has-text("Action")');
     await expect(page.locator('text=Success')).toBeVisible();
   });

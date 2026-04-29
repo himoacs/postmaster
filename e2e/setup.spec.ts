@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 test.describe('First-time Setup Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
-    await page.goto('http://localhost:3000');
+    await page.goto('http://localhost:3456');
   });
 
   test('should show API key setup on first visit', async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('First-time Setup Flow', () => {
   test('should auto-select primary model after adding keys', async ({ page }) => {
     // This test assumes keys are already configured
     // Navigate to workspace
-    await page.goto('http://localhost:3000/dashboard');
+    await page.goto('http://localhost:3456/dashboard');
     
     // Check for auto-selection notification
     await expect(
@@ -47,7 +47,7 @@ test.describe('First-time Setup Flow', () => {
 test.describe('Content Generation Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Assume API keys are already set up
-    await page.goto('http://localhost:3000/dashboard');
+    await page.goto('http://localhost:3456/dashboard');
   });
 
   test('should allow entering a prompt', async ({ page }) => {
