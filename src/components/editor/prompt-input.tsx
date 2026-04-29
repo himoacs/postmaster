@@ -536,7 +536,7 @@ export function PromptInput({
         </div>
 
         <div className="space-y-2">
-          <div className="flex h-5 items-center gap-2">
+          <div className="flex items-center gap-2">
             <Label htmlFor="emojis">Add Emojis</Label>
             <HelpTooltip
               content={
@@ -547,10 +547,7 @@ export function PromptInput({
               }
             />
           </div>
-          <div className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2">
-            <span className="text-sm text-muted-foreground">
-              {enableEmojis ? "Enabled" : "Disabled"}
-            </span>
+          <div className="flex h-10 items-center rounded-md border border-input bg-background px-3">
             <Switch
               id="emojis"
               checked={enableEmojis}
