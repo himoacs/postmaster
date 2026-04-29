@@ -176,13 +176,23 @@ Output only the revised content.`;
       );
     }
 
-    // Save current version to history before updating
-    await prisma.synthesisVersion.create({
-      data: {
+    // Save current version to history before updating (upsert to avoid duplicates)
+    await prisma.synthesisVersion.upsert({
+      where: {
+        synthesizedContentId_version: {
+          synthesizedContentId: existing.id,
+          version: existing.version,
+        },
+      },
+      create: {
         synthesizedContentId: existing.id,
         version: existing.version,
         content: existing.content,
         feedback: feedback, // The feedback that will be applied to create the next version
+      },
+      update: {
+        content: existing.content,
+        feedback: feedback,
       },
     });
 
