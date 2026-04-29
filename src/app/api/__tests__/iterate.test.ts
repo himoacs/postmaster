@@ -78,6 +78,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       // Mock AI generation
@@ -105,6 +109,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -167,6 +175,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       vi.mocked(generateWithOpenAI).mockResolvedValue({
@@ -184,6 +196,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -223,6 +239,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       // Primary model fails
@@ -257,6 +277,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -413,6 +437,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       vi.mocked(generateWithLiteLLM).mockResolvedValue({
@@ -430,6 +458,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -473,6 +505,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       vi.mocked(generateWithOpenAI).mockResolvedValue({
@@ -490,6 +526,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -538,6 +578,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       vi.mocked(generateWithLiteLLM).mockResolvedValue({
@@ -555,6 +599,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -626,6 +674,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const { generateWithAnthropic } = await import('@/lib/ai/claude');
@@ -644,6 +696,10 @@ describe('API: /api/iterate', () => {
         reasoning: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {
@@ -708,6 +764,10 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       // Mock provider to throw error
@@ -757,6 +817,10 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       vi.mocked(generateWithOpenAI).mockResolvedValue({
@@ -785,6 +849,10 @@ describe('API: /api/iterate', () => {
         globalVersion: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        imageUrl: null,
+        imagePrompt: null,
       });
 
       const request = new NextRequest('http://localhost/api/iterate', {

@@ -152,6 +152,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -228,6 +229,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -350,6 +352,7 @@ describe('API: /api/generate', () => {
         sourceContent: 'Existing content to enhance',
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -418,6 +421,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -442,8 +446,6 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'professional',
         vocabulary: 'technical',
-        formality: 'formal',
-        idioms: false,
         vocabulary_3: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -552,6 +554,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -624,6 +627,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -697,6 +701,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -784,6 +789,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1082,7 +1088,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual and conversational',
         voice: 'First person',
         vocabulary: 'Simple',
-        idioms: '["Piece of cake", "Hit the nail on the head"]',
         transitions: '["Meanwhile", "In addition"]',
         openings: '["Let me tell you", "Here\'s the thing"]',
         closings: '["That\'s all for now", "See you next time"]',
@@ -1156,6 +1161,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1249,6 +1255,7 @@ describe('API: /api/generate', () => {
         sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1278,7 +1285,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual',
         voice: 'First person',
         vocabulary: 'Simple',
-        idioms: 'invalid json [',
         transitions: '{"not": "an array"}',
         openings: 'null',
         closings: undefined,
@@ -1345,6 +1351,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1424,6 +1431,7 @@ describe('API: /api/generate', () => {
         sourceMap: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1499,6 +1507,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1525,7 +1534,6 @@ describe('API: /api/generate', () => {
         tone: 'Casual',
         voice: 'First person',
         vocabulary: 'Simple',
-        idioms: '[]',
         transitions: '[]',
         openings: '[]',
         closings: '[]',
@@ -1592,6 +1600,7 @@ describe('API: /api/generate', () => {
         sourceContent: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+        sourceMap: null,
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
