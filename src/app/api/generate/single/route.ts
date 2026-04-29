@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
     generation.contentType || "article",
     generation.lengthPref || "medium",
     generation.contentMode as "new" | "enhance" | null,
+    false, // enableEmojis - default to false for retries/swaps
     generation.sourceContent
   );
 
