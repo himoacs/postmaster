@@ -189,6 +189,8 @@ export async function POST(request: NextRequest) {
       contentMode: contentMode || "new",
       sourceContent: contentMode === "enhance" ? existingContent : null,
       sourceMap: sourceMap.length > 0 ? JSON.stringify(sourceMap) : null,
+      enableCitations: enableCitations || false,
+      enableEmojis: enableEmojis || false,
     },
   });
 

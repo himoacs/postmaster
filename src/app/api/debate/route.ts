@@ -400,6 +400,12 @@ async function synthesizeWithDebateInsights(
   primaryModel: SelectedModel,
   transcript: DebateTranscriptEntry[]
 ): Promise<string> {
+  // Fetch generation record to get preferences
+  const generation = await prisma.generation.findUnique({
+    where: { id: generationId },
+    select: { contentType: true, lengthPref: true, enableEmojis: true },
+  });
+  if (!generation) throw new Error("Generation not found");
   let decryptedKey = "";
   if (primaryModel.provider !== "LITELLM") {
     const apiKey = await prisma.aPIKey.findUnique({
@@ -411,12 +417,49 @@ async function synthesizeWithDebateInsights(
     decryptedKey = decrypt(apiKey.encryptedKey);
   }
 
+  // Build length guidance based on content type and preference
+  let lengthGuide: string;
+  const { contentType, lengthPref = "medium", enableEmojis } = generation;
+  
+  switch (contentType) {
+    case "TWEET_THREAD":
+      lengthGuide = {
+        short: "3-5 tweets (each under 280 characters)",
+        medium: "6-10 tweets (each under 280 characters)",
+        long: "11-15 tweets (each under 280 characters)",
+      }[lengthPref] || "6-10 tweets";
+      break;
+    case "LINKEDIN_POST":
+      lengthGuide = {
+        short: "around 50-100 words (600-800 characters)",
+        medium: "around 150-200 words (1,000-1,300 characters)",
+        long: "around 300-400 words (2,000-2,500 characters)",
+      }[lengthPref] || "around 150-200 words";
+      break;
+    case "EMAIL":
+      lengthGuide = {
+        short: "around 100 words (brief and to the point)",
+        medium: "around 200 words",
+        long: "around 400 words",
+      }[lengthPref] || "around 200 words";
+      break;
+    default: // BLOG_POST, ARTICLE, OTHER
+      lengthGuide = {
+        short: "around 300 words",
+        medium: "around 600 words",
+        long: "around 1200 words",
+      }[lengthPref] || "a medium length";
+  }
+
   const systemPrompt = `You are a skilled editor synthesizing content after a thorough multi-model debate.
 Multiple AI models have analyzed and debated the drafts. Your task is to create the final, optimized version that:
 1. Incorporates the consensus points all models agreed upon
 2. Addresses the weaknesses identified through debate
 3. Applies the best suggestions from all models
 4. Maintains a cohesive, engaging voice
+
+TARGET LENGTH: ${lengthGuide}
+${enableEmojis ? '✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately.' : '📝 NO EMOJIS: Do not include any emojis or emoticons in the content.'}
 
 Output ONLY the final content, no meta-commentary.`;
 

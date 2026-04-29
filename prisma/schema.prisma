@@ -109,6 +109,10 @@ model Generation {
   // Citation source mapping for URL references
   sourceMap    String?  // JSON: Array<{ url: string; title: string }>
   
+  // Generation preferences
+  enableCitations Boolean  @default(false)
+  enableEmojis    Boolean  @default(false)
+  
   // State
   status       String   @default("PENDING")
   
