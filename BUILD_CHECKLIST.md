@@ -65,6 +65,8 @@ pnpm electron:dev
 
 ## 🏗️ Production Build
 
+**CRITICAL**: The build process uses `rebuild:electron` to compile native modules (better-sqlite3) for Electron's Node.js version, not your system Node.js. This prevents "NODE_MODULE_VERSION mismatch" errors on user machines.
+
 ### macOS
 ```bash
 pnpm electron:build:mac
@@ -75,6 +77,8 @@ pnpm electron:build:mac
 - [ ] `dist/PostMaster-{version}-arm64-mac.zip`
 - [ ] `dist/PostMaster-{version}.dmg` (Intel)
 - [ ] `dist/PostMaster-{version}-mac.zip` (Intel)
+
+**Verify native modules**: Check build output for "✓ Found better-sqlite3.node" message
 
 ### Windows
 ```bash
@@ -121,11 +125,25 @@ open dist/mac-arm64/PostMaster.app
 
 ## 🐛 Quick Troubleshooting
 
-### Build fails with ABI error
+### "Server error" or database errors in packaged app
+**Cause**: Native module (better-sqlite3) compiled for wrong Node.js version
+
+**Fix**: Rebuild with correct workflow:
+```bash
+# Rebuild for Electron's Node version (not system Node)
+pnpm rebuild:electron
+
+# Then build the app
+pnpm electron:build:mac  # or :win, :linux
+```
+
+**Verify**: Check after-pack output for "✓ Found better-sqlite3.node" message
+
+### Build fails with ABI error or NODE_MODULE_VERSION error
 ```bash
 rm -rf node_modules
 pnpm install
-npm rebuild better-sqlite3
+pnpm rebuild:electron  # Use Electron rebuild, not npm rebuild
 ```
 
 ### Module not found in packaged app

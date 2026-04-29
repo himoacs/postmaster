@@ -23,6 +23,7 @@ const modulesToCopy = [
   'bindings',
   'file-uri-to-path',
   '@prisma/client', // .prisma/client is handled separately below
+  'better-sqlite3', // Must copy with native .node bindings
 ];
 
 function copyModuleRecursive(src, dest) {

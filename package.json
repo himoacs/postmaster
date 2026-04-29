@@ -1,6 +1,6 @@
 {
   "name": "postmaster",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "description": "AI-Powered Multi-Model Writing Assistant",
   "author": "Himanshu Gupta",
@@ -25,14 +25,16 @@
     "pre-release": "node scripts/pre-release-checks.js",
     "postinstall": "npm rebuild better-sqlite3 && npx prisma generate",
     "rebuild:native": "npm rebuild better-sqlite3",
+    "rebuild:electron": "npx electron-rebuild -f -w better-sqlite3",
     "electron:deps": "node scripts/prepare-electron-deps.js",
     "electron:dev": "concurrently \"pnpm dev\" \"wait-on http://localhost:3456 && pnpm electron:start\"",
     "electron:start": "NODE_ENV=development electron .",
     "electron:prepare": "rm -rf .next/standalone_flat && rsync -aL --ignore-errors .next/standalone/ .next/standalone_flat/ && node scripts/fix-standalone.js",
-    "electron:build": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder",
-    "electron:build:mac": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --mac",
-    "electron:build:win": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --win",
-    "electron:build:linux": "pnpm rebuild:native && pnpm build && pnpm electron:prepare && pnpm electron:deps && pnpm electron:compile && electron-builder --linux",
+    "electron:rebuild-standalone": "node scripts/rebuild-standalone-native.js",
+    "electron:build": "pnpm build && pnpm electron:prepare && pnpm electron:rebuild-standalone && pnpm electron:deps && pnpm electron:compile && electron-builder",
+    "electron:build:mac": "pnpm build && pnpm electron:prepare && pnpm electron:rebuild-standalone && pnpm electron:deps && pnpm electron:compile && electron-builder --mac",
+    "electron:build:win": "pnpm build && pnpm electron:prepare && pnpm electron:rebuild-standalone && pnpm electron:deps && pnpm electron:compile && electron-builder --win",
+    "electron:build:linux": "pnpm build && pnpm electron:prepare && pnpm electron:rebuild-standalone && pnpm electron:deps && pnpm electron:compile && electron-builder --linux",
     "electron:compile": "tsc -p electron/tsconfig.json"
   },
   "dependencies": {
@@ -68,6 +70,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@playwright/test": "^1.59.1",
     "@swc/helpers": "^0.5.21",
     "@tailwindcss/postcss": "^4",
