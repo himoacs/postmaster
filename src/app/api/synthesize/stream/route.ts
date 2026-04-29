@@ -192,6 +192,61 @@ Write the final synthesized content directly. Do not include any JSON formatting
         },
       });
 
+      // Track synthesis contributions for analytics (participation-only for streaming)
+      if (outputs.length > 1) {
+        try {
+          // Initialize contributions for all participating models
+          const contributions: Record<string, { aspects: string[]; count: number }> = {};
+          for (const output of outputs) {
+            const key = `${output.provider}:${output.model}`;
+            contributions[key] = { aspects: [], count: 0 };
+          }
+
+          // Track participation only (no detailed reasoning in streaming mode)
+          const totalAspects = 1;
+
+          // Count starred sections per model
+          const starredCounts: Record<string, number> = {};
+          if (starredSections) {
+            for (const section of starredSections) {
+              const matchingOutput = outputs.find(o => o.provider === section.provider);
+              if (matchingOutput) {
+                const key = `${matchingOutput.provider}:${matchingOutput.model}`;
+                starredCounts[key] = (starredCounts[key] || 0) + 1;
+              }
+            }
+          }
+
+          // Store contribution records
+          const contributionRecords = Object.entries(contributions).map(([key, data]) => {
+            const [provider, model] = key.split(":");
+            return {
+              synthesisId: synthesized.id,
+              generationId,
+              provider,
+              model,
+              aspectCount: data.count,
+              totalAspects,
+              aspectTypes: JSON.stringify(data.aspects),
+              starredCount: starredCounts[key] || 0,
+            };
+          });
+
+          // Delete existing contributions and insert new ones
+          await prisma.synthesisContribution.deleteMany({
+            where: { synthesisId: synthesized.id },
+          });
+
+          if (contributionRecords.length > 0) {
+            await prisma.synthesisContribution.createMany({
+              data: contributionRecords,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to track synthesis contributions:", error);
+        }
+      }
+
       // Update generation status
       await prisma.generation.update({
         where: { id: generationId },
