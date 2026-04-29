@@ -1,6 +1,7 @@
 import { APIKeyManager } from "@/components/settings/api-key-manager";
 import { PrimaryModelSettings } from "@/components/settings/primary-model-settings";
 import { UpdateSettings } from "@/components/settings/update-settings";
+import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +24,7 @@ export default function SettingsPage() {
       </header>
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-2xl space-y-6">
+          <AppearanceSettings />
           <UpdateSettings />
           <APIKeyManager />
           <PrimaryModelSettings />

@@ -922,5 +922,149 @@ describe('API: /api/critique', () => {
       expect(response.status).toBe(200);
       expect(data.critiques[0].targetDrafts[0].strengths).toContain('Unable to parse detailed critique');
     });
+
+    it('should handle MISTRAL critique provider', async () => {
+      const { generateWithMistral } = await import('@/lib/ai/mistral');
+      
+      vi.mocked(prisma.aPIKey.findUnique).mockResolvedValue({
+        id: 'key-mistral',
+        provider: 'MISTRAL',
+        encryptedKey: 'encrypted-key-mistral',
+        isValid: true,
+        validModels: '["mistral-large-latest"]',
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(generateWithMistral).mockResolvedValue({
+        content: JSON.stringify({
+          targetDrafts: [{
+            draftIndex: 0,
+            strengths: ['Good clarity'],
+            weaknesses: ['Needs examples'],
+            suggestions: ['Add examples'],
+            rating: 8,
+          }],
+          consensusPoints: ['Point 1'],
+          overallRating: 8,
+        }),
+        tokensUsed: 200,
+      });
+
+      vi.mocked(prisma.generationCritique.create).mockResolvedValue({
+        id: 'critique-mistral-1',
+        generationId: 'gen-1',
+        fromProvider: 'MISTRAL',
+        fromModel: 'mistral-large-latest',
+        critiques: JSON.stringify({
+          targetDrafts: [{
+            draftIndex: 0,
+            strengths: ['Good clarity'],
+            weaknesses: ['Needs examples'],
+            suggestions: ['Add examples'],
+            rating: 8,
+          }],
+          consensusPoints: ['Point 1'],
+          overallRating: 8,
+        }),
+        debateRound: 0,
+        createdAt: new Date(),
+      });
+
+      const request = new NextRequest('http://localhost/api/critique', {
+        method: 'POST',
+        body: JSON.stringify({
+          generationId: 'gen-1',
+          outputs: [{
+            provider: 'OPENAI',
+            model: 'gpt-4o',
+            content: 'Draft content',
+            tokensUsed: 150,
+            latencyMs: 1500,
+          }],
+          critiqueModels: [{ provider: 'MISTRAL', modelId: 'mistral-large-latest' }],
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.critiques).toHaveLength(1);
+      expect(generateWithMistral).toHaveBeenCalled();
+    });
+
+    it('should handle XAI (Grok) critique provider', async () => {
+      const { generateWithGrok } = await import('@/lib/ai/grok');
+      
+      vi.mocked(prisma.aPIKey.findUnique).mockResolvedValue({
+        id: 'key-xai',
+        provider: 'XAI',
+        encryptedKey: 'encrypted-key-xai',
+        isValid: true,
+        validModels: '["grok-2-1212"]',
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(generateWithGrok).mockResolvedValue({
+        content: JSON.stringify({
+          targetDrafts: [{
+            draftIndex: 0,
+            strengths: ['Concise'],
+            weaknesses: ['Too brief'],
+            suggestions: ['Expand details'],
+            rating: 7,
+          }],
+          consensusPoints: ['Point 1'],
+          overallRating: 7,
+        }),
+        tokensUsed: 180,
+      });
+
+      vi.mocked(prisma.generationCritique.create).mockResolvedValue({
+        id: 'critique-xai-1',
+        generationId: 'gen-1',
+        fromProvider: 'XAI',
+        fromModel: 'grok-2-1212',
+        critiques: JSON.stringify({
+          targetDrafts: [{
+            draftIndex: 0,
+            strengths: ['Concise'],
+            weaknesses: ['Too brief'],
+            suggestions: ['Expand details'],
+            rating: 7,
+          }],
+          consensusPoints: ['Point 1'],
+          overallRating: 7,
+        }),
+        debateRound: 0,
+        createdAt: new Date(),
+      });
+
+      const request = new NextRequest('http://localhost/api/critique', {
+        method: 'POST',
+        body: JSON.stringify({
+          generationId: 'gen-1',
+          outputs: [{
+            provider: 'OPENAI',
+            model: 'gpt-4o',
+            content: 'Draft content',
+            tokensUsed: 150,
+            latencyMs: 1500,
+          }],
+          critiqueModels: [{ provider: 'XAI', modelId: 'grok-2-1212' }],
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.critiques).toHaveLength(1);
+      expect(generateWithGrok).toHaveBeenCalled();
+    });
   });
 });

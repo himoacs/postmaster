@@ -16,38 +16,40 @@ export default function AboutPage() {
         }}
       />
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm px-4">
-        <div className="flex h-14 items-center">
-          {/* Spacer for macOS traffic lights */}
-          <div className="w-20 lg:block hidden" />
-          <Link 
-            href="/" 
-            className="flex items-center gap-2.5"
-            style={{ 
-              // @ts-expect-error - Electron-specific CSS property
-              WebkitAppRegion: 'no-drag',
-              appRegion: 'no-drag'
-            }}
-          >
-            <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
-            <span className="font-serif text-lg font-medium">PostMaster</span>
-          </Link>
-          <div className="flex-1" />
-          <nav 
-            className="flex items-center gap-4"
-            style={{ 
-              // @ts-expect-error - Electron-specific CSS property
-              WebkitAppRegion: 'no-drag',
-              appRegion: 'no-drag'
-            }}
-          >
-            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-              <Link href="/" className="flex items-center gap-1.5">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Link>
-            </Button>
-          </nav>
+      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
+        <div className="container">
+          <div className="flex h-14 items-center">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2.5"
+              style={{ 
+                // @ts-expect-error - Electron-specific CSS property
+                WebkitAppRegion: 'no-drag',
+                appRegion: 'no-drag'
+              }}
+            >
+              <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
+              <span className="font-serif text-lg font-medium">PostMaster</span>
+            </Link>
+            <div className="flex-1" />
+            <nav 
+              className="flex items-center gap-4"
+              style={{ 
+                // @ts-expect-error - Electron-specific CSS property
+                WebkitAppRegion: 'no-drag',
+                appRegion: 'no-drag'
+              }}
+            >
+              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+                <Link href="/" className="flex items-center gap-1.5">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Link>
+              </Button>
+            </nav>
+          </div>
+        </div>
+      </header>
         </div>
       </header>
 

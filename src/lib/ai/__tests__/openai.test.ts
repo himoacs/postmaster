@@ -19,6 +19,9 @@ const mockOpenAI = {
   models: {
     list: vi.fn(),
   },
+  images: {
+    generate: vi.fn(),
+  },
 };
 
 // Mock API errors
@@ -35,6 +38,7 @@ vi.mock('openai', () => {
   class MockOpenAI {
     chat = mockOpenAI.chat;
     models = mockOpenAI.models;
+    images = mockOpenAI.images;
     constructor() {
       // noop
     }
@@ -461,6 +465,101 @@ describe('OpenAI Provider', () => {
       }
 
       expect(chunks).toContain('Content');
+    });
+
+    it('should track tokens from usage info in final chunk', async () => {
+      const mockStream = {
+        async *[Symbol.asyncIterator]() {
+          yield {
+            choices: [
+              {
+                delta: { content: 'Hello' },
+                finish_reason: null,
+              },
+            ],
+          };
+          yield {
+            choices: [
+              {
+                delta: { content: ' world' },
+                finish_reason: 'stop',
+              },
+            ],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 5,
+              total_tokens: 15,
+            },
+          };
+        },
+      };
+
+      mockOpenAI.chat.completions.create = vi.fn().mockResolvedValue(mockStream);
+
+      const chunks: any[] = [];
+      for await (const chunk of generateWithOpenAIStream(
+        'test-api-key',
+        'gpt-4o',
+        'system',
+        'prompt'
+      )) {
+        chunks.push(chunk);
+      }
+
+      const finalChunk = chunks.find(c => c.done === true);
+      expect(finalChunk).toBeDefined();
+      expect(finalChunk?.tokensUsed).toBe(15);
+    });
+  });
+
+  describe('generateImageWithOpenAI', () => {
+    beforeEach(() => {
+      // Reset the images mock
+      (mockOpenAI as any).images = {
+        generate: vi.fn(),
+      };
+    });
+
+    it('should generate image with DALL-E 3', async () => {
+      (mockOpenAI as any).images.generate.mockResolvedValue({
+        data: [
+          {
+            url: 'https://example.com/generated-image.png',
+          },
+        ],
+      });
+
+      const { generateImageWithOpenAI } = await import('@/lib/ai/openai');
+      
+      const imageUrl = await generateImageWithOpenAI(
+        'test-api-key',
+        'A beautiful sunset over mountains',
+        '1024x1024'
+      );
+
+      expect(imageUrl).toBe('https://example.com/generated-image.png');
+      expect((mockOpenAI as any).images.generate).toHaveBeenCalledWith({
+        model: 'dall-e-3',
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+      });
+    });
+
+    it('should return empty string when no image URL is returned', async () => {
+      (mockOpenAI as any).images.generate.mockResolvedValue({
+        data: [],
+      });
+
+      const { generateImageWithOpenAI } = await import('@/lib/ai/openai');
+      
+      const imageUrl = await generateImageWithOpenAI(
+        'test-api-key',
+        'A test prompt'
+      );
+
+      expect(imageUrl).toBe('');
     });
   });
 });

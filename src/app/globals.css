@@ -165,6 +165,20 @@
     @apply font-sans;
   }
   
+  /* Smooth theme transitions */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition-duration: 0ms;
+    }
+  }
+  
   /* Container utility for centered layouts */
   .container {
     width: 100%;

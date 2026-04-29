@@ -24,47 +24,48 @@ export default function LandingPage() {
         }}
       />
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm px-4">
-        <div className="flex h-14 items-center">
-          {/* Spacer for macOS traffic lights */}
-          <div className="w-20 lg:block hidden" />
-          <Link 
-            href="/" 
-            className="flex items-center gap-2.5"
-            style={{ 
-              // @ts-expect-error - Electron-specific CSS property
-              WebkitAppRegion: 'no-drag',
-              appRegion: 'no-drag'
-            }}
-          >
-            <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
-            <span className="font-serif text-lg font-medium">PostMaster</span>
-          </Link>
-          <div className="flex-1" />
-          <nav 
-            className="flex items-center gap-4"
-            style={{ 
-              // @ts-expect-error - Electron-specific CSS property
-              WebkitAppRegion: 'no-drag',
-              appRegion: 'no-drag'
-            }}
-          >
-            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-              <Link href="#how-it-works">How it works</Link>
-            </Button>
-            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-              <Link href="/about">About</Link>
-            </Button>
-            <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-              <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-                <HeartHandshake className="h-4 w-4" />
-                Donate
-              </a>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/dashboard">Open Editor</Link>
-            </Button>
-          </nav>
+      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
+        <div className="container">
+          <div className="grid h-14 items-center lg:grid-cols-2 lg:gap-16">
+            <div className="flex items-center">
+              <Link 
+                href="/" 
+                className="flex items-center gap-2.5"
+                style={{ 
+                  // @ts-expect-error - Electron-specific CSS property
+                  WebkitAppRegion: 'no-drag',
+                  appRegion: 'no-drag'
+                }}
+              >
+                <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
+                <span className="font-serif text-lg font-medium">PostMaster</span>
+              </Link>
+            </div>
+            <nav 
+              className="flex items-center justify-end gap-4"
+              style={{ 
+                // @ts-expect-error - Electron-specific CSS property
+                WebkitAppRegion: 'no-drag',
+                appRegion: 'no-drag'
+              }}
+            >
+              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+                <Link href="#how-it-works">How it works</Link>
+              </Button>
+              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+                <Link href="/about">About</Link>
+              </Button>
+              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
+                <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+                  <HeartHandshake className="h-4 w-4" />
+                  Donate
+                </a>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/dashboard">Open Editor</Link>
+              </Button>
+            </nav>
+          </div>
         </div>
       </header>
 

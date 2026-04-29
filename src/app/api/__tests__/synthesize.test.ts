@@ -30,6 +30,7 @@ vi.mock('@/lib/db', () => ({
     synthesisContribution: {
       deleteMany: vi.fn(),
       createMany: vi.fn(),
+      upsert: vi.fn(),
     },
     generation: {
       findUnique: vi.fn(),
@@ -1530,6 +1531,200 @@ describe('API: /api/synthesize', () => {
 
       expect(response.status).toBe(200);
       expect(data.content).toBe('Extracted content');
+    });
+
+    it('should track starred sections in contribution tracking', async () => {
+      vi.mocked(prisma.aPIKey.findUnique).mockResolvedValue({
+        id: 'key-1',
+        provider: 'OPENAI',
+        encryptedKey: 'encrypted-key',
+        isValid: true,
+        validModels: '["gpt-4o"]',
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(generateWithOpenAI).mockResolvedValue({
+        content: JSON.stringify({
+          content: 'Synthesized content',
+          reasoning: {
+            summary: 'Synthesis reasoning',
+            contributionsAnalysis: {
+              OPENAI: { aspects: 3 },
+              ANTHROPIC: { aspects: 2 },
+            },
+          },
+        }),
+        tokensUsed: 200,
+      });
+
+      vi.mocked(prisma.synthesizedContent.upsert).mockResolvedValue({
+        id: 'synth-1',
+        generationId: 'gen-1',
+        content: 'Synthesized content',
+        strategy: 'basic',
+        version: 1,
+        feedback: null,
+        reasoning: JSON.stringify({ summary: 'Synthesis reasoning' }),
+        parentSynthesisId: null,
+        globalVersion: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.generation.update).mockResolvedValue({
+        id: 'gen-1',
+        prompt: 'test',
+        contentType: 'BLOG_POST',
+        lengthPref: 'medium',
+        styleContext: null,
+        status: 'COMPLETED',
+        contentMode: 'new',
+        sourceContent: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.synthesisContribution.upsert).mockResolvedValue({
+        id: 'contrib-1',
+        synthesisId: 'synth-1',
+        provider: 'OPENAI',
+        model: 'gpt-4o',
+        outputId: 'output-1',
+        aspectsContributed: 3,
+        participationOnly: false,
+        starredCount: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const request = new NextRequest('http://localhost/api/synthesize', {
+        method: 'POST',
+        body: JSON.stringify({
+          generationId: 'gen-1',
+          outputs: [
+            {
+              id: 'output-1',
+              provider: 'OPENAI',
+              model: 'gpt-4o',
+              content: 'Draft 1',
+              tokensUsed: 150,
+              latencyMs: 1500,
+            },
+            {
+              id: 'output-2',
+              provider: 'ANTHROPIC',
+              model: 'claude-3-5-sonnet',
+              content: 'Draft 2',
+              tokensUsed: 140,
+              latencyMs: 1400,
+            },
+          ],
+          primaryModel: {
+            provider: 'OPENAI',
+            modelId: 'gpt-4o',
+          },
+          starredSections: [
+            { provider: 'OPENAI', startChar: 0, endChar: 10 },
+            { provider: 'OPENAI', startChar: 20, endChar: 30 },
+          ],
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.content).toBe('Synthesized content');
+    });
+
+    it('should handle participation-only tracking when no reasoning', async () => {
+      vi.mocked(prisma.aPIKey.findUnique).mockResolvedValue({
+        id: 'key-1',
+        provider: 'OPENAI',
+        encryptedKey: 'encrypted-key',
+        isValid: true,
+        validModels: '["gpt-4o"]',
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(generateWithOpenAI).mockResolvedValue({
+        content: JSON.stringify({
+          content: 'Synthesized content',
+          // No reasoning field
+        }),
+        tokensUsed: 200,
+      });
+
+      vi.mocked(prisma.synthesizedContent.upsert).mockResolvedValue({
+        id: 'synth-1',
+        generationId: 'gen-1',
+        content: 'Synthesized content',
+        strategy: 'basic',
+        version: 1,
+        feedback: null,
+        reasoning: null,
+        parentSynthesisId: null,
+        globalVersion: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.generation.update).mockResolvedValue({
+        id: 'gen-1',
+        prompt: 'test',
+        contentType: 'BLOG_POST',
+        lengthPref: 'medium',
+        styleContext: null,
+        status: 'COMPLETED',
+        contentMode: 'new',
+        sourceContent: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.synthesisContribution.upsert).mockResolvedValue({
+        id: 'contrib-1',
+        synthesisId: 'synth-1',
+        provider: 'OPENAI',
+        model: 'gpt-4o',
+        outputId: 'output-1',
+        aspectsContributed: 0,
+        participationOnly: true,
+        starredCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const request = new NextRequest('http://localhost/api/synthesize', {
+        method: 'POST',
+        body: JSON.stringify({
+          generationId: 'gen-1',
+          outputs: [
+            {
+              id: 'output-1',
+              provider: 'OPENAI',
+              model: 'gpt-4o',
+              content: 'Draft 1',
+              tokensUsed: 150,
+              latencyMs: 1500,
+            },
+          ],
+          primaryModel: {
+            provider: 'OPENAI',
+            modelId: 'gpt-4o',
+          },
+        }),
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.content).toBe('Synthesized content');
     });
   });
 });
