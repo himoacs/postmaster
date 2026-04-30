@@ -23,7 +23,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "pre-release": "node scripts/pre-release-checks.js",
-    "postinstall": "npm rebuild better-sqlite3 && npx prisma generate",
+    "postinstall": "npx prisma generate",
     "rebuild:native": "npm rebuild better-sqlite3",
     "rebuild:electron": "npx electron-rebuild -f -w better-sqlite3",
     "electron:deps": "node scripts/prepare-electron-deps.js",

@@ -3,7 +3,6 @@ packages:
 
 ignoredBuiltDependencies:
   - '@prisma/engines'
-  - better-sqlite3
   - electron
   - electron-winstaller
   - msw
