@@ -42,6 +42,15 @@ jobs:
         env:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'build-time-placeholder-key-32bytes!' }}
 
+      - name: Prepare standalone build
+        run: pnpm electron:prepare
+
+      - name: Rebuild native modules for Electron
+        run: pnpm electron:rebuild-standalone
+
+      - name: Prepare Electron dependencies
+        run: pnpm electron:deps
+
       - name: Compile Electron
         run: pnpm electron:compile
 
@@ -89,6 +98,19 @@ jobs:
         run: pnpm build
         env:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'build-time-placeholder-key-32bytes!' }}
+
+      - name: Prepare standalone build
+        run: |
+          if (Test-Path .next/standalone_flat) { Remove-Item -Recurse -Force .next/standalone_flat }
+          Copy-Item -Recurse -Force .next/standalone .next/standalone_flat
+          node scripts/fix-standalone.js
+        shell: pwsh
+
+      - name: Rebuild native modules for Electron
+        run: node scripts/rebuild-standalone-native.js
+
+      - name: Prepare Electron dependencies
+        run: node scripts/prepare-electron-deps.js
 
       - name: Compile Electron
         run: pnpm electron:compile
