@@ -29,10 +29,35 @@ export async function validateAnthropicKey(
         "claude-3-haiku-20240307",
       ],
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Parse Anthropic-specific error types
+    // Error structure: error.error.error.type and error.error.error.message
+    let errorMessage = "Invalid API key";
+    
+    const errorType = error?.error?.error?.type || error?.type;
+    const errorMsg = error?.error?.error?.message || error?.message;
+    
+    if (errorType === "invalid_request_error") {
+      // Check for billing/credit issues
+      if (errorMsg?.includes("credit balance") || 
+          errorMsg?.includes("billing")) {
+        errorMessage = "Insufficient credits. Please add billing at console.anthropic.com/settings/billing";
+      } else {
+        errorMessage = errorMsg || errorMessage;
+      }
+    } else if (errorType === "authentication_error" || error?.status === 401) {
+      errorMessage = "Invalid API key. Please check your key at console.anthropic.com/settings/keys";
+    } else if (errorType === "permission_error" || error?.status === 403) {
+      errorMessage = "Permission denied. Check your account status and organization settings.";
+    } else if (errorType === "rate_limit_error" || error?.status === 429) {
+      errorMessage = "Rate limit exceeded. Please wait and try again.";
+    } else if (error instanceof Error && errorMsg) {
+      errorMessage = errorMsg;
+    }
+
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Invalid API key",
+      error: errorMessage,
     };
   }
 }

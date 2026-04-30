@@ -26,10 +26,29 @@ export async function validateOpenAIKey(
       valid: true,
       models: chatModels,
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Parse OpenAI-specific error types
+    let errorMessage = "Invalid API key";
+    
+    if (error?.status === 401) {
+      errorMessage = "Invalid API key. Please check your key at platform.openai.com/api-keys";
+    } else if (error?.status === 429) {
+      if (error?.message?.includes("quota") || error?.message?.includes("billing")) {
+        errorMessage = "Quota exceeded or billing issue. Check platform.openai.com/account/billing";
+      } else {
+        errorMessage = "Rate limit exceeded. Please wait and try again.";
+      }
+    } else if (error?.status === 403) {
+      errorMessage = "Access forbidden. Check your account status and billing.";
+    } else if (error?.code === "insufficient_quota") {
+      errorMessage = "Insufficient quota. Please add credits at platform.openai.com/account/billing";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Invalid API key",
+      error: errorMessage,
     };
   }
 }

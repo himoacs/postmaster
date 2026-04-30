@@ -28,10 +28,27 @@ export async function validateGrokKey(
       valid: true,
       models: ["grok-2", "grok-2-mini"],
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Parse xAI-specific error types
+    let errorMessage = "Invalid API key";
+    
+    if (error?.status === 401) {
+      errorMessage = "Invalid API key. Please check your key at x.ai/api";
+    } else if (error?.status === 429) {
+      if (error?.message?.includes("quota") || error?.message?.includes("billing")) {
+        errorMessage = "Quota exceeded or billing issue. Check your xAI account.";
+      } else {
+        errorMessage = "Rate limit exceeded. Please wait and try again.";
+      }
+    } else if (error?.status === 403) {
+      errorMessage = "Access forbidden. Check your xAI account status.";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Invalid API key",
+      error: errorMessage,
     };
   }
 }

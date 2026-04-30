@@ -13,9 +13,21 @@ export async function validateStabilityKey(
     });
 
     if (!response.ok) {
+      let errorMessage = "Invalid API key";
+      
+      if (response.status === 401) {
+        errorMessage = "Invalid API key. Please check your key at platform.stability.ai/account/keys";
+      } else if (response.status === 429) {
+        errorMessage = "Rate limit exceeded. Please wait and try again.";
+      } else if (response.status === 403) {
+        errorMessage = "Access forbidden. Check your account status.";
+      } else if (response.status === 402) {
+        errorMessage = "Insufficient credits. Please add credits at platform.stability.ai/account/credits";
+      }
+      
       return {
         valid: false,
-        error: "Invalid API key",
+        error: errorMessage,
       };
     }
 
@@ -23,10 +35,16 @@ export async function validateStabilityKey(
       valid: true,
       models: ["stable-diffusion-xl-1024-v1-0", "stable-image-ultra"],
     };
-  } catch (error) {
+  } catch (error: any) {
+    let errorMessage = "Invalid API key";
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Invalid API key",
+      error: errorMessage,
     };
   }
 }

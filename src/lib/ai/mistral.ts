@@ -20,10 +20,23 @@ export async function validateMistralKey(
       valid: true,
       models: modelIds.length > 0 ? modelIds : ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"],
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Parse Mistral-specific error types
+    let errorMessage = "Invalid API key";
+    
+    if (error?.status === 401 || error?.statusCode === 401) {
+      errorMessage = "Invalid API key. Please check your key at console.mistral.ai/api-keys";
+    } else if (error?.status === 429 || error?.statusCode === 429) {
+      errorMessage = "Rate limit exceeded. Please wait and try again.";
+    } else if (error?.status === 403 || error?.statusCode === 403) {
+      errorMessage = "Access forbidden. Check your account status.";
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
     return {
       valid: false,
-      error: error instanceof Error ? error.message : "Invalid API key",
+      error: errorMessage,
     };
   }
 }
