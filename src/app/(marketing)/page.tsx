@@ -79,9 +79,9 @@ export default function LandingPage() {
                 Multi-model writing assistant
               </p>
               <h1 className="font-serif text-4xl font-normal leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                Write with clarity.
+                Skip the AI slop.
                 <br />
-                <span className="text-muted-foreground">Refine with precision.</span>
+                <span className="text-muted-foreground">Write in your voice.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
                 PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
