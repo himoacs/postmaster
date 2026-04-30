@@ -52,7 +52,7 @@ try {
     if (fs.existsSync(backupDir)) {
       fs.rmSync(backupDir, { recursive: true, force: true });
     }
-    execSync(`cp -R "${buildDir}" "${backupDir}"`, { stdio: 'ignore' });
+    fs.cpSync(buildDir, backupDir, { recursive: true });
     console.log('✓ Backup created');
   } else {
     console.log('⚠ No existing build directory to back up');
@@ -75,8 +75,8 @@ try {
     fs.rmSync(betterSqliteDest, { recursive: true, force: true });
   }
   
-  // Copy the rebuilt module (follow symlinks)
-  execSync(`cp -RL "${betterSqliteSrc}" "${betterSqliteDest}"`, { stdio: 'ignore' });
+  // Copy the rebuilt module (dereference symlinks)
+  fs.cpSync(fs.realpathSync(betterSqliteSrc), betterSqliteDest, { recursive: true, dereference: true });
   
   // Verify the .node file exists
   const nodeFile = path.join(betterSqliteDest, 'build', 'Release', 'better_sqlite3.node');

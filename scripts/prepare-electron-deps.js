@@ -64,8 +64,8 @@ function copyModule(moduleName) {
       fs.rmSync(destPath, { recursive: true, force: true });
     }
     
-    // Copy following symlinks
-    execSync(`cp -RL "${realPath}" "${destPath}"`, { stdio: 'ignore' });
+    // Copy following symlinks (cross-platform)
+    fs.cpSync(realPath, destPath, { recursive: true, dereference: true });
     console.log(`  ✓ ${moduleName}`);
     return true;
   } catch (e) {

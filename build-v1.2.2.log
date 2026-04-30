@@ -1,0 +1,73 @@
+
+> postmaster@1.2.2 electron:build:mac /Users/himanshugupta/dev/postmaster
+> pnpm build && pnpm electron:prepare && pnpm electron:rebuild-standalone && pnpm electron:deps && pnpm electron:compile && electron-builder --mac
+
+
+> postmaster@1.2.2 build /Users/himanshugupta/dev/postmaster
+> next build
+
+▲ Next.js 16.2.4 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Turbopack build encountered 1 warnings:
+./next.config.ts
+Encountered unexpected file in NFT list
+A file was traced that indicates that the whole project was traced unintentionally. Somewhere in the import trace below, there are:
+- filesystem operations (like path.join, path.resolve or fs.readFile), or
+- very dynamic requires (like require('./' + foo)).
+To resolve this, you can
+- remove them if possible, or
+- only use them in development, or
+- make sure they are statically scoped to some subfolder: path.join(process.cwd(), 'data', bar), or
+- add ignore comments: path.join(/*turbopackIgnore: true*/ process.cwd(), bar)
+
+Import trace:
+  App Route:
+    ./next.config.ts
+    ./src/lib/db.ts
+    ./src/app/api/synthesize/route.ts
+
+
+✓ Compiled successfully in 4.3s
+  Running TypeScript ...
+  Finished TypeScript in 3.4s ...
+  Collecting page data using 13 workers ...
+  Generating static pages using 13 workers (0/46) ...
+prisma:error 
+Invalid `prisma.generation.findMany()` invocation:
+
+
+dlopen(/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node, 0x0001): tried: '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64')), '/System/Volumes/Preboot/Cryptexes/OS/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (no such file), '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64'))
+  Generating static pages using 13 workers (11/46) 
+prisma:error 
+Invalid `prisma.styleProfile.findFirst()` invocation:
+
+
+dlopen(/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node, 0x0001): tried: '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64')), '/System/Volumes/Preboot/Cryptexes/OS/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (no such file), '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64'))
+prisma:error 
+Invalid `prisma.contentSample.findMany()` invocation:
+
+
+dlopen(/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node, 0x0001): tried: '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64')), '/System/Volumes/Preboot/Cryptexes/OS/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (no such file), '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64'))
+Error occurred prerendering page "/dashboard/history". Read more: https://nextjs.org/docs/messages/prerender-error
+Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.generation.findMany()` invocation:
+
+
+dlopen(/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node, 0x0001): tried: '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64')), '/System/Volumes/Preboot/Cryptexes/OS/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (no such file), '/Users/himanshugupta/dev/postmaster/node_modules/.pnpm/better-sqlite3@12.9.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node' (mach-o file, but is an incompatible architecture (have 'x86_64', need 'arm64e' or 'arm64'))
+    at fk.handleRequestError (.next/server/chunks/ssr/_0n8ddko._.js:62:8026)
+    at fk.handleAndLogRequestError (.next/server/chunks/ssr/_0n8ddko._.js:62:7038)
+    at fk.request (.next/server/chunks/ssr/_0n8ddko._.js:62:6745)
+    at async e (.next/server/chunks/ssr/_0n8ddko._.js:72:7385)
+    at async g (.next/server/chunks/ssr/[root-of-the-server]__0m8.01t._.js:1:3467) {
+  code: 'ERR_DLOPEN_FAILED',
+  meta: { modelName: 'Generation' },
+  clientVersion: '7.8.0',
+  digest: '2273308676'
+}
+Export encountered an error on /(dashboard)/dashboard/history/page: /dashboard/history, exiting the build.
+  Generating static pages using 13 workers (22/46) 
+⨯ Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.
+ ELIFECYCLE  Command failed with exit code 1.

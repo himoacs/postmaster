@@ -30,9 +30,16 @@ function copyModuleRecursive(src, dest) {
   // Create destination directory
   fs.mkdirSync(dest, { recursive: true });
   
-  // Copy using cp -RL to follow symlinks
+  // Copy using Node.js fs.cpSync to follow symlinks (cross-platform)
   try {
-    execSync(`cp -RL "${src}"/* "${dest}/"`, { stdio: 'ignore' });
+    const realSrc = fs.realpathSync(src);
+    // Copy contents of src directory to dest
+    const entries = fs.readdirSync(realSrc);
+    for (const entry of entries) {
+      const srcPath = path.join(realSrc, entry);
+      const destPath = path.join(dest, entry);
+      fs.cpSync(srcPath, destPath, { recursive: true, dereference: true });
+    }
     console.log(`  ✓ Copied ${path.basename(src)}`);
   } catch (e) {
     console.log(`  ✗ Failed to copy ${path.basename(src)}: ${e.message}`);
@@ -123,7 +130,7 @@ if (fs.existsSync(prismaClientPath)) {
           const destPrismaPath = path.join(prismaClientPath, '.prisma', 'client');
           fs.mkdirSync(path.dirname(destPrismaPath), { recursive: true });
           try {
-            execSync(`cp -R "${prismaGenPath}" "${path.dirname(destPrismaPath)}/"`, { stdio: 'ignore' });
+            fs.cpSync(prismaGenPath, destPrismaPath, { recursive: true, dereference: true });
             console.log('  ✓ Copied .prisma/client');
             foundPrismaClient = true;
             break;
