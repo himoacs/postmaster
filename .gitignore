@@ -54,3 +54,5 @@ next-env.d.ts
 *.deb
 *.snap
 electron-deps/
+build*.log
+prisma/postmaster.db
