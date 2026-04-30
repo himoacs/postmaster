@@ -7,6 +7,7 @@ import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { 
   scanForAIPatterns, 
   calculateAIScore, 
@@ -113,7 +114,7 @@ async function performAIAnalysis(
 ): Promise<AIDetectResponse["aiAnalysis"]> {
   // Get API key
   let decryptedKey = "";
-  if (model.provider !== "LITELLM") {
+  if (model.provider !== "LITELLM" && model.provider !== "OLLAMA") {
     const apiKey = await prisma.aPIKey.findUnique({
       where: { provider: model.provider },
     });
@@ -232,6 +233,25 @@ Provide your analysis in JSON format.`;
       result = await generateWithLiteLLM(
         litellmConfig.endpoint,
         litellmKey,
+        model.modelId,
+        systemPrompt,
+        userPrompt
+      );
+      break;
+    }
+    case "OLLAMA": {
+      const ollamaConfig = await prisma.ollamaConfig.findFirst({
+        where: { isEnabled: true, isValid: true },
+      });
+      if (!ollamaConfig) {
+        throw new Error("Ollama not configured");
+      }
+      const ollamaKey = ollamaConfig.encryptedKey
+        ? decrypt(ollamaConfig.encryptedKey)
+        : undefined;
+      result = await generateWithOllama(
+        ollamaConfig.endpoint,
+        ollamaKey,
         model.modelId,
         systemPrompt,
         userPrompt

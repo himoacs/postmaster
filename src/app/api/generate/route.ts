@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
-import { ContentType, AIProvider, LiteLLMModel, ModelInfo } from "@/types";
+import { ContentType, AIProvider, LiteLLMModel, OllamaModel, ModelInfo } from "@/types";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { selectOptimalModels } from "@/lib/ai/model-scorer";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { GenerationOutput, SelectedModel } from "@/types";
@@ -113,6 +114,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Get Ollama config
+  const ollamaConfig = await prisma.ollamaConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+
+  // Parse Ollama models
+  let ollamaModels: OllamaModel[] = [];
+  if (ollamaConfig) {
+    try {
+      ollamaModels = JSON.parse(ollamaConfig.cachedModels);
+    } catch {
+      ollamaModels = [];
+    }
+  }
+
   // Determine which models to use
   let selectedModels: SelectedModel[];
   let yoloReasoning: string[] = [];
@@ -151,7 +167,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selection = selectOptimalModels(availableModels, liteLLMModels, 3);
+    const selection = selectOptimalModels(availableModels, liteLLMModels, ollamaModels, 3);
     selectedModels = selection.models;
     yoloReasoning = selection.reasoning;
 
@@ -233,6 +249,29 @@ export async function POST(request: NextRequest) {
         return await generateWithLiteLLM(
           liteLLMConfig.endpoint,
           liteLLMKey,
+          model.modelId,
+          systemPrompt,
+          userPrompt
+        );
+      } else if (model.provider === "OLLAMA") {
+        // Use Ollama local runtime
+        if (!ollamaConfig) {
+          throw new Error("Ollama not configured");
+        }
+        
+        // Decrypt Ollama API key if present
+        let ollamaKey: string | undefined;
+        if (ollamaConfig.encryptedKey) {
+          try {
+            ollamaKey = decrypt(ollamaConfig.encryptedKey);
+          } catch {
+            throw new Error("Failed to decrypt API key");
+          }
+        }
+
+        return await generateWithOllama(
+          ollamaConfig.endpoint,
+          ollamaKey,
           model.modelId,
           systemPrompt,
           userPrompt

@@ -134,6 +134,12 @@ export const AI_PROVIDERS: Record<AIProvider, ProviderConfig> = {
     description: "Unified access to 100+ LLM providers",
     models: [], // Models are dynamically discovered from the proxy
   },
+  OLLAMA: {
+    id: "OLLAMA",
+    name: "Ollama (Local)",
+    description: "Run models locally with privacy and zero cost",
+    models: [], // Models are dynamically discovered from Ollama
+  },
 };
 
 export function getProviderById(id: AIProvider): ProviderConfig {
@@ -168,6 +174,7 @@ const PROVIDER_PRIORITY: Record<AIProvider, number> = {
   MISTRAL: 1,
   STABILITY: 0,
   LITELLM: 0,
+  OLLAMA: 0,
 };
 
 // Cost tier priority (higher = better quality)

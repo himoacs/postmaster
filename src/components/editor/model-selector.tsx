@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PenLine, AlertCircle, Settings, Server } from "lucide-react";
 import Link from "next/link";
-import { AIProvider, LiteLLMModel } from "@/types";
+import { AIProvider, LiteLLMModel, OllamaModel } from "@/types";
 import { AI_PROVIDERS, getTextGenerationProviders } from "@/lib/ai/providers";
 
 interface SelectedModel {
@@ -34,6 +34,11 @@ interface ValidatedKey {
 interface LiteLLMState {
   enabled: boolean;
   models: LiteLLMModel[];
+}
+
+interface OllamaState {
+  enabled: boolean;
+  models: OllamaModel[];
 }
 
 // Cost tier order for sorting (high quality first)
@@ -61,11 +66,13 @@ export function ModelSelector({
 }: ModelSelectorProps) {
   const [validatedKeys, setValidatedKeys] = useState<ValidatedKey[]>([]);
   const [liteLLM, setLiteLLM] = useState<LiteLLMState>({ enabled: false, models: [] });
+  const [ollama, setOllama] = useState<OllamaState>({ enabled: false, models: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchValidatedKeys();
     fetchLiteLLMModels();
+    fetchOllamaModels();
   }, []);
 
   const fetchValidatedKeys = async () => {
@@ -100,6 +107,20 @@ export function ModelSelector({
       }
     } catch (error) {
       console.error("Failed to fetch LiteLLM models:", error);
+    }
+  };
+
+  const fetchOllamaModels = async () => {
+    try {
+      const response = await fetch("/api/ollama");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.configured && data.isEnabled && data.models?.length > 0) {
+          setOllama({ enabled: true, models: data.models });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch Ollama models:", error);
     }
   };
 
@@ -144,7 +165,7 @@ export function ModelSelector({
       }, {} as Record<string, LiteLLMModel[]>)
     : {};
 
-  const hasNoModels = validatedKeys.length === 0 && !liteLLM.enabled;
+  const hasNoModels = validatedKeys.length === 0 && !liteLLM.enabled && !ollama.enabled;
 
   if (hidden) {
     return null;
@@ -169,7 +190,7 @@ export function ModelSelector({
         <AlertCircle className="h-4 w-4" />
         <AlertDescription className="flex items-center justify-between">
           <span>
-            No API keys or LiteLLM configured. Add your API keys or connect to a LiteLLM proxy.
+            No API keys, LiteLLM, or Ollama configured. Add your API keys or connect to a proxy.
           </span>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/settings">
@@ -334,6 +355,72 @@ export function ModelSelector({
             </div>
           </div>
         ))}
+
+        {/* Ollama models */}
+        {ollama.enabled && ollama.models.length > 0 && (
+          <div className="rounded-lg border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h4 className="font-medium">Ollama (Local)</h4>
+                <Badge variant="outline" className="text-xs">
+                  <Server className="mr-1 h-3 w-3" />
+                  Local
+                </Badge>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {ollama.models.length} models
+              </Badge>
+            </div>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {sortByCostTier(ollama.models).map((model) => {
+                const isSelected = isModelSelected("OLLAMA", model.id);
+                const isDisabled = !isSelected && selectedModels.length >= 4;
+
+                return (
+                  <label
+                    key={model.id}
+                    className={`flex items-center gap-3 rounded-md border p-2 cursor-pointer transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : isDisabled
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-accent"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() =>
+                        !isDisabled && toggleModel("OLLAMA", model.id)
+                      }
+                      disabled={isDisabled}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{model.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {model.contextWindow
+                          ? `${(model.contextWindow / 1000).toFixed(0)}k context`
+                          : "local"}
+                        {model.size && ` · ${(model.size / 1024 / 1024 / 1024).toFixed(1)}GB`}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        model.costTier === "low"
+                          ? "secondary"
+                          : model.costTier === "medium"
+                          ? "outline"
+                          : "default"
+                      }
+                      className="text-xs"
+                    >
+                      {model.costTier || "free"}
+                    </Badge>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t pt-4">

@@ -7,6 +7,7 @@ import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 
 interface CritiqueRequest {
@@ -150,7 +151,7 @@ async function generateCritique(
 ): Promise<CritiqueOutput> {
   // Get API key
   let decryptedKey = "";
-  if (critiqueModel.provider !== "LITELLM") {
+  if (critiqueModel.provider !== "LITELLM" && critiqueModel.provider !== "OLLAMA") {
     const apiKey = await prisma.aPIKey.findUnique({
       where: { provider: critiqueModel.provider },
     });
@@ -239,6 +240,25 @@ Respond ONLY in valid JSON format with this exact structure:
       result = await generateWithLiteLLM(
         litellmConfig.endpoint,
         litellmKey,
+        critiqueModel.modelId,
+        systemPrompt,
+        userPrompt
+      );
+      break;
+    }
+    case "OLLAMA": {
+      const ollamaConfig = await prisma.ollamaConfig.findFirst({
+        where: { isEnabled: true, isValid: true },
+      });
+      if (!ollamaConfig) {
+        throw new Error("Ollama not configured");
+      }
+      const ollamaKey = ollamaConfig.encryptedKey
+        ? decrypt(ollamaConfig.encryptedKey)
+        : undefined;
+      result = await generateWithOllama(
+        ollamaConfig.endpoint,
+        ollamaKey,
         critiqueModel.modelId,
         systemPrompt,
         userPrompt

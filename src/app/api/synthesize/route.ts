@@ -7,6 +7,7 @@ import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { GenerationOutput, SelectedModel } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 
@@ -46,9 +47,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Get API key for the primary model (skip for LITELLM - handled separately)
+  // Get API key for the primary model (skip for LITELLM and OLLAMA - handled separately)
   let decryptedKey = "";
-  if (primaryModel.provider !== "LITELLM") {
+  if (primaryModel.provider !== "LITELLM" && primaryModel.provider !== "OLLAMA") {
     const apiKey = await prisma.aPIKey.findUnique({
       where: { provider: primaryModel.provider },
     });
@@ -174,6 +175,24 @@ Include 3-5 key decisions that explain your thinking. Be specific about which dr
         return generateWithLiteLLM(
           litellmConfig.endpoint,
           litellmKey,
+          modelId,
+          systemPrompt,
+          synthesisPrompt
+        );
+      }
+      case "OLLAMA": {
+        const ollamaConfig = await prisma.ollamaConfig.findFirst({
+          where: { isEnabled: true, isValid: true },
+        });
+        if (!ollamaConfig) {
+          throw new Error("Ollama not configured");
+        }
+        const ollamaKey = ollamaConfig.encryptedKey
+          ? decrypt(ollamaConfig.encryptedKey)
+          : undefined;
+        return generateWithOllama(
+          ollamaConfig.endpoint,
+          ollamaKey,
           modelId,
           systemPrompt,
           synthesisPrompt

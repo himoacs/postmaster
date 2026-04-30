@@ -15,6 +15,7 @@ import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 
 interface DebateRequest {
@@ -304,6 +305,15 @@ Respond ONLY in valid JSON format:
       result = await generateWithLiteLLM(litellmConfig.endpoint, litellmKey, model.modelId, systemPrompt, userPrompt);
       break;
     }
+    case "OLLAMA": {
+      const ollamaConfig = await prisma.ollamaConfig.findFirst({
+        where: { isEnabled: true, isValid: true },
+      });
+      if (!ollamaConfig) throw new Error("Ollama not configured");
+      const ollamaKey = ollamaConfig.encryptedKey ? decrypt(ollamaConfig.encryptedKey) : undefined;
+      result = await generateWithOllama(ollamaConfig.endpoint, ollamaKey, model.modelId, systemPrompt, userPrompt);
+      break;
+    }
     default:
       throw new Error("Unsupported provider");
   }
@@ -547,6 +557,15 @@ Output ONLY the final content, no meta-commentary.`;
       if (!litellmConfig) throw new Error("LiteLLM not configured");
       const litellmKey = litellmConfig.encryptedKey ? decrypt(litellmConfig.encryptedKey) : undefined;
       result = await generateWithLiteLLM(litellmConfig.endpoint, litellmKey, primaryModel.modelId, systemPrompt, userPrompt);
+      break;
+    }
+    case "OLLAMA": {
+      const ollamaConfig = await prisma.ollamaConfig.findFirst({
+        where: { isEnabled: true, isValid: true },
+      });
+      if (!ollamaConfig) throw new Error("Ollama not configured");
+      const ollamaKey = ollamaConfig.encryptedKey ? decrypt(ollamaConfig.encryptedKey) : undefined;
+      result = await generateWithOllama(ollamaConfig.endpoint, ollamaKey, primaryModel.modelId, systemPrompt, userPrompt);
       break;
     }
     default:

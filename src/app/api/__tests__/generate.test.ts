@@ -9,6 +9,7 @@ import { decrypt } from '@/lib/encryption';
 import { generateWithOpenAI } from '@/lib/ai/openai';
 import { generateWithAnthropic } from '@/lib/ai/claude';
 import { generateWithLiteLLM } from '@/lib/ai/litellm';
+import { generateWithOllama } from '@/lib/ai/ollama';
 import { selectOptimalModels } from '@/lib/ai/model-scorer';
 
 // Mock dependencies
@@ -21,6 +22,9 @@ vi.mock('@/lib/db', () => ({
       findMany: vi.fn(),
     },
     liteLLMConfig: {
+      findFirst: vi.fn(),
+    },
+    ollamaConfig: {
       findFirst: vi.fn(),
     },
     generation: {
@@ -57,6 +61,10 @@ vi.mock('@/lib/ai/litellm', () => ({
   generateWithLiteLLM: vi.fn(),
 }));
 
+vi.mock('@/lib/ai/ollama', () => ({
+  generateWithOllama: vi.fn(),
+}));
+
 vi.mock('@/lib/ai/model-scorer', () => ({
   selectOptimalModels: vi.fn(),
 }));
@@ -78,6 +86,7 @@ describe('API: /api/generate', () => {
     vi.mocked(prisma.styleProfile.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.aPIKey.findMany).mockResolvedValue([]);
     vi.mocked(prisma.liteLLMConfig.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue(null);
   });
 
   describe('POST /api/generate', () => {
@@ -571,6 +580,67 @@ describe('API: /api/generate', () => {
       const response = await POST(request);
       expect(response.status).toBe(200);
       expect(generateWithLiteLLM).toHaveBeenCalled();
+    });
+
+    it('should handle Ollama provider', async () => {
+      vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue({
+        id: 'ollama-1',
+        endpoint: 'http://localhost:11434',
+        encryptedKey: null,
+        isEnabled: true,
+        isValid: true,
+        cachedModels: JSON.stringify([{ id: 'qwen3:latest', name: 'Qwen 3 (Latest)', provider: 'ollama', contextWindow: 8192, costTier: 'local', size: '5.2 GB' }]),
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(prisma.generation.create).mockResolvedValue({
+        id: 'gen-1',
+        prompt: 'Test',
+        contentType: 'BLOG_POST',
+        lengthPref: 'medium',
+        styleContext: null,
+        status: 'GENERATING',
+        contentMode: 'new',
+        sourceContent: null,
+        sourceMap: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      vi.mocked(generateWithOllama).mockResolvedValue({
+        content: 'Content via Ollama',
+        tokensUsed: 150,
+      });
+
+      vi.mocked(prisma.generation.update).mockResolvedValue({
+        id: 'gen-1',
+        prompt: 'Test',
+        contentType: 'BLOG_POST',
+        lengthPref: 'medium',
+        styleContext: null,
+        status: 'COMPLETED',
+        contentMode: 'new',
+        sourceContent: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        sourceMap: null,
+      });
+
+      const request = new NextRequest('http://localhost/api/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: 'Write about AI',
+          contentType: 'blog_post',
+          lengthPref: 'medium',
+          selectedModels: [{ provider: 'OLLAMA', modelId: 'qwen3:latest' }],
+        }),
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      expect(generateWithOllama).toHaveBeenCalled();
     });
 
     it('should handle empty model response with retry', async () => {

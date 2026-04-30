@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
-import { ContentType, AIProvider, LiteLLMModel, ModelInfo } from "@/types";
+import { ContentType, AIProvider, LiteLLMModel, OllamaModel, ModelInfo } from "@/types";
 import { generateWithOpenAI, generateWithOpenAIStream } from "@/lib/ai/openai";
 import { generateWithAnthropic, generateWithAnthropicStream } from "@/lib/ai/claude";
 import { generateWithMistral, generateWithMistralStream } from "@/lib/ai/mistral";
 import { generateWithGrok, generateWithGrokStream } from "@/lib/ai/grok";
 import { generateWithLiteLLM, generateWithLiteLLMStream } from "@/lib/ai/litellm";
+import { generateWithOllama, generateWithOllamaStream } from "@/lib/ai/ollama";
 import { selectOptimalModels } from "@/lib/ai/model-scorer";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { SelectedModel } from "@/types";
@@ -104,6 +105,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Get Ollama config
+  const ollamaConfig = await prisma.ollamaConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+
+  // Parse Ollama models
+  let ollamaModels: OllamaModel[] = [];
+  if (ollamaConfig) {
+    try {
+      ollamaModels = JSON.parse(ollamaConfig.cachedModels);
+    } catch {
+      ollamaModels = [];
+    }
+  }
+
   // Determine which models to use
   let selectedModels: SelectedModel[];
   let yoloReasoning: string[] = [];
@@ -136,7 +152,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const selection = selectOptimalModels(availableModels, liteLLMModels, 3);
+    const selection = selectOptimalModels(availableModels, liteLLMModels, ollamaModels, 3);
     selectedModels = selection.models;
     yoloReasoning = selection.reasoning;
 
@@ -206,6 +222,7 @@ export async function POST(request: NextRequest) {
             model,
             apiKeys,
             liteLLMConfig,
+            ollamaConfig,
             systemPrompt,
             userPrompt
           );
@@ -235,6 +252,7 @@ export async function POST(request: NextRequest) {
               model,
               apiKeys,
               liteLLMConfig,
+              ollamaConfig,
               systemPrompt,
               userPrompt
             );
@@ -251,6 +269,7 @@ export async function POST(request: NextRequest) {
               model,
               apiKeys,
               liteLLMConfig,
+              ollamaConfig,
               systemPrompt,
               userPrompt
             );
@@ -385,6 +404,7 @@ async function getStreamGenerator(
   model: SelectedModel,
   apiKeys: Array<{ provider: string; encryptedKey: string }>,
   liteLLMConfig: { endpoint: string; encryptedKey: string | null } | null,
+  ollamaConfig: { endpoint: string; encryptedKey: string | null } | null,
   systemPrompt: string,
   userPrompt: string
 ): Promise<AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> | null> {
@@ -403,6 +423,27 @@ async function getStreamGenerator(
     return generateWithLiteLLMStream(
       liteLLMConfig.endpoint,
       liteLLMKey,
+      model.modelId,
+      systemPrompt,
+      userPrompt
+    );
+  }
+
+  if (model.provider === "OLLAMA") {
+    if (!ollamaConfig) return null;
+    
+    let ollamaKey: string | undefined;
+    if (ollamaConfig.encryptedKey) {
+      try {
+        ollamaKey = decrypt(ollamaConfig.encryptedKey);
+      } catch {
+        return null;
+      }
+    }
+
+    return generateWithOllamaStream(
+      ollamaConfig.endpoint,
+      ollamaKey,
       model.modelId,
       systemPrompt,
       userPrompt
@@ -433,6 +474,7 @@ async function callProviderDirect(
   model: SelectedModel,
   apiKeys: Array<{ provider: string; encryptedKey: string }>,
   liteLLMConfig: { endpoint: string; encryptedKey: string | null } | null,
+  ollamaConfig: { endpoint: string; encryptedKey: string | null } | null,
   systemPrompt: string,
   userPrompt: string
 ): Promise<{ content: string; tokensUsed: number }> {
@@ -447,6 +489,23 @@ async function callProviderDirect(
     return generateWithLiteLLM(
       liteLLMConfig.endpoint,
       liteLLMKey,
+      model.modelId,
+      systemPrompt,
+      userPrompt
+    );
+  }
+
+  if (model.provider === "OLLAMA") {
+    if (!ollamaConfig) throw new Error("Ollama not configured");
+    
+    let ollamaKey: string | undefined;
+    if (ollamaConfig.encryptedKey) {
+      ollamaKey = decrypt(ollamaConfig.encryptedKey);
+    }
+
+    return generateWithOllama(
+      ollamaConfig.endpoint,
+      ollamaKey,
       model.modelId,
       systemPrompt,
       userPrompt

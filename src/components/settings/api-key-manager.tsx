@@ -21,7 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AIProvider, LiteLLMModel } from "@/types";
+import { AIProvider, LiteLLMModel, OllamaModel } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 
 interface StoredKey {
@@ -40,6 +40,16 @@ interface LiteLLMConfigState {
   isValid?: boolean;
   modelCount?: number;
   models?: LiteLLMModel[];
+}
+
+interface OllamaConfigState {
+  configured: boolean;
+  endpoint?: string;
+  hasKey?: boolean;
+  isEnabled?: boolean;
+  isValid?: boolean;
+  modelCount?: number;
+  models?: OllamaModel[];
 }
 
 const TEXT_PROVIDERS: AIProvider[] = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL"];
@@ -62,9 +72,18 @@ export function APIKeyManager() {
   const [liteLLMSaving, setLiteLLMSaving] = useState(false);
   const [liteLLMRefreshing, setLiteLLMRefreshing] = useState(false);
 
+  // Ollama state
+  const [ollamaConfig, setOllamaConfig] = useState<OllamaConfigState>({ configured: false });
+  const [ollamaEditing, setOllamaEditing] = useState(false);
+  const [ollamaEndpoint, setOllamaEndpoint] = useState("http://localhost:11434");
+  const [ollamaKey, setOllamaKey] = useState("");
+  const [ollamaSaving, setOllamaSaving] = useState(false);
+  const [ollamaRefreshing, setOllamaRefreshing] = useState(false);
+
   useEffect(() => {
     fetchKeys();
     fetchLiteLLMConfig();
+    fetchOllamaConfig();
   }, []);
 
   const fetchKeys = async () => {
@@ -191,7 +210,117 @@ export function APIKeyManager() {
       toast.error("Failed to remove LiteLLM configuration");
     }
   };
+  // Ollama functions
+  const fetchOllamaConfig = async () => {
+    try {
+      const response = await fetch("/api/ollama");
+      if (response.ok) {
+        const data = await response.json();
+        setOllamaConfig(data);
+        if (data.endpoint) {
+          setOllamaEndpoint(data.endpoint);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load Ollama config");
+    }
+  };
 
+  const saveOllamaConfig = async () => {
+    if (!ollamaEndpoint.trim()) {
+      toast.error("Endpoint URL is required");
+      return;
+    }
+
+    setOllamaSaving(true);
+    try {
+      const response = await fetch("/api/ollama", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: ollamaEndpoint,
+          apiKey: ollamaKey || undefined,
+          isEnabled: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Failed to connect to Ollama");
+        return;
+      }
+
+      toast.success(`Connected! Found ${data.modelCount} models`);
+      setOllamaEditing(false);
+      setOllamaKey("");
+      await fetchOllamaConfig();
+    } catch (error) {
+      toast.error("Failed to save Ollama configuration");
+    } finally {
+      setOllamaSaving(false);
+    }
+  };
+
+  const toggleOllama = async (enabled: boolean) => {
+    if (!ollamaConfig.configured) return;
+
+    try {
+      const response = await fetch("/api/ollama", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          endpoint: ollamaConfig.endpoint,
+          isEnabled: enabled,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(enabled ? "Ollama enabled" : "Ollama disabled");
+        await fetchOllamaConfig();
+      }
+    } catch (error) {
+      toast.error("Failed to update Ollama");
+    }
+  };
+
+  const refreshOllamaModels = async () => {
+    setOllamaRefreshing(true);
+    try {
+      const response = await fetch("/api/ollama/models", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success(`Refreshed! Found ${data.modelCount} models`);
+        await fetchOllamaConfig();
+      } else {
+        toast.error(data.error || "Failed to refresh models");
+      }
+    } catch (error) {
+      toast.error("Failed to refresh models");
+    } finally {
+      setOllamaRefreshing(false);
+    }
+  };
+
+  const deleteOllamaConfig = async () => {
+    try {
+      const response = await fetch("/api/ollama", {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Ollama configuration removed");
+        setOllamaConfig({ configured: false });
+        setOllamaEndpoint("http://localhost:11434");
+        setOllamaKey("");
+      }
+    } catch (error) {
+      toast.error("Failed to remove Ollama configuration");
+    }
+  };
   const saveKey = async (provider: AIProvider) => {
     if (!newKeyValue.trim()) return;
 
@@ -415,6 +544,154 @@ export function APIKeyManager() {
                     {liteLLMConfig.models.length > 8 && (
                       <Badge variant="secondary" className="text-xs">
                         +{liteLLMConfig.models.length - 8} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Ollama Configuration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              <div>
+                <CardTitle>Ollama (Local)</CardTitle>
+                <CardDescription>
+                  Run models locally with privacy and zero cost
+                </CardDescription>
+              </div>
+            </div>
+            {ollamaConfig.configured && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="ollama-toggle" className="text-sm text-muted-foreground">
+                  {ollamaConfig.isEnabled ? "Enabled" : "Disabled"}
+                </Label>
+                <Switch
+                  id="ollama-toggle"
+                  checked={ollamaConfig.isEnabled}
+                  onCheckedChange={toggleOllama}
+                />
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {ollamaEditing || !ollamaConfig.configured ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ollama-endpoint">Ollama Endpoint URL</Label>
+                <Input
+                  id="ollama-endpoint"
+                  placeholder="http://localhost:11434"
+                  value={ollamaEndpoint}
+                  onChange={(e) => setOllamaEndpoint(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ollama-key">API Key (optional)</Label>
+                <div className="relative">
+                  <Input
+                    id="ollama-key"
+                    type={showKey ? "text" : "password"}
+                    placeholder="Only needed for remote Ollama instances"
+                    value={ollamaKey}
+                    onChange={(e) => setOllamaKey(e.target.value)}
+                    className="pr-10"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowKey(!showKey)}
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={saveOllamaConfig}
+                  disabled={ollamaSaving || !ollamaEndpoint.trim()}
+                >
+                  {ollamaSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="mr-2 h-4 w-4" />
+                  )}
+                  Connect & Discover Models
+                </Button>
+                {ollamaConfig.configured && (
+                  <Button variant="outline" onClick={() => setOllamaEditing(false)}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm">{ollamaConfig.endpoint}</code>
+                    <Badge variant={ollamaConfig.isValid ? "default" : "destructive"}>
+                      {ollamaConfig.isValid ? (
+                        <>
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
+                          Connected
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="mr-1 h-3 w-3" />
+                          Disconnected
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {ollamaConfig.modelCount} models available
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshOllamaModels}
+                    disabled={ollamaRefreshing}
+                  >
+                    {ollamaRefreshing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Refresh
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setOllamaEditing(true)}>
+                    Update
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={deleteOllamaConfig}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {ollamaConfig.models && ollamaConfig.models.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Available Models</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {ollamaConfig.models.slice(0, 8).map((model) => (
+                      <Badge key={model.id} variant="secondary" className="text-xs">
+                        {model.name}
+                      </Badge>
+                    ))}
+                    {ollamaConfig.models.length > 8 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{ollamaConfig.models.length - 8} more
                       </Badge>
                     )}
                   </div>

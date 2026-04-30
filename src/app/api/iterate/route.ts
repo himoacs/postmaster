@@ -6,6 +6,7 @@ import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { AIProvider, SelectedModel } from "@/types";
 
 interface IterateRequest {
@@ -44,9 +45,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Get API key (skip for LITELLM - handled separately)
+  // Get API key (skip for LITELLM and OLLAMA - handled separately)
   let decryptedKey = "";
-  if (primaryModel.provider !== "LITELLM") {
+  if (primaryModel.provider !== "LITELLM" && primaryModel.provider !== "OLLAMA") {
     const apiKey = await prisma.aPIKey.findUnique({
       where: { provider: primaryModel.provider },
     });
@@ -105,6 +106,24 @@ Output only the revised content.`;
         return generateWithLiteLLM(
           litellmConfig.endpoint,
           litellmKey,
+          modelId,
+          systemPrompt,
+          iterationPrompt
+        );
+      }
+      case "OLLAMA": {
+        const ollamaConfig = await prisma.ollamaConfig.findFirst({
+          where: { isEnabled: true, isValid: true },
+        });
+        if (!ollamaConfig) {
+          throw new Error("Ollama not configured");
+        }
+        const ollamaKey = ollamaConfig.encryptedKey
+          ? decrypt(ollamaConfig.encryptedKey)
+          : undefined;
+        return generateWithOllama(
+          ollamaConfig.endpoint,
+          ollamaKey,
           modelId,
           systemPrompt,
           iterationPrompt

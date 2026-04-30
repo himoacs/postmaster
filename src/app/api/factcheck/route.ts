@@ -4,6 +4,7 @@ import { decrypt } from "@/lib/encryption";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { AIProvider } from "@/types";
@@ -56,13 +57,18 @@ export async function POST(request: NextRequest) {
     const liteLLMConfig = await prisma.liteLLMConfig.findFirst({
       where: { isEnabled: true, isValid: true },
     });
+    const ollamaConfig = await prisma.ollamaConfig.findFirst({
+      where: { isEnabled: true, isValid: true },
+    });
 
     // Determine which model to use
     let provider: AIProvider | null = null;
     let modelId: string | null = null;
     let apiKey: string | null = null;
     let liteLLMEndpoint: string | undefined;
+    let ollamaEndpoint: string | undefined;
     let useLiteLLM = false;
+    let useOllama = false;
 
     if (preferences?.primaryModelProvider && preferences?.primaryModelId) {
       provider = preferences.primaryModelProvider as AIProvider;
@@ -72,6 +78,10 @@ export async function POST(request: NextRequest) {
         apiKey = liteLLMConfig.encryptedKey ? decrypt(liteLLMConfig.encryptedKey) : "";
         liteLLMEndpoint = liteLLMConfig.endpoint;
         useLiteLLM = true;
+      } else if (provider === "OLLAMA" && ollamaConfig) {
+        apiKey = ollamaConfig.encryptedKey ? decrypt(ollamaConfig.encryptedKey) : "";
+        ollamaEndpoint = ollamaConfig.endpoint;
+        useOllama = true;
       } else {
         const keyRecord = apiKeys.find(k => k.provider === provider);
         if (keyRecord) {
@@ -81,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback to any available model
-    if (!apiKey && !useLiteLLM) {
+    if (!apiKey && !useLiteLLM && !useOllama) {
       if (liteLLMConfig) {
         provider = "LITELLM";
         const models = JSON.parse(liteLLMConfig.cachedModels || "[]");
@@ -89,6 +99,13 @@ export async function POST(request: NextRequest) {
         apiKey = liteLLMConfig.encryptedKey ? decrypt(liteLLMConfig.encryptedKey) : "";
         liteLLMEndpoint = liteLLMConfig.endpoint;
         useLiteLLM = true;
+      } else if (ollamaConfig) {
+        provider = "OLLAMA";
+        const models = JSON.parse(ollamaConfig.cachedModels || "[]");
+        modelId = models[0]?.id || "qwen3:latest";
+        apiKey = ollamaConfig.encryptedKey ? decrypt(ollamaConfig.encryptedKey) : "";
+        ollamaEndpoint = ollamaConfig.endpoint;
+        useOllama = true;
       } else {
         for (const key of apiKeys) {
           if (key.provider !== "STABILITY") {
@@ -104,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!provider || !modelId || (!apiKey && !useLiteLLM)) {
+    if (!provider || !modelId || (!apiKey && !useLiteLLM && !useOllama)) {
       return NextResponse.json(
         { error: "No AI model available for fact checking" },
         { status: 400 }
@@ -140,7 +157,8 @@ Return ONLY the JSON array, no other text. If no factual claims found, return []
         apiKey ?? "",
         "You are a fact-checking assistant that extracts factual claims from text. Return only valid JSON.",
         extractionPrompt,
-        liteLLMEndpoint
+        liteLLMEndpoint,
+        ollamaEndpoint
       );
       console.log(`[FactCheck] Extraction result length: ${extractionResult.content.length}`);
     } catch (genError) {
@@ -319,12 +337,16 @@ async function generateWithModel(
   apiKey: string,
   systemPrompt: string,
   userPrompt: string,
-  liteLLMEndpoint?: string
+  liteLLMEndpoint?: string,
+  ollamaEndpoint?: string
 ): Promise<{ content: string }> {
   switch (provider) {
     case "LITELLM":
       if (!liteLLMEndpoint) throw new Error("LiteLLM endpoint required");
       return generateWithLiteLLM(liteLLMEndpoint, apiKey, modelId, systemPrompt, userPrompt);
+    case "OLLAMA":
+      if (!ollamaEndpoint) throw new Error("Ollama endpoint required");
+      return generateWithOllama(ollamaEndpoint, apiKey, modelId, systemPrompt, userPrompt);
     case "OPENAI":
       return generateWithOpenAI(apiKey, modelId, systemPrompt, userPrompt);
     case "ANTHROPIC":

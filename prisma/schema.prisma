@@ -44,6 +44,22 @@ model LiteLLMConfig {
   updatedAt     DateTime @updatedAt
 }
 
+// Ollama Configuration - local LLM runtime for privacy and offline usage
+model OllamaConfig {
+  id            String   @id @default(cuid())
+  endpoint      String   @default("http://localhost:11434") // Ollama server URL
+  encryptedKey  String?  // Optional API key for remote instances
+  isEnabled     Boolean  @default(true)
+  isValid       Boolean  @default(false)
+  
+  // Cached discovered models (JSON array of OllamaModel objects)
+  cachedModels  String   @default("[]")
+  
+  lastValidated DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 // ============================================================================
 // Style Profile & Content Samples
 // ============================================================================

@@ -1,10 +1,11 @@
 // AI Provider type - defined locally for SQLite compatibility
 // LITELLM is a special provider that routes through a LiteLLM proxy
-export const AI_PROVIDERS = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL", "STABILITY", "LITELLM"] as const;
+// OLLAMA is a local LLM runtime for privacy and offline usage
+export const AI_PROVIDERS = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL", "STABILITY", "LITELLM", "OLLAMA"] as const;
 export type AIProvider = (typeof AI_PROVIDERS)[number];
 
 // Text-only providers (excludes image generation)
-export const TEXT_PROVIDERS = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL", "LITELLM"] as const;
+export const TEXT_PROVIDERS = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL", "LITELLM", "OLLAMA"] as const;
 export type TextProvider = (typeof TEXT_PROVIDERS)[number];
 
 // Generation status and content types
@@ -120,6 +121,32 @@ export interface LiteLLMConfig {
 export interface LiteLLMValidationResult {
   valid: boolean;
   models?: LiteLLMModel[];
+  error?: string;
+}
+
+// Ollama Types (local LLM runtime)
+export interface OllamaModel {
+  id: string;              // Model ID used for API calls (e.g., "llama3.2:1b", "qwen2.5:7b")
+  name: string;            // Display name
+  provider: string;        // Always "ollama"
+  contextWindow?: number;
+  costTier?: "low" | "medium" | "high";
+  maxTokens?: number;
+  size?: number;           // Model size in bytes
+}
+
+export interface OllamaConfig {
+  id: string;
+  endpoint: string;
+  isEnabled: boolean;
+  isValid: boolean;
+  models: OllamaModel[];
+  lastValidated?: string;
+}
+
+export interface OllamaValidationResult {
+  valid: boolean;
+  models?: OllamaModel[];
   error?: string;
 }
 

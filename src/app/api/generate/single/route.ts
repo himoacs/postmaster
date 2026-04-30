@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
-import { AIProvider, LiteLLMModel } from "@/types";
+import { AIProvider, LiteLLMModel, OllamaModel } from "@/types";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { generateWithAnthropic } from "@/lib/ai/claude";
 import { generateWithMistral } from "@/lib/ai/mistral";
 import { generateWithGrok } from "@/lib/ai/grok";
 import { generateWithLiteLLM } from "@/lib/ai/litellm";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { GenerationOutput } from "@/types";
 import { fetchMultipleUrls, formatReferencesForPrompt } from "@/lib/url-fetcher";
 import { buildAntiPatternPromptSection } from "@/lib/ai/anti-patterns";
@@ -74,6 +75,11 @@ export async function POST(request: NextRequest) {
     where: { isEnabled: true, isValid: true },
   });
 
+  // Get Ollama config
+  const ollamaConfig = await prisma.ollamaConfig.findFirst({
+    where: { isEnabled: true, isValid: true },
+  });
+
   // Build system prompt (simplified version - we don't have all original context)
   const systemPrompt = buildSimpleSystemPrompt(
     styleProfile,
@@ -103,6 +109,27 @@ export async function POST(request: NextRequest) {
       return await generateWithLiteLLM(
         liteLLMConfig.endpoint,
         liteLLMKey,
+        targetModelId,
+        systemPrompt,
+        generation.prompt
+      );
+    } else if (targetProvider === "OLLAMA") {
+      if (!ollamaConfig) {
+        throw new Error("Ollama not configured");
+      }
+      
+      let ollamaKey: string | undefined;
+      if (ollamaConfig.encryptedKey) {
+        try {
+          ollamaKey = decrypt(ollamaConfig.encryptedKey);
+        } catch {
+          throw new Error("Failed to decrypt API key");
+        }
+      }
+
+      return await generateWithOllama(
+        ollamaConfig.endpoint,
+        ollamaKey,
         targetModelId,
         systemPrompt,
         generation.prompt

@@ -7,7 +7,7 @@
  * - Availability (only select from validated models)
  */
 
-import { AIProvider, SelectedModel, ModelInfo, LiteLLMModel, YoloSelection, ModelScore } from "@/types";
+import { AIProvider, SelectedModel, ModelInfo, LiteLLMModel, OllamaModel, YoloSelection, ModelScore } from "@/types";
 import { AI_PROVIDERS, getTextGenerationProviders } from "./providers";
 
 const YOLO_MODEL_COUNT = 3;
@@ -37,6 +37,7 @@ const COST_TIER_SCORES: Record<string, number> = {
 export function selectOptimalModels(
   availableModels: Array<{ provider: AIProvider; models: ModelInfo[] }>,
   liteLLMModels: LiteLLMModel[] = [],
+  ollamaModels: OllamaModel[] = [],
   count: number = YOLO_MODEL_COUNT
 ): YoloSelection {
   const scoredModels: ModelScore[] = [];
@@ -46,8 +47,8 @@ export function selectOptimalModels(
   for (const providerData of availableModels) {
     const { provider, models } = providerData;
     
-    // Skip STABILITY (image generation) and LITELLM (handled separately)
-    if (provider === "STABILITY" || provider === "LITELLM") continue;
+    // Skip STABILITY (image generation), LITELLM, and OLLAMA (handled separately)
+    if (provider === "STABILITY" || provider === "LITELLM" || provider === "OLLAMA") continue;
     
     for (const model of models) {
       const score = scoreModel(model, provider);
@@ -98,10 +99,26 @@ export function selectOptimalModels(
     });
   }
   
+  // Score Ollama models (local LLM runtime)
+  // Ollama models are already filtered to text generation models
+  for (const model of ollamaModels) {
+    const score = scoreOllamaModel(model);
+    scoredModels.push({
+      provider: "OLLAMA",
+      modelId: model.id,
+      score: score.total,
+      factors: {
+        quality: score.quality,
+        diversity: 0,
+        contextWindow: score.contextWindow,
+      },
+    });
+  }
+  
   if (scoredModels.length === 0) {
     return {
       models: [],
-      reasoning: ["No models available. Configure API keys or LiteLLM in Settings."],
+      reasoning: ["No models available. Configure API keys, LiteLLM, or Ollama in Settings."],
     };
   }
   
@@ -115,10 +132,11 @@ export function selectOptimalModels(
   // Pass 1: Pick the best model from each unique provider (for diversity)
   const tempSelected: ModelScore[] = [];
   for (const model of scoredModels) {
-    // Get the "effective" provider (for LiteLLM, use the original provider)
-    const effectiveProvider = model.provider === "LITELLM" 
-      ? getLiteLLMEffectiveProvider(model.modelId, liteLLMModels)
-      : model.provider;
+    // Get the "effective" provider (for LiteLLM, use the original provider; OLLAMA is always "OLLAMA")
+    let effectiveProvider: string = model.provider;
+    if (model.provider === "LITELLM") {
+      effectiveProvider = getLiteLLMEffectiveProvider(model.modelId, liteLLMModels);
+    }
     
     if (!usedProviders.has(effectiveProvider) && tempSelected.length < count) {
       tempSelected.push(model);
@@ -141,9 +159,12 @@ export function selectOptimalModels(
       modelId: model.modelId,
     });
     
-    const providerName = model.provider === "LITELLM" 
-      ? `LiteLLM (${getLiteLLMEffectiveProvider(model.modelId, liteLLMModels)})`
-      : model.provider;
+    let providerName: string = model.provider;
+    if (model.provider === "LITELLM") {
+      providerName = `LiteLLM (${getLiteLLMEffectiveProvider(model.modelId, liteLLMModels)})`;
+    } else if (model.provider === "OLLAMA") {
+      providerName = "Ollama (Local)";
+    }
     
     reasoning.push(
       `${model.modelId} (${providerName}): Quality ${Math.round(model.factors.quality * 100)}%, ` +
@@ -217,6 +238,33 @@ function scoreLiteLLMModel(
 }
 
 /**
+ * Score an Ollama model (local LLM runtime)
+ */
+function scoreOllamaModel(
+  model: OllamaModel
+): { total: number; quality: number; contextWindow: number } {
+  // Normalize context window
+  const contextScore = Math.min((model.contextWindow || 4096) / 200000, 1.0);
+  
+  // Cost tier score (Ollama models have cost tiers based on computational requirements)
+  const costScore = COST_TIER_SCORES[model.costTier || "medium"] || 0.5;
+  
+  // Calculate weighted quality score
+  const qualityScore = 
+    contextScore * QUALITY_WEIGHTS.contextWindow +
+    costScore * (QUALITY_WEIGHTS.costTier + QUALITY_WEIGHTS.streaming);
+  
+  // Small bonus for local models (privacy, no API costs)
+  const localBonus = 0.02;
+  
+  return {
+    total: qualityScore + localBonus,
+    quality: qualityScore,
+    contextWindow: model.contextWindow || 4096,
+  };
+}
+
+/**
  * Get provider reputation bonus
  */
 function getProviderBonus(provider: AIProvider): number {
@@ -226,6 +274,7 @@ function getProviderBonus(provider: AIProvider): number {
     XAI: 0.03,
     MISTRAL: 0.02,
     LITELLM: 0.01,
+    OLLAMA: 0.02,  // Local models get a small bonus for privacy/cost
     STABILITY: 0,
   };
   return bonuses[provider] || 0;
@@ -274,8 +323,9 @@ function formatContextWindow(contextWindow: number): string {
  */
 export function selectBestModel(
   availableModels: Array<{ provider: AIProvider; models: ModelInfo[] }>,
-  liteLLMModels: LiteLLMModel[] = []
+  liteLLMModels: LiteLLMModel[] = [],
+  ollamaModels: OllamaModel[] = []
 ): SelectedModel | null {
-  const selection = selectOptimalModels(availableModels, liteLLMModels, 1);
+  const selection = selectOptimalModels(availableModels, liteLLMModels, ollamaModels, 1);
   return selection.models[0] || null;
 }
