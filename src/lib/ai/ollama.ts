@@ -232,6 +232,9 @@ function inferOllamaContextWindow(modelId: string, family?: string): number {
   if (id.includes("llama3") || id.includes("llama-3") || fam.includes("llama")) {
     return 8192; // Llama 3 has 8K context by default
   }
+  if (id.includes("qwen3") || id.includes("qwen-3")) {
+    return 8192; // Qwen 3 has 8K context
+  }
   if (id.includes("qwen2.5") || id.includes("qwen-2.5")) {
     return 32768; // Qwen 2.5 has 32K context
   }

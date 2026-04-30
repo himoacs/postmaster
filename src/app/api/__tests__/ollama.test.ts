@@ -13,7 +13,8 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     ollamaConfig: {
       findFirst: vi.fn(),
-      upsert: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
   },
@@ -62,6 +63,7 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
+      expect(data.configured).toBe(true);
       expect(data.endpoint).toBe('http://localhost:11434');
       expect(data.isEnabled).toBe(true);
       expect(data.isValid).toBe(true);
@@ -77,10 +79,7 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.endpoint).toBe('http://localhost:11434'); // Default
-      expect(data.isEnabled).toBe(false);
-      expect(data.isValid).toBe(false);
-      expect(data.models).toEqual([]);
+      expect(data.configured).toBe(false);
     });
 
     it('should handle database errors', async () => {
@@ -92,7 +91,7 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch Ollama configuration');
+      expect(data.error).toBe('Failed to fetch configuration');
     });
   });
 
@@ -114,7 +113,9 @@ describe('API: /api/ollama', () => {
         models: mockModels,
       });
 
-      vi.mocked(prisma.ollamaConfig.upsert).mockResolvedValue({
+      vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue(null);
+      
+      vi.mocked(prisma.ollamaConfig.create).mockResolvedValue({
         id: '1',
         endpoint: 'http://localhost:11434',
         encryptedKey: null,
@@ -142,7 +143,7 @@ describe('API: /api/ollama', () => {
       expect(data.isValid).toBe(true);
       expect(data.models).toHaveLength(1);
       expect(validateOllamaConfig).toHaveBeenCalledWith('http://localhost:11434', '');
-      expect(prisma.ollamaConfig.upsert).toHaveBeenCalled();
+      expect(prisma.ollamaConfig.create).toHaveBeenCalled();
     });
 
     it('should save configuration with API key', async () => {
@@ -162,7 +163,9 @@ describe('API: /api/ollama', () => {
         models: mockModels,
       });
 
-      vi.mocked(prisma.ollamaConfig.upsert).mockResolvedValue({
+      vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue(null);
+      
+      vi.mocked(prisma.ollamaConfig.create).mockResolvedValue({
         id: '1',
         endpoint: 'http://localhost:11434',
         encryptedKey: 'encrypted-test-key',
@@ -187,6 +190,7 @@ describe('API: /api/ollama', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+      expect(data.isValid).toBe(true);
       expect(validateOllamaConfig).toHaveBeenCalledWith('http://localhost:11434', 'test-key');
       expect(encrypt).toHaveBeenCalledWith('test-key');
     });
@@ -221,11 +225,10 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.isValid).toBe(true);
+      expect(data.valid).toBe(true);
       expect(data.models).toHaveLength(1);
       expect(validateOllamaConfig).toHaveBeenCalled();
-      expect(prisma.ollamaConfig.upsert).not.toHaveBeenCalled();
+      expect(prisma.ollamaConfig.create).not.toHaveBeenCalled();
     });
 
     it('should return invalid for connection failure', async () => {
@@ -245,17 +248,17 @@ describe('API: /api/ollama', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.isValid).toBe(false);
+      expect(response.status).toBe(400);
+      expect(data.valid).toBe(false);
       expect(data.error).toBe('Failed to connect to Ollama');
-      expect(prisma.ollamaConfig.upsert).not.toHaveBeenCalled();
+      expect(prisma.ollamaConfig.create).not.toHaveBeenCalled();
     });
 
-    it('should require endpoint', async () => {
+    it('should handle invalid endpoint URL', async () => {
       const request = new NextRequest('http://localhost/api/ollama', {
         method: 'POST',
         body: JSON.stringify({
+          endpoint: 'not-a-valid-url',
           apiKey: '',
         }),
       });
@@ -264,7 +267,7 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Endpoint is required');
+      expect(data.error).toBe('Invalid endpoint URL');
     });
 
     it('should handle validation errors', async () => {
@@ -284,15 +287,27 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to configure Ollama');
+      expect(data.error).toBe('Failed to save configuration');
     });
   });
 
   describe('DELETE /api/ollama', () => {
     it('should delete Ollama configuration', async () => {
-      vi.mocked(prisma.ollamaConfig.delete).mockResolvedValue({
+      const mockConfig = {
         id: '1',
-      } as any);
+        endpoint: 'http://localhost:11434',
+        encryptedKey: null,
+        isEnabled: true,
+        isValid: true,
+        cachedModels: '[]',
+        lastValidated: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue(mockConfig as any);
+      
+      vi.mocked(prisma.ollamaConfig.delete).mockResolvedValue(mockConfig as any);
 
       const response = await DELETE();
       const data = await response.json();
@@ -300,11 +315,18 @@ describe('API: /api/ollama', () => {
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(prisma.ollamaConfig.delete).toHaveBeenCalledWith({
-        where: { id: 1 },
+        where: { id: '1' },
       });
     });
 
     it('should handle deletion errors', async () => {
+      const mockConfig = {
+        id: '1',
+        endpoint: 'http://localhost:11434',
+      };
+      
+      vi.mocked(prisma.ollamaConfig.findFirst).mockResolvedValue(mockConfig as any);
+      
       vi.mocked(prisma.ollamaConfig.delete).mockRejectedValue(
         new Error('Delete failed')
       );
@@ -313,7 +335,7 @@ describe('API: /api/ollama', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to delete Ollama configuration');
+      expect(data.error).toBe('Failed to delete configuration');
     });
   });
 });

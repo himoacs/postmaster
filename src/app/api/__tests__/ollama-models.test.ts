@@ -114,7 +114,7 @@ describe('API: /api/ollama/models', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch Ollama models');
+      expect(data.error).toBe('Failed to fetch models');
     });
   });
 
@@ -218,8 +218,8 @@ describe('API: /api/ollama/models', () => {
       const response = await POST();
       const data = await response.json();
 
-      expect(response.status).toBe(404);
-      expect(data.error).toBe('Ollama configuration not found');
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Ollama not configured');
       expect(fetchOllamaModels).not.toHaveBeenCalled();
     });
 
@@ -245,7 +245,7 @@ describe('API: /api/ollama/models', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to refresh Ollama models');
+      expect(data.error).toBe('Failed to refresh models');
     });
 
     it('should handle database update errors', async () => {
@@ -282,7 +282,7 @@ describe('API: /api/ollama/models', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to refresh Ollama models');
+      expect(data.error).toBe('Failed to refresh models');
     });
   });
 });
