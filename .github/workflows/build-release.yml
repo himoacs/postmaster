@@ -191,12 +191,13 @@ jobs:
           # Update all download links in docs/index.html
           sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-[0-9.]*-*[a-zA-Z0-9]*-arm64.dmg|/releases/download/v${VERSION}/PostMaster-${VERSION}-arm64.dmg|g" docs/index.html
           sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-[0-9.]*-*[a-zA-Z0-9]*.dmg|/releases/download/v${VERSION}/PostMaster-${VERSION}.dmg|g" docs/index.html
+          sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-Setup-[0-9.]*-*[a-zA-Z0-9]*.exe|/releases/download/v${VERSION}/PostMaster-Setup-${VERSION}.exe|g" docs/index.html
           
           # Update version text (e.g., "v1.2.2 •" to "v1.2.3 •")
           sed -i "s|>v[0-9.]*-*[a-zA-Z0-9]* •|>v${VERSION} •|g" docs/index.html
           
           echo "Updated docs/index.html with version ${VERSION}"
-          grep -n "PostMaster-.*\.dmg" docs/index.html || true
+          grep -n "PostMaster-.*\.\(dmg\|exe\)" docs/index.html || true
 
       - name: Commit updated landing page
         run: |
