@@ -98,6 +98,7 @@ gh release view vX.Y.Z
 - [ ] `PostMaster-X.Y.Z-arm64-mac.zip` (macOS ARM)
 - [ ] `PostMaster-X.Y.Z.dmg` (macOS Intel)
 - [ ] `PostMaster-X.Y.Z-mac.zip` (macOS Intel)
+- [ ] `latest-mac.yml` (required for auto-updates!)
 - [ ] `PostMaster Setup X.Y.Z.exe` (Windows)
 - [ ] `PostMaster-X.Y.Z.AppImage` (Linux)
 - [ ] `PostMaster_X.Y.Z_amd64.deb` (Linux)
@@ -170,6 +171,7 @@ chmod +x PostMaster-X.Y.Z.AppImage
 - [ ] Core features work
 
 ### Test Auto-Updater (if updating existing version)
+- [ ] Verify `latest-mac.yml` is in release: `gh release view vX.Y.Z | grep latest-mac.yml`
 - [ ] Previous version installed
 - [ ] Launches successfully
 - [ ] Detects new version (may take 5-10 minutes)
