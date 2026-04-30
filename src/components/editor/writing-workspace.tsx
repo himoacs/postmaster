@@ -1458,9 +1458,9 @@ export function WritingWorkspace({
                   
                   {/* Knowledge Base Indicator */}
                   {selectedKnowledge.length > 0 && (
-                    <div className="mt-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 text-left">
+                    <div className="mt-3 rounded-lg bg-muted/50 border border-border p-3 text-left">
                       <div className="flex items-start gap-2">
-                        <Database className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <Database className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                         <div className="space-y-1">
                           <p className="text-xs font-medium text-foreground">Using Knowledge Base</p>
                           <p className="text-xs text-muted-foreground">

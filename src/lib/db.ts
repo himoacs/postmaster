@@ -1,11 +1,64 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
+
+// Schema migrations for existing databases
+// Add new columns here as they're added to the schema
+const SCHEMA_MIGRATIONS = [
+  // Migration: Add sourceMap column to Generation (v1.2.3)
+  {
+    table: "Generation",
+    column: "sourceMap",
+    sql: "ALTER TABLE Generation ADD COLUMN sourceMap TEXT",
+  },
+  // Migration: Add enableCitations column to Generation (v1.2.3)
+  {
+    table: "Generation",
+    column: "enableCitations",
+    sql: "ALTER TABLE Generation ADD COLUMN enableCitations INTEGER DEFAULT 0",
+  },
+  // Migration: Add enableEmojis column to Generation (v1.2.3)
+  {
+    table: "Generation",
+    column: "enableEmojis",
+    sql: "ALTER TABLE Generation ADD COLUMN enableEmojis INTEGER DEFAULT 0",
+  },
+];
+
+/**
+ * Apply runtime schema migrations to an existing database.
+ * This ensures old databases get new columns without requiring Prisma migrate.
+ */
+function applyRuntimeMigrations(dbPath: string): void {
+  try {
+    const db = new Database(dbPath);
+    
+    for (const migration of SCHEMA_MIGRATIONS) {
+      // Check if column exists
+      const tableInfo = db.prepare(`PRAGMA table_info(${migration.table})`).all() as { name: string }[];
+      const columnExists = tableInfo.some((col) => col.name === migration.column);
+      
+      if (!columnExists) {
+        try {
+          db.exec(migration.sql);
+          console.log(`Applied migration: Added ${migration.column} to ${migration.table}`);
+        } catch (err) {
+          console.error(`Failed to apply migration for ${migration.column}:`, err);
+        }
+      }
+    }
+    
+    db.close();
+  } catch (err) {
+    console.error("Failed to apply runtime migrations:", err);
+  }
+}
 
 function createPrismaClient() {
   // Use DATABASE_URL environment variable if set (for packaged Electron app)
@@ -43,6 +96,11 @@ function createPrismaClient() {
         break;
       }
     }
+  }
+  
+  // Apply any pending runtime schema migrations to existing databases
+  if (fs.existsSync(dbPath)) {
+    applyRuntimeMigrations(dbPath);
   }
   
   const adapter = new PrismaBetterSqlite3({ url: dbPath });

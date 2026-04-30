@@ -2,8 +2,13 @@
 /**
  * Rebuild native modules in standalone for Electron
  * 
- * Since electron-rebuild expects a standard npm project structure,
- * we rebuild in the main node_modules and then copy to standalone.
+ * This script:
+ * 1. Backs up the current better-sqlite3 build (compiled for Node.js)
+ * 2. Rebuilds for Electron
+ * 3. Copies to standalone
+ * 4. Restores the original build (to avoid polluting node_modules with Electron builds)
+ * 
+ * This prevents the recurring x86_64/arm64 architecture mismatch issue.
  */
 
 const fs = require('fs');
@@ -22,31 +27,55 @@ if (!fs.existsSync(standalonePath)) {
   process.exit(1);
 }
 
+// Find the actual better-sqlite3 location (may be in pnpm virtual store)
+function findBetterSqlitePath() {
+  // Try direct path first
+  const directPath = path.join(nodeModulesPath, 'better-sqlite3');
+  if (fs.existsSync(directPath)) {
+    // Check if it's a symlink (pnpm)
+    const realPath = fs.realpathSync(directPath);
+    return { symlink: directPath, real: realPath };
+  }
+  throw new Error('better-sqlite3 not found in node_modules');
+}
+
 try {
-  // Step 1: Rebuild in main node_modules for Electron
-  console.log('Step 1: Rebuilding better-sqlite3 for Electron...');
+  const { symlink: betterSqliteSrc, real: realPath } = findBetterSqlitePath();
+  const buildDir = path.join(realPath, 'build');
+  const backupDir = path.join(realPath, 'build.node-backup');
+  
+  console.log(`Found better-sqlite3 at: ${realPath}`);
+  
+  // Step 1: Back up the current Node.js build
+  console.log('\nStep 1: Backing up current Node.js build...');
+  if (fs.existsSync(buildDir)) {
+    if (fs.existsSync(backupDir)) {
+      fs.rmSync(backupDir, { recursive: true, force: true });
+    }
+    execSync(`cp -R "${buildDir}" "${backupDir}"`, { stdio: 'ignore' });
+    console.log('✓ Backup created');
+  } else {
+    console.log('⚠ No existing build directory to back up');
+  }
+  
+  // Step 2: Rebuild for Electron
+  console.log('\nStep 2: Rebuilding better-sqlite3 for Electron...');
   execSync('npx electron-rebuild -f -w better-sqlite3', {
     cwd: projectRoot,
     stdio: 'inherit'
   });
   
-  // Step 2: Copy the rebuilt module to standalone
-  console.log('\nStep 2: Copying rebuilt module to standalone...');
+  // Step 3: Copy the rebuilt module to standalone
+  console.log('\nStep 3: Copying rebuilt module to standalone...');
   
-  const betterSqliteSrc = path.join(nodeModulesPath, 'better-sqlite3');
   const betterSqliteDest = path.join(standalonePath, 'node_modules', 'better-sqlite3');
-  
-  if (!fs.existsSync(betterSqliteSrc)) {
-    console.error('Error: better-sqlite3 not found in node_modules');
-    process.exit(1);
-  }
   
   // Remove existing standalone module
   if (fs.existsSync(betterSqliteDest)) {
     fs.rmSync(betterSqliteDest, { recursive: true, force: true });
   }
   
-  // Copy the rebuilt module
+  // Copy the rebuilt module (follow symlinks)
   execSync(`cp -RL "${betterSqliteSrc}" "${betterSqliteDest}"`, { stdio: 'ignore' });
   
   // Verify the .node file exists
@@ -60,14 +89,24 @@ try {
     process.exit(1);
   }
   
-  // Step 3: Rebuild for system Node.js (for development)
-  console.log('\nStep 3: Rebuilding better-sqlite3 for system Node.js (development use)...');
-  execSync('npm rebuild better-sqlite3', {
-    cwd: projectRoot,
-    stdio: 'ignore'
-  });
+  // Step 4: Restore the original Node.js build
+  console.log('\nStep 4: Restoring original Node.js build...');
+  if (fs.existsSync(backupDir)) {
+    fs.rmSync(buildDir, { recursive: true, force: true });
+    fs.renameSync(backupDir, buildDir);
+    console.log('✓ Original build restored (node_modules unchanged)');
+  } else {
+    // No backup - rebuild for Node.js
+    console.log('⚠ No backup found, rebuilding for Node.js...');
+    execSync('pnpm rebuild better-sqlite3', {
+      cwd: projectRoot,
+      stdio: 'ignore'
+    });
+  }
   
   console.log('\n✅ Standalone native module rebuild complete!');
+  console.log('   Node.js build in node_modules: preserved');
+  console.log('   Electron build in standalone: ready');
   
 } catch (error) {
   console.error('\n❌ Rebuild failed:', error.message);

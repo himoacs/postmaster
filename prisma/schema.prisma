@@ -173,6 +173,7 @@ model SynthesizedContent {
 
   generation    Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
   versions      SynthesisVersion[]
+  contributions SynthesisContribution[]
   parentSynthesis SynthesizedContent?  @relation("SynthesisLineage", fields: [parentSynthesisId], references: [id], onDelete: SetNull)
   childSyntheses  SynthesizedContent[] @relation("SynthesisLineage")
 }
@@ -257,7 +258,7 @@ model ModelAnalytics {
 // Tracks which model's content was selected in each synthesis decision
 model SynthesisContribution {
   id           String   @id @default(cuid())
-  synthesisId  String   // References SynthesizedContent.id
+  synthesisId  String
   generationId String   // For easier querying
   
   // Model that contributed
@@ -273,6 +274,8 @@ model SynthesisContribution {
   starredCount Int      @default(0)  // Number of starred sections from this model
   
   createdAt    DateTime @default(now())
+  
+  synthesis    SynthesizedContent @relation(fields: [synthesisId], references: [id], onDelete: Cascade)
   
   @@index([synthesisId])
   @@index([provider, model])
