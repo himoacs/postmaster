@@ -87,11 +87,33 @@ function repairMissingColumns(
         // Determine the column type and default based on table/column
         let sql: string;
         
-        // Common patterns for adding columns
-        if (missing.column.startsWith("enable")) {
+        // Specific column definitions (most common cases)
+        const columnDefinitions: Record<string, string> = {
+          // JSON array columns
+          "enabledModels": "TEXT DEFAULT '[]'",
+          "validModels": "TEXT DEFAULT '[]'",
+          "cachedModels": "TEXT DEFAULT '[]'",
+          "references": "TEXT DEFAULT '[]'",
+          "selectedKnowledge": "TEXT DEFAULT '[]'",
+          "aspectTypes": "TEXT DEFAULT '[]'",
+          // Boolean columns
+          "isEnabled": "INTEGER DEFAULT 1",
+          "isValid": "INTEGER DEFAULT 0",
+          "yoloMode": "INTEGER DEFAULT 0",
+          "enableCitations": "INTEGER DEFAULT 0",
+          // Text columns
+          "sourceMap": "TEXT",
+          "reasoning": "TEXT",
+          "feedback": "TEXT",
+        };
+        
+        const specificDef = columnDefinitions[missing.column];
+        if (specificDef) {
+          sql = `ALTER TABLE ${missing.table} ADD COLUMN ${missing.column} ${specificDef}`;
+        } else if (missing.column.startsWith("enable")) {
           sql = `ALTER TABLE ${missing.table} ADD COLUMN ${missing.column} INTEGER DEFAULT 0`;
-        } else if (missing.column.endsWith("Models") || missing.column === "sourceMap") {
-          sql = `ALTER TABLE ${missing.table} ADD COLUMN ${missing.column} TEXT`;
+        } else if (missing.column.endsWith("Models")) {
+          sql = `ALTER TABLE ${missing.table} ADD COLUMN ${missing.column} TEXT DEFAULT '[]'`;
         } else if (missing.column.endsWith("At")) {
           sql = `ALTER TABLE ${missing.table} ADD COLUMN ${missing.column} INTEGER`;
         } else {
@@ -128,6 +150,84 @@ function repairMissingColumns(
     dbLogger.error(
       LogCategory.REPAIR,
       "Failed to repair missing columns",
+      err as Error
+    );
+  }
+
+  return actions;
+}
+
+/**
+ * Definitions for auto-creatable tables
+ * These are internal/utility tables that can be safely created without migration
+ */
+const AUTO_CREATABLE_TABLE_DEFINITIONS: Record<string, string> = {
+  SchemaVersion: `
+    CREATE TABLE IF NOT EXISTS "SchemaVersion" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "version" TEXT NOT NULL,
+      "description" TEXT NOT NULL,
+      "appliedAt" INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS "SchemaVersion_version_idx" ON "SchemaVersion"("version");
+    CREATE INDEX IF NOT EXISTS "SchemaVersion_appliedAt_idx" ON "SchemaVersion"("appliedAt");
+  `,
+};
+
+/**
+ * Fix missing tables by creating them
+ * Only works for tables defined in AUTO_CREATABLE_TABLE_DEFINITIONS
+ */
+function repairMissingTables(
+  dbPath: string,
+  missingTables: string[]
+): RepairAction[] {
+  const actions: RepairAction[] = [];
+
+  try {
+    const db = new Database(dbPath);
+
+    for (const tableName of missingTables) {
+      const createSql = AUTO_CREATABLE_TABLE_DEFINITIONS[tableName];
+      
+      if (!createSql) {
+        actions.push({
+          issue: IssueType.MISSING_TABLE,
+          description: `Cannot auto-create table ${tableName} - not in auto-creatable list`,
+          success: false,
+          error: "Table requires manual migration",
+        });
+        continue;
+      }
+
+      try {
+        db.exec(createSql);
+        actions.push({
+          issue: IssueType.MISSING_TABLE,
+          description: `Created table ${tableName}`,
+          success: true,
+        });
+        dbLogger.info(LogCategory.REPAIR, `Created missing table: ${tableName}`);
+      } catch (err) {
+        actions.push({
+          issue: IssueType.MISSING_TABLE,
+          description: `Failed to create table ${tableName}`,
+          success: false,
+          error: (err as Error).message,
+        });
+        dbLogger.error(
+          LogCategory.REPAIR,
+          `Failed to create table ${tableName}`,
+          err as Error
+        );
+      }
+    }
+
+    db.close();
+  } catch (err) {
+    dbLogger.error(
+      LogCategory.REPAIR,
+      "Failed to repair missing tables",
       err as Error
     );
   }
@@ -381,6 +481,15 @@ export function attemptRepair(
   // Repair missing database file
   if (issuesByType.has(IssueType.FILE_NOT_FOUND)) {
     actions.push(...repairMissingDatabase());
+  }
+
+  // Repair missing tables (for auto-creatable tables like SchemaVersion)
+  if (issuesByType.has(IssueType.MISSING_TABLE)) {
+    const missingTableIssues = issuesByType.get(IssueType.MISSING_TABLE)!;
+    const missingTables = missingTableIssues.map(
+      (issue) => (issue.details?.table as string) || ""
+    ).filter(Boolean);
+    actions.push(...repairMissingTables(dbPath, missingTables));
   }
 
   // Repair missing columns

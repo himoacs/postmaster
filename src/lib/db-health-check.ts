@@ -345,13 +345,17 @@ export function runHealthCheck(): HealthCheckResult {
     const schemaCheck = checkSchemaCompleteness(dbPath);
     checks.schemaComplete = schemaCheck.complete;
 
+    // Internal tables that can be safely auto-created
+    const autoCreatableTables = ["SchemaVersion"];
+
     for (const missingTable of schemaCheck.missingTables) {
+      const isAutoCreatable = autoCreatableTables.includes(missingTable);
       issues.push({
         type: IssueType.MISSING_TABLE,
-        severity: "error",
+        severity: isAutoCreatable ? "warning" : "error",
         message: `Missing table: ${missingTable}`,
         details: { table: missingTable },
-        autoFixable: false, // Tables require proper migration
+        autoFixable: isAutoCreatable, // Internal tables can be auto-created
       });
     }
 
