@@ -155,6 +155,14 @@ function createPrismaClient() {
       {
         status: healthCheck.status,
         issueCount: healthCheck.issues.length,
+        issues: healthCheck.issues.map(i => ({
+          type: i.type,
+          severity: i.severity,
+          message: i.message,
+          details: i.details,
+          autoFixable: i.autoFixable
+        })),
+        checks: healthCheck.checks,
       }
     );
     
