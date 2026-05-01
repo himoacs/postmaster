@@ -25,6 +25,24 @@ const nextConfig: NextConfig = {
       "./node_modules/**/better-sqlite3/build/**/*",
     ],
   },
+  
+  // Exclude build artifacts from output tracing
+  outputFileTracingExcludes: {
+    "/**": [
+      "./dist/**",
+      "./coverage/**",
+      "./.git/**",
+      "./electron-deps/**",
+      "./*.log",
+      "./*.md",
+      "./docs/**",
+      "./test/**",
+      "./e2e/**",
+      "./scripts/**",
+      "./build/**",
+      "./.env*",
+    ],
+  },
 };
 
 export default nextConfig;
