@@ -35,6 +35,15 @@ pnpm pre-release
 - [ ] Unit tests (206+): PASS
 - [ ] Coverage thresholds (80%/75%/80%/80%): PASS
 
+### Database Migration Test (CRITICAL)
+```bash
+npx tsx scripts/test-db-migration.ts
+```
+
+- [ ] Migration test: PASS (old databases can be upgraded)
+
+This test ensures users upgrading from older versions won't get 500 errors due to schema changes.
+
 ### Manual Smoke Tests
 ```bash
 pnpm electron:dev

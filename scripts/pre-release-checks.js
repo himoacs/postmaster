@@ -335,6 +335,24 @@ async function main() {
     checks.push(false);
   }
 
+  // 11. Run database migration test (ensures old databases can be upgraded)
+  log('\n🔍 Running database migration test...', 'cyan');
+  try {
+    execSync('npx tsx scripts/test-db-migration.ts', { 
+      stdio: 'pipe',
+      cwd: path.join(__dirname, '..'),
+      encoding: 'utf8'
+    });
+    log('✅ Database migration test passed (old databases can be upgraded)', 'green');
+    checks.push(true);
+  } catch (error) {
+    const output = error.stdout || error.message;
+    log('❌ Database migration test failed', 'red');
+    log(`   ${output.slice(-500)}`, 'yellow');
+    log('   Run: npx tsx scripts/test-db-migration.ts for details', 'yellow');
+    checks.push(false);
+  }
+
   // Summary
   log('\n' + '='.repeat(60), 'blue');
   log('Pre-Release Validation Summary', 'blue');
