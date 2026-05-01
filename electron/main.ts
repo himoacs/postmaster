@@ -302,26 +302,21 @@ async function startNextServer(): Promise<void> {
 
     // Find a Node.js binary that won't show in the dock
     // On macOS, using process.execPath (Electron) with ELECTRON_RUN_AS_NODE still shows in dock
-    // So we look for a standalone node binary first
+    // So we look for a bundled node binary first, then fall back to Electron
     let nodeBinary = process.execPath; // fallback to Electron's node
     
-    // Check for bundled node binary first, then system node
+    // Check for bundled node binary (preferred - matches native module ABI)
     const bundledNode = join(process.resourcesPath, "node");
-    const systemNodes = ["/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node"];
     
     if (existsSync(bundledNode)) {
       nodeBinary = bundledNode;
       // Don't need ELECTRON_RUN_AS_NODE for a real node binary
       delete env.ELECTRON_RUN_AS_NODE;
-    } else {
-      for (const nodePath of systemNodes) {
-        if (existsSync(nodePath)) {
-          nodeBinary = nodePath;
-          delete env.ELECTRON_RUN_AS_NODE;
-          break;
-        }
-      }
     }
+    // NOTE: We intentionally do NOT fall back to system Node.js anymore.
+    // System Node has different ABI than the native modules compiled for Electron.
+    // Using system Node causes "NODE_MODULE_VERSION mismatch" errors.
+    // The dock icon trade-off is acceptable for a working app.
     
     console.log("Using Node binary:", nodeBinary);
 
