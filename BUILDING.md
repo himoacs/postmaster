@@ -124,6 +124,30 @@ The `electron:dev` script automatically:
 2. Waits for the server to be ready
 3. Launches Electron pointing to `http://localhost:3456`
 
+### Database Schema Changes
+
+When the Prisma schema changes, you need to update your local database:
+
+```bash
+# Check if there are pending migrations
+pnpm prisma migrate status
+
+# Apply pending migrations to your development database
+pnpm prisma migrate dev
+
+# Regenerate Prisma client after schema changes
+pnpm prisma generate
+
+# Update the template database (for fresh installs)
+cp data/postmaster.db prisma/template.db
+```
+
+**Important for local testing builds:**
+1. Always check `pnpm prisma migrate status` before building
+2. If schema changed, run `pnpm prisma migrate dev` first
+3. After migrations, update `prisma/template.db` so new installs get the latest schema
+4. Runtime migrations in `src/lib/db.ts` handle existing user databases automatically
+
 ---
 
 ## Building for Production

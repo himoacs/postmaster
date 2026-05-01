@@ -23,6 +23,7 @@ model APIKey {
   encryptedKey  String   // Encrypted API key
   isValid       Boolean  @default(false)
   validModels   String   @default("[]") // JSON array of model IDs
+  enabledModels String   @default("[]") // User-selected models to show (empty = all)
   lastValidated DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -39,6 +40,10 @@ model LiteLLMConfig {
   // Cached discovered models (JSON array of LiteLLMModel objects)
   cachedModels  String   @default("[]")
   
+  // User-selected models to show in model selector (JSON array of model IDs)
+  // Empty array means all models are enabled (backward compatible)
+  enabledModels String   @default("[]")
+  
   lastValidated DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -54,6 +59,10 @@ model OllamaConfig {
   
   // Cached discovered models (JSON array of OllamaModel objects)
   cachedModels  String   @default("[]")
+  
+  // User-selected models to show in model selector (JSON array of model IDs)
+  // Empty array means all models are enabled (backward compatible)
+  enabledModels String   @default("[]")
   
   lastValidated DateTime?
   createdAt     DateTime @default(now())
@@ -374,4 +383,19 @@ model KnowledgeEntry {
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
+}
+
+// ============================================================================
+// Schema Version Tracking (v1.2.4+)
+// ============================================================================
+
+// Tracks applied database schema migrations for validation and repair
+model SchemaVersion {
+  id          String   @id @default(cuid())
+  version     String   // e.g., "1.2.4", "migration_20260430"
+  description String   // Human-readable description of what changed
+  appliedAt   DateTime @default(now())
+  
+  @@index([version])
+  @@index([appliedAt])
 }

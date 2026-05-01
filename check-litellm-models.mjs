@@ -1,12 +1,5 @@
-// Quick script to check LiteLLM models for deprecated ones
+// Quick script to list LiteLLM models
 import fetch from 'node:fetch';
-
-const DEPRECATED_PATTERNS = [
-  'claude-3-7', // Should be 3.5
-  'gpt-4-32k', // No longer available
-  'text-davinci', // Old OpenAI models
-  'code-davinci',
-];
 
 async function checkModels() {
   try {
@@ -20,51 +13,26 @@ async function checkModels() {
     
     console.log(`\n✅ Found ${data.models.length} LiteLLM models\n`);
     
-    const deprecated = [];
-    const suspect = [];
-    
+    // Group by provider
+    const byProvider = {};
     for (const model of data.models) {
-      const modelId = model.id.toLowerCase();
-      
-      // Check for known deprecated patterns
-      const isDeprecated = DEPRECATED_PATTERNS.some(pattern => 
-        modelId.includes(pattern.toLowerCase())
-      );
-      
-      if (isDeprecated) {
-        deprecated.push(model);
+      const provider = model.provider || 'unknown';
+      if (!byProvider[provider]) {
+        byProvider[provider] = [];
       }
-      // Flag suspicious versions
-      else if (modelId.match(/claude-3\.[7-9]|gpt-[5-9]/)) {
-        suspect.push(model);
-      }
+      byProvider[provider].push(model);
     }
     
-    if (deprecated.length > 0) {
-      console.log('⚠️  DEPRECATED MODELS (remove these):\n');
-      deprecated.forEach(m => {
-        console.log(`   ❌ ${m.id} (${m.name})`);
+    // Display grouped by provider
+    for (const [provider, models] of Object.entries(byProvider)) {
+      console.log(`📦 ${provider.toUpperCase()} (${models.length} models)`);
+      models.forEach(m => {
+        console.log(`   • ${m.id}`);
       });
       console.log('');
     }
     
-    if (suspect.length > 0) {
-      console.log('⚠️  SUSPICIOUS MODEL VERSIONS (verify these):\n');
-      suspect.forEach(m => {
-        console.log(`   ⚠️  ${m.id} (${m.name})`);
-      });
-      console.log('');
-    }
-    
-    if (deprecated.length === 0 && suspect.length === 0) {
-      console.log('✅ All models look good!\n');
-    } else {
-      console.log('💡 Tip: Update your LiteLLM config to use current model versions:');
-      console.log('   - Claude 3.5 Sonnet (not 3.7)');
-      console.log('   - GPT-4o, GPT-4 Turbo (not GPT-5)');
-      console.log('   - Check AWS Bedrock docs for current model IDs\n');
-    }
-    
+    console.log('✅ Model list complete!\n');
   } catch (error) {
     console.error('❌ Error:', error.message);
     console.log('\n💡 Make sure the dev server is running: pnpm dev\n');

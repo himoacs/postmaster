@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron";
 import { join } from "path";
-import { spawn, ChildProcess } from "child_process";
+import { spawn, execSync, ChildProcess } from "child_process";
 import { existsSync, writeFileSync, appendFileSync, mkdirSync } from "fs";
 import { autoUpdater, UpdateInfo, ProgressInfo } from "electron-updater";
 
@@ -263,6 +263,16 @@ async function startNextServer(): Promise<void> {
       console.log("Development mode: expecting external Next.js server");
       resolve();
       return;
+    }
+
+    // Kill any zombie process still holding the port from a previous session
+    try {
+      if (process.platform === "darwin" || process.platform === "linux") {
+        execSync(`lsof -ti :${PORT} | xargs kill -9 2>/dev/null`, { stdio: "ignore" });
+        console.log(`Cleaned up any existing process on port ${PORT}`);
+      }
+    } catch {
+      // Ignore - no process on port (expected case)
     }
 
     // In production, start the Next.js standalone server

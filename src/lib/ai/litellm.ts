@@ -68,12 +68,14 @@ export async function validateLiteLLMConfig(
       });
     }
     
-    // Filter to only text generation models (exclude embedding, image models)
-    const textModels = models.filter(m => isTextGenerationModel(m.id));
+    // Filter to generation models (text and image, excluding embedding/audio)
+    const generationModels = models.filter(m => isTextGenerationModel(m.id));
+    
+    console.log(`[LiteLLM] Found ${generationModels.length} generation models`);
     
     return {
       valid: true,
-      models: textModels,
+      models: generationModels,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Connection failed";
@@ -324,21 +326,18 @@ function inferCostTier(modelId: string): "low" | "medium" | "high" {
 }
 
 /**
- * Check if a model is for text generation (vs embedding, image, etc.)
+ * Check if a model is for text or image generation (vs embedding, audio, etc.)
  */
 function isTextGenerationModel(modelId: string): boolean {
   const id = modelId.toLowerCase();
   
-  // Exclude known non-text models
-  if (
-    id.includes("embed") ||
-    id.includes("dall-e") ||
-    id.includes("whisper") ||
-    id.includes("tts") ||
-    id.includes("stable-diffusion") ||
-    id.includes("sdxl") ||
-    id.includes("image")
-  ) {
+  // Exclude embedding models
+  if (id.includes("embed")) {
+    return false;
+  }
+  
+  // Exclude audio/speech models
+  if (id.includes("whisper") || id.includes("tts")) {
     return false;
   }
   

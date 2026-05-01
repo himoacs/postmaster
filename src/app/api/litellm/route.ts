@@ -29,6 +29,14 @@ export async function GET() {
       models = [];
     }
     
+    // Parse enabled models (empty = all enabled)
+    let enabledModels: string[] = [];
+    try {
+      enabledModels = JSON.parse(config.enabledModels);
+    } catch {
+      enabledModels = [];
+    }
+    
     return NextResponse.json({
       configured: true,
       id: config.id,
@@ -38,6 +46,7 @@ export async function GET() {
       isValid: config.isValid,
       modelCount: models.length,
       models,
+      enabledModels,
       lastValidated: config.lastValidated?.toISOString(),
     });
   } catch (error) {
@@ -142,6 +151,49 @@ export async function POST(request: NextRequest) {
     console.error("Error saving LiteLLM config:", error);
     return NextResponse.json(
       { error: "Failed to save configuration" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update enabled models selection
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { enabledModels } = body;
+    
+    if (!Array.isArray(enabledModels)) {
+      return NextResponse.json(
+        { error: "enabledModels must be an array of model IDs" },
+        { status: 400 }
+      );
+    }
+    
+    const config = await prisma.liteLLMConfig.findFirst();
+    
+    if (!config) {
+      return NextResponse.json(
+        { error: "LiteLLM not configured" },
+        { status: 404 }
+      );
+    }
+    
+    const updated = await prisma.liteLLMConfig.update({
+      where: { id: config.id },
+      data: {
+        enabledModels: JSON.stringify(enabledModels),
+      },
+    });
+    
+    return NextResponse.json({
+      success: true,
+      enabledModels,
+      enabledCount: enabledModels.length,
+    });
+  } catch (error) {
+    console.error("Error updating LiteLLM enabled models:", error);
+    return NextResponse.json(
+      { error: "Failed to update enabled models" },
       { status: 500 }
     );
   }

@@ -99,6 +99,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key-1',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -109,6 +110,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key-2',
           isValid: true,
           validModels: '["claude-3-5-sonnet-20241022"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -125,6 +127,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -159,9 +163,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -195,6 +201,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -218,6 +225,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -236,9 +245,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -326,6 +337,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -341,9 +353,11 @@ describe('API: /api/generate', () => {
         status: 'GENERATING',
         contentMode: 'enhance',
         sourceContent: 'Existing content to enhance',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       vi.mocked(generateWithOpenAI).mockResolvedValue({
@@ -360,9 +374,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'enhance',
         sourceContent: 'Existing content to enhance',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -397,6 +413,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -413,6 +430,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -429,9 +448,11 @@ describe('API: /api/generate', () => {
         status: 'FAILED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -456,6 +477,18 @@ describe('API: /api/generate', () => {
         id: 'style-1',
         tone: 'professional',
         vocabulary: 'technical',
+          sentence: null,
+          patterns: null,
+          uniqueVocabulary: null,
+          avoidPatterns: null,
+          writingQuirks: null,
+          sampleExcerpts: null,
+          openingStyles: null,
+          closingStyles: null,
+          bio: null,
+          context: null,
+          overrides: null,
+          analyzedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -467,6 +500,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -483,6 +517,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -501,9 +537,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -544,6 +582,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -562,9 +602,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -605,6 +647,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -623,9 +667,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -651,6 +697,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -667,6 +714,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -696,9 +745,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -727,6 +778,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -743,6 +795,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -770,9 +824,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -800,6 +856,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key-1',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -810,6 +867,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key-2',
           isValid: true,
           validModels: '["claude-3-5-sonnet-20241022"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -826,6 +884,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -858,9 +918,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -895,6 +957,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -919,6 +982,8 @@ describe('API: /api/generate', () => {
           contentMode: 'new',
           sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -943,9 +1008,11 @@ describe('API: /api/generate', () => {
           status: 'COMPLETED',
           contentMode: 'new',
           sourceContent: null,
+          sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-          sourceMap: null,
         });
 
         const request = new NextRequest('http://localhost/api/generate', {
@@ -985,6 +1052,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1076,6 +1144,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1183,6 +1252,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1199,6 +1269,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1228,9 +1300,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1275,6 +1349,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1291,6 +1366,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1321,6 +1398,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         sourceMap: null,
@@ -1371,6 +1450,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1387,6 +1467,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1416,9 +1498,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1449,6 +1533,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1465,6 +1550,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1495,6 +1582,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         sourceMap: null,
@@ -1528,6 +1617,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1544,6 +1634,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1571,9 +1663,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {
@@ -1618,6 +1712,7 @@ describe('API: /api/generate', () => {
           encryptedKey: 'encrypted-key',
           isValid: true,
           validModels: '["gpt-4o"]',
+          enabledModels: '[]',
           lastValidated: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -1634,6 +1729,8 @@ describe('API: /api/generate', () => {
         contentMode: 'new',
         sourceContent: null,
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -1663,9 +1760,11 @@ describe('API: /api/generate', () => {
         status: 'COMPLETED',
         contentMode: 'new',
         sourceContent: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
         sourceMap: null,
+          enableCitations: false,
+          enableEmojis: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
       });
 
       const request = new NextRequest('http://localhost/api/generate', {

@@ -34,11 +34,13 @@ interface ValidatedKey {
 interface LiteLLMState {
   enabled: boolean;
   models: LiteLLMModel[];
+  enabledModels: string[];
 }
 
 interface OllamaState {
   enabled: boolean;
   models: OllamaModel[];
+  enabledModels: string[];
 }
 
 // Cost tier order for sorting (high quality first)
@@ -65,8 +67,8 @@ export function ModelSelector({
   hidden = false,
 }: ModelSelectorProps) {
   const [validatedKeys, setValidatedKeys] = useState<ValidatedKey[]>([]);
-  const [liteLLM, setLiteLLM] = useState<LiteLLMState>({ enabled: false, models: [] });
-  const [ollama, setOllama] = useState<OllamaState>({ enabled: false, models: [] });
+  const [liteLLM, setLiteLLM] = useState<LiteLLMState>({ enabled: false, models: [], enabledModels: [] });
+  const [ollama, setOllama] = useState<OllamaState>({ enabled: false, models: [], enabledModels: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,7 +104,11 @@ export function ModelSelector({
       if (response.ok) {
         const data = await response.json();
         if (data.enabled && data.models?.length > 0) {
-          setLiteLLM({ enabled: true, models: data.models });
+          setLiteLLM({ 
+            enabled: true, 
+            models: data.models,
+            enabledModels: data.enabledModels || [],
+          });
         }
       }
     } catch (error) {
@@ -116,7 +122,11 @@ export function ModelSelector({
       if (response.ok) {
         const data = await response.json();
         if (data.configured && data.isEnabled && data.models?.length > 0) {
-          setOllama({ enabled: true, models: data.models });
+          setOllama({ 
+            enabled: true, 
+            models: data.models,
+            enabledModels: data.enabledModels || [],
+          });
         }
       }
     } catch (error) {
@@ -155,15 +165,27 @@ export function ModelSelector({
     validatedKeys.some((k) => k.provider === p.id)
   );
 
-  // Group LiteLLM models by their original provider
+  // Group LiteLLM models by their original provider (filtered by enabled models)
   const liteLLMByProvider = liteLLM.enabled
-    ? liteLLM.models.reduce((acc, model) => {
-        const provider = model.provider || "other";
-        if (!acc[provider]) acc[provider] = [];
-        acc[provider].push(model);
-        return acc;
-      }, {} as Record<string, LiteLLMModel[]>)
+    ? liteLLM.models
+        // Filter by enabled models (empty = all enabled for backward compatibility)
+        .filter(model => 
+          liteLLM.enabledModels.length === 0 || liteLLM.enabledModels.includes(model.id)
+        )
+        .reduce((acc, model) => {
+          const provider = model.provider || "other";
+          if (!acc[provider]) acc[provider] = [];
+          acc[provider].push(model);
+          return acc;
+        }, {} as Record<string, LiteLLMModel[]>)
     : {};
+
+  // Filter Ollama models by enabled models (empty = all enabled for backward compatibility)
+  const filteredOllamaModels = ollama.enabled
+    ? ollama.models.filter(model => 
+        ollama.enabledModels.length === 0 || ollama.enabledModels.includes(model.id)
+      )
+    : [];
 
   const hasNoModels = validatedKeys.length === 0 && !liteLLM.enabled && !ollama.enabled;
 
@@ -357,7 +379,7 @@ export function ModelSelector({
         ))}
 
         {/* Ollama models */}
-        {ollama.enabled && ollama.models.length > 0 && (
+        {ollama.enabled && filteredOllamaModels.length > 0 && (
           <div className="rounded-lg border bg-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -368,11 +390,11 @@ export function ModelSelector({
                 </Badge>
               </div>
               <Badge variant="secondary" className="text-xs">
-                {ollama.models.length} models
+                {filteredOllamaModels.length} models
               </Badge>
             </div>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {sortByCostTier(ollama.models).map((model) => {
+              {sortByCostTier(filteredOllamaModels).map((model) => {
                 const isSelected = isModelSelected("OLLAMA", model.id);
                 const isDisabled = !isSelected && selectedModels.length >= 4;
 

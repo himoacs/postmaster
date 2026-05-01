@@ -39,11 +39,20 @@ export async function GET() {
       models = [];
     }
     
+    // Parse enabled models (empty = all enabled)
+    let enabledModels: string[] = [];
+    try {
+      enabledModels = JSON.parse(config.enabledModels);
+    } catch {
+      enabledModels = [];
+    }
+    
     return NextResponse.json({
       configured: true,
       enabled: config.isEnabled,
       valid: config.isValid,
       models,
+      enabledModels,
       lastValidated: config.lastValidated?.toISOString(),
     });
   } catch (error) {

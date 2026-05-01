@@ -51,6 +51,17 @@ pnpm dev
 
 Open [http://localhost:3456](http://localhost:3456) with your browser.
 
+### Database Reliability
+
+PostMaster includes automatic database validation and recovery:
+
+- ✅ Schema validation at startup
+- 🔧 Auto-repair for missing columns
+- 💾 Automatic backups before repairs
+- 🩺 Health check API endpoints
+
+See [docs/DATABASE_VALIDATION.md](docs/DATABASE_VALIDATION.md) for complete documentation.
+
 ### Running Electron App
 
 ```bash

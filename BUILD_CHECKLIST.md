@@ -36,11 +36,38 @@ npm rebuild better-sqlite3
 
 # Generate Prisma client
 npx prisma generate
+
+# Generate fresh template database
+rm prisma/template.db
+npx prisma migrate deploy
+cp data/postmaster.db prisma/template.db
 ```
 
 ---
 
-## 🔨 Development Build
+## �️ Database Migrations (Check Before Building!)
+
+If schema has changed since your last build:
+
+```bash
+# Check migration status
+pnpm prisma migrate status
+
+# Apply migrations (if needed)
+pnpm prisma migrate dev
+
+# Regenerate client
+pnpm prisma generate
+
+# Update template for fresh installs
+cp data/postmaster.db prisma/template.db
+```
+
+> **Note:** Runtime migrations in `src/lib/db.ts` auto-update existing user databases. But you must update `prisma/template.db` for new installations.
+
+---
+
+## �🔨 Development Build
 
 ```bash
 # Option 1: Run Next.js + Electron separately

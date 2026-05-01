@@ -66,14 +66,9 @@ export function selectOptimalModels(
   }
   
   // Score LiteLLM models (add diversity bonus for unique providers)
-  // Filter out non-text models (image, embedding, audio models)
-  const textLiteLLMModels = liteLLMModels.filter(model => {
+  // Filter out non-generation models (embedding, audio models)
+  const generationModels = liteLLMModels.filter(model => {
     const id = model.id.toLowerCase();
-    // Exclude image generation models
-    if (id.includes('dall') || id.includes('dalle') || id.includes('stable-diffusion') || 
-        id.includes('midjourney') || id.includes('imagen')) {
-      return false;
-    }
     // Exclude embedding models
     if (id.includes('embed') || id.includes('embedding')) {
       return false;
@@ -85,7 +80,7 @@ export function selectOptimalModels(
     return true;
   });
   
-  for (const model of textLiteLLMModels) {
+  for (const model of generationModels) {
     const score = scoreLiteLLMModel(model);
     scoredModels.push({
       provider: "LITELLM",

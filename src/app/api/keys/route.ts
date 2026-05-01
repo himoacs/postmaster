@@ -19,6 +19,7 @@ export async function GET() {
       encryptedKey: true,
       isValid: true,
       validModels: true,
+      enabledModels: true,
       lastValidated: true,
     },
   });
@@ -29,6 +30,7 @@ export async function GET() {
     maskedKey: maskApiKey(decrypt(key.encryptedKey)),
     isValid: key.isValid,
     validModels: JSON.parse(key.validModels) as string[],
+    enabledModels: JSON.parse(key.enabledModels) as string[],
     lastValidated: key.lastValidated,
   }));
 
@@ -98,6 +100,41 @@ export async function DELETE(request: NextRequest) {
   });
 
   return NextResponse.json({ success: true });
+}
+
+// PATCH /api/keys - Update enabled models for a provider
+export async function PATCH(request: NextRequest) {
+  const { provider, enabledModels } = await request.json();
+
+  if (!provider) {
+    return NextResponse.json(
+      { error: "Provider is required" },
+      { status: 400 }
+    );
+  }
+
+  if (!AI_PROVIDERS.includes(provider)) {
+    return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
+  }
+
+  if (!Array.isArray(enabledModels)) {
+    return NextResponse.json(
+      { error: "enabledModels must be an array" },
+      { status: 400 }
+    );
+  }
+
+  const updated = await prisma.aPIKey.update({
+    where: { provider },
+    data: {
+      enabledModels: JSON.stringify(enabledModels),
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    enabledModels: JSON.parse(updated.enabledModels) as string[],
+  });
 }
 
 async function validateKey(

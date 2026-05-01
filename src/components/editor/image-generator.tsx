@@ -23,12 +23,11 @@ interface ImageGeneratorProps {
   embedded?: boolean;
 }
 
-type ImageProvider = "openai" | "stability";
-
 interface AvailableProvider {
-  id: ImageProvider;
+  id: string;
   name: string;
   available: boolean;
+  source?: "direct" | "litellm";
 }
 
 export function ImageGenerator({
@@ -37,7 +36,7 @@ export function ImageGenerator({
   onClose,
   embedded = false,
 }: ImageGeneratorProps) {
-  const [provider, setProvider] = useState<ImageProvider | "">("");
+  const [provider, setProvider] = useState<string>("");
   const [availableProviders, setAvailableProviders] = useState<AvailableProvider[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [prompt, setPrompt] = useState("");
@@ -178,7 +177,7 @@ export function ImageGenerator({
             ) : (
               <Select
                 value={provider}
-                onValueChange={(v) => setProvider(v as ImageProvider)}
+                onValueChange={setProvider}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a provider" />

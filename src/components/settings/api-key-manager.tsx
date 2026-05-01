@@ -23,12 +23,14 @@ import {
 import { toast } from "sonner";
 import { AIProvider, LiteLLMModel, OllamaModel } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
+import { ModelSelection } from "./model-selection";
 
 interface StoredKey {
   provider: AIProvider;
   maskedKey: string;
   isValid: boolean;
   validModels: string[];
+  enabledModels: string[];
   lastValidated: string | null;
 }
 
@@ -40,6 +42,7 @@ interface LiteLLMConfigState {
   isValid?: boolean;
   modelCount?: number;
   models?: LiteLLMModel[];
+  enabledModels?: string[];
 }
 
 interface OllamaConfigState {
@@ -50,6 +53,7 @@ interface OllamaConfigState {
   isValid?: boolean;
   modelCount?: number;
   models?: OllamaModel[];
+  enabledModels?: string[];
 }
 
 const TEXT_PROVIDERS: AIProvider[] = ["OPENAI", "ANTHROPIC", "XAI", "MISTRAL"];
@@ -210,6 +214,27 @@ export function APIKeyManager() {
       toast.error("Failed to remove LiteLLM configuration");
     }
   };
+
+  const saveLiteLLMEnabledModels = async (enabledModels: string[]) => {
+    try {
+      const response = await fetch("/api/litellm", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabledModels }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update");
+      }
+
+      toast.success("Model selection saved");
+      await fetchLiteLLMConfig();
+    } catch (error) {
+      toast.error("Failed to save model selection");
+      throw error;
+    }
+  };
+
   // Ollama functions
   const fetchOllamaConfig = async () => {
     try {
@@ -321,6 +346,27 @@ export function APIKeyManager() {
       toast.error("Failed to remove Ollama configuration");
     }
   };
+
+  const saveOllamaEnabledModels = async (enabledModels: string[]) => {
+    try {
+      const response = await fetch("/api/ollama", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabledModels }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update");
+      }
+
+      toast.success("Model selection saved");
+      await fetchOllamaConfig();
+    } catch (error) {
+      toast.error("Failed to save model selection");
+      throw error;
+    }
+  };
+
   const saveKey = async (provider: AIProvider) => {
     if (!newKeyValue.trim()) return;
 
@@ -382,6 +428,26 @@ export function APIKeyManager() {
       await fetchKeys();
     } catch (error) {
       toast.error("Failed to delete API key");
+    }
+  };
+
+  const saveEnabledModels = async (provider: AIProvider, enabledModels: string[]) => {
+    try {
+      const response = await fetch("/api/keys", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, enabledModels }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update");
+      }
+
+      toast.success("Model selection saved");
+      await fetchKeys();
+    } catch (error) {
+      toast.error("Failed to save model selection");
+      throw error;
     }
   };
 
@@ -533,21 +599,11 @@ export function APIKeyManager() {
               </div>
 
               {liteLLMConfig.models && liteLLMConfig.models.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Available Models</Label>
-                  <div className="flex flex-wrap gap-1">
-                    {liteLLMConfig.models.slice(0, 8).map((model) => (
-                      <Badge key={model.id} variant="secondary" className="text-xs">
-                        {model.name}
-                      </Badge>
-                    ))}
-                    {liteLLMConfig.models.length > 8 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{liteLLMConfig.models.length - 8} more
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+                <ModelSelection
+                  models={liteLLMConfig.models}
+                  enabledModels={liteLLMConfig.enabledModels || []}
+                  onSave={saveLiteLLMEnabledModels}
+                />
               )}
             </div>
           )}
@@ -681,21 +737,11 @@ export function APIKeyManager() {
               </div>
 
               {ollamaConfig.models && ollamaConfig.models.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Available Models</Label>
-                  <div className="flex flex-wrap gap-1">
-                    {ollamaConfig.models.slice(0, 8).map((model) => (
-                      <Badge key={model.id} variant="secondary" className="text-xs">
-                        {model.name}
-                      </Badge>
-                    ))}
-                    {ollamaConfig.models.length > 8 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{ollamaConfig.models.length - 8} more
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+                <ModelSelection
+                  models={ollamaConfig.models}
+                  enabledModels={ollamaConfig.enabledModels || []}
+                  onSave={saveOllamaEnabledModels}
+                />
               )}
             </div>
           )}
@@ -837,18 +883,15 @@ export function APIKeyManager() {
                 )}
 
                 {storedKey?.isValid && storedKey.validModels.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {storedKey.validModels.slice(0, 5).map((model) => (
-                      <Badge key={model} variant="secondary" className="text-xs">
-                        {model}
-                      </Badge>
-                    ))}
-                    {storedKey.validModels.length > 5 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{storedKey.validModels.length - 5} more
-                      </Badge>
-                    )}
-                  </div>
+                  <ModelSelection
+                    models={storedKey.validModels.map((id) => ({
+                      id,
+                      name: id,
+                      provider: provider.toLowerCase(),
+                    }))}
+                    enabledModels={storedKey.enabledModels || []}
+                    onSave={(enabledModels) => saveEnabledModels(provider, enabledModels)}
+                  />
                 )}
               </div>
             );

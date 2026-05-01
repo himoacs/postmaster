@@ -257,6 +257,84 @@ async function main() {
   }
   checks.push(filesOk);
 
+  // 10. Validate template database
+  log('\n🔍 Validating template database...', 'cyan');
+  try {
+    const templatePath = path.join(__dirname, '../prisma/template.db');
+    
+    if (!fs.existsSync(templatePath)) {
+      log('❌ Template database not found at prisma/template.db', 'red');
+      checks.push(false);
+    } else {
+      log('✅ Template database exists', 'green');
+      
+      // Check file is not empty and is a valid SQLite database
+      const stats = fs.statSync(templatePath);
+      if (stats.size < 1024) {
+        log('⚠️  Template database file is suspiciously small (< 1KB)', 'yellow');
+        checks.push(false);
+      } else {
+        log(`✅ Template database size: ${(stats.size / 1024).toFixed(2)} KB`, 'green');
+      }
+      
+      // Try to validate the database using better-sqlite3
+      try {
+        const Database = require('better-sqlite3');
+        const db = new Database(templatePath, { readonly: true });
+        
+        // Check for expected tables
+        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
+        const tableNames = tables.map(t => t.name);
+        
+        const expectedTables = [
+          'APIKey',
+          'ContentSample',
+          'Draft',
+          'Generation',
+          'GenerationCritique',
+          'GenerationOutput',
+          'KnowledgeEntry',
+          'LiteLLMConfig',
+          'ModelAnalytics',
+          'OllamaConfig',
+          'SchemaVersion',
+          'StyleProfile',
+          'SynthesisContribution',
+          'SynthesizedContent',
+          'SynthesisVersion',
+          'UserPreferences',
+        ];
+        
+        const missingTables = expectedTables.filter(t => !tableNames.includes(t));
+        
+        if (missingTables.length > 0) {
+          log(`❌ Template database missing tables: ${missingTables.join(', ')}`, 'red');
+          checks.push(false);
+        } else {
+          log(`✅ All ${expectedTables.length} expected tables present`, 'green');
+          
+          // Run integrity check
+          const integrityCheck = db.prepare('PRAGMA integrity_check').get();
+          if (integrityCheck.integrity_check === 'ok') {
+            log('✅ Template database integrity check passed', 'green');
+            checks.push(true);
+          } else {
+            log(`❌ Template database integrity check failed: ${integrityCheck.integrity_check}`, 'red');
+            checks.push(false);
+          }
+        }
+        
+        db.close();
+      } catch (dbError) {
+        log(`❌ Failed to validate template database: ${dbError.message}`, 'red');
+        checks.push(false);
+      }
+    }
+  } catch (error) {
+    log(`❌ Template database validation failed: ${error.message}`, 'red');
+    checks.push(false);
+  }
+
   // Summary
   log('\n' + '='.repeat(60), 'blue');
   log('Pre-Release Validation Summary', 'blue');
