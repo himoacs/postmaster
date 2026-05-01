@@ -84,7 +84,7 @@ export default function LandingPage() {
                 <span className="text-muted-foreground">Write in your voice.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-                PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
+                PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral, or your own local models via Ollama—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Button size="lg" asChild className="h-12 px-6">
@@ -108,7 +108,7 @@ export default function LandingPage() {
                 <div className="relative h-64 w-full rounded-lg border bg-card p-6 shadow-md">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span className="font-mono">comparing 4 models...</span>
+                    <span className="font-mono">comparing 5 models...</span>
                   </div>
                   <div className="mt-6 space-y-3">
                     <div className="flex items-center justify-between">
@@ -133,6 +133,12 @@ export default function LandingPage() {
                       <span className="text-sm font-medium">Mistral</span>
                       <div className="h-1.5 w-32 rounded-full bg-muted">
                         <div className="h-1.5 w-26 rounded-full bg-primary/55" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Ollama</span>
+                      <div className="h-1.5 w-32 rounded-full bg-muted">
+                        <div className="h-1.5 w-25 rounded-full bg-primary/50" />
                       </div>
                     </div>
                   </div>
