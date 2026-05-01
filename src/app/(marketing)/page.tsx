@@ -103,9 +103,9 @@ export default function LandingPage() {
             <div className="relative hidden lg:block">
               <div className="relative mx-auto max-w-md">
                 {/* Stacked cards visualization */}
-                <div className="absolute -top-4 -left-4 h-64 w-full rounded-lg border bg-card/50 shadow-sm" />
-                <div className="absolute -top-2 -left-2 h-64 w-full rounded-lg border bg-card/70 shadow-sm" />
-                <div className="relative h-64 w-full rounded-lg border bg-card p-6 shadow-md">
+                <div className="absolute -top-4 -left-4 h-80 w-full rounded-lg border bg-card/50 shadow-sm" />
+                <div className="absolute -top-2 -left-2 h-80 w-full rounded-lg border bg-card/70 shadow-sm" />
+                <div className="relative h-80 w-full rounded-lg border bg-card p-6 shadow-md">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <div className="h-2 w-2 rounded-full bg-primary" />
                     <span className="font-mono">comparing 5 models...</span>
