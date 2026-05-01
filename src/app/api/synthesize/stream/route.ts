@@ -11,6 +11,7 @@ import { GenerationOutput, SelectedModel } from "@/types";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { createSSEStream } from "@/lib/streaming";
 import { calculateWeightedUsageAttribution } from "@/lib/analysis/text-similarity";
+import { buildAntiPatternPromptSection } from "@/lib/ai/anti-patterns";
 
 interface SynthesizeStreamRequest {
   generationId: string;
@@ -109,6 +110,13 @@ STYLE REQUIREMENTS:
 - Write naturally and authentically to sound like a real person, not AI
 - NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
 - Vary sentence structure and avoid formulaic patterns
+- AVOID contrastive negation structures like "It's not just X, it's Y" or "It's more than just..."
+- AVOID sentence stacking: don't write consecutive short, declarative sentences that read like a list without bullets
+- Use natural transitions between ideas; connect sentences so they flow into each other
+
+${buildAntiPatternPromptSection({ includeSeverities: ["high", "medium"] })}
+
+FINAL CHECK: After drafting, review the piece as a whole to ensure it reads as one coherent, flowing piece rather than fragmented paragraphs stitched together.
 
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`
     : `You are a skilled editor who synthesizes multiple drafts into one cohesive piece.
@@ -121,6 +129,13 @@ STYLE REQUIREMENTS:
 - Write naturally and authentically to sound like a real person, not AI
 - NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
 - Vary sentence structure and avoid formulaic patterns
+- AVOID contrastive negation structures like "It's not just X, it's Y" or "It's more than just..."
+- AVOID sentence stacking: don't write consecutive short, declarative sentences that read like a list without bullets
+- Use natural transitions between ideas; connect sentences so they flow into each other
+
+${buildAntiPatternPromptSection({ includeSeverities: ["high", "medium"] })}
+
+FINAL CHECK: After drafting, review the piece as a whole to ensure it reads as one coherent, flowing piece rather than fragmented paragraphs stitched together.
 
 Write the final synthesized content directly. Do not include any JSON formatting or metadata - just output the content.`;
 

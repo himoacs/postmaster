@@ -23,7 +23,9 @@ export type AntiPatternCategory =
   | "filler"      // Empty filler phrases
   | "structure"   // Structural patterns (e.g., always 3 bullet points)
   | "hedge"       // Over-hedging language
-  | "enthusiasm"; // Fake enthusiasm
+  | "enthusiasm"  // Fake enthusiasm
+  | "negation"    // Contrastive "not X, it's Y" structures
+  | "hype";       // Business/sales hype language
 
 /**
  * High-severity patterns: Strong AI signals, should almost always be avoided
@@ -38,6 +40,12 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "In the realm of", category: "opener", severity: "high" },
   { pattern: "In the world of", category: "opener", severity: "high" },
   { pattern: "When it comes to", category: "opener", severity: "high" },
+  { pattern: "In a world where", category: "opener", severity: "high" },
+  { pattern: "Now more than ever", category: "opener", severity: "high" },
+  { pattern: "Here's the thing", category: "opener", severity: "high" },
+  { pattern: "Here's the uncomfortable truth", category: "opener", severity: "high" },
+  { pattern: "Imagine a world where", category: "opener", severity: "high" },
+  { pattern: "It's no secret that", category: "opener", severity: "high" },
   
   // Transitions
   { pattern: "Let's dive in", category: "transition", severity: "high" },
@@ -78,6 +86,9 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "It goes without saying", category: "filler", severity: "high" },
   { pattern: "Needless to say", category: "filler", severity: "high" },
   { pattern: "It bears mentioning", category: "filler", severity: "high" },
+  { pattern: "Let's face it", category: "filler", severity: "high" },
+  { pattern: "But let's get real", category: "filler", severity: "high" },
+  { pattern: "What does this mean for you", category: "filler", severity: "high" },
   
   // Enthusiasm
   { pattern: "I'm excited to", category: "enthusiasm", severity: "high" },
@@ -88,6 +99,22 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   
   // Structure/Punctuation
   { pattern: "—", category: "structure", severity: "high", replacement: "Use commas, parentheses, or split into separate sentences" },
+  { pattern: "Here's what you need to know", category: "structure", severity: "high" },
+  
+  // Negation/Contrastive structures - Very recognizable AI pattern
+  { pattern: "It's not just", category: "negation", severity: "high" },
+  { pattern: "It's more than just", category: "negation", severity: "high" },
+  { pattern: "isn't just about", category: "negation", severity: "high" },
+  { pattern: "aren't just about", category: "negation", severity: "high" },
+  { pattern: "doesn't just", category: "negation", severity: "high" },
+  { pattern: "don't just", category: "negation", severity: "high" },
+  
+  // Business hype / Sales language
+  { pattern: "Forward-thinking", category: "hype", severity: "high" },
+  { pattern: "Supercharge your", category: "hype", severity: "high" },
+  { pattern: "Future-proof", category: "hype", severity: "high" },
+  { pattern: "Stay ahead of the curve", category: "hype", severity: "high" },
+  { pattern: "Thrilled to announce", category: "hype", severity: "high" },
 ];
 
 /**
@@ -135,6 +162,23 @@ export const MEDIUM_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "First, let's", category: "structure", severity: "medium" },
   { pattern: "Now, let's", category: "structure", severity: "medium" },
   { pattern: "Next, we'll", category: "structure", severity: "medium" },
+  { pattern: "The goal?", category: "structure", severity: "medium" },
+  { pattern: "The result?", category: "structure", severity: "medium" },
+  { pattern: "Why it matters", category: "structure", severity: "medium" },
+  
+  // Filler (medium)
+  { pattern: "The good news?", category: "filler", severity: "medium" },
+  { pattern: "The bad news?", category: "filler", severity: "medium" },
+  { pattern: "Not all X are created equal", category: "filler", severity: "medium" },
+  
+  // Negation (medium)
+  { pattern: "goes beyond", category: "negation", severity: "medium" },
+  { pattern: "more than meets the eye", category: "negation", severity: "medium" },
+  
+  // Hype (medium)
+  { pattern: "That's where", category: "hype", severity: "medium" },
+  { pattern: "Strategic advantage", category: "hype", severity: "medium" },
+  { pattern: "Competitive edge", category: "hype", severity: "medium" },
 ];
 
 /**
@@ -240,6 +284,8 @@ The following phrases and patterns are strongly associated with AI-generated con
     hedge: "Over-hedging",
     enthusiasm: "Fake enthusiasm",
     structure: "Formulaic structure",
+    negation: "Contrastive negation (It's not just X, it's Y)",
+    hype: "Business/sales hype",
   };
 
   for (const [category, phrases] of Object.entries(grouped)) {
@@ -253,6 +299,8 @@ The following phrases and patterns are strongly associated with AI-generated con
 - Vary sentence structure naturally
 - Let the content speak for itself without announcing structure
 - Be genuine rather than artificially enthusiastic
+- Avoid sentence stacking (consecutive short declarative sentences)
+- Connect ideas with natural transitions for coherent flow
 `;
 
   return section;
