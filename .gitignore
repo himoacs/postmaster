@@ -57,3 +57,4 @@ next-env.d.ts
 electron-deps/
 build*.log
 prisma/postmaster.db
+logs/

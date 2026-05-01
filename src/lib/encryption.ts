@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
+import { encryptionLogger } from "./logger";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
@@ -20,6 +21,7 @@ function getEncryptionKey(): Buffer {
   // First check environment variable
   const envKey = process.env.ENCRYPTION_KEY;
   if (envKey) {
+    encryptionLogger.debug("Using encryption key from environment variable");
     cachedKey = crypto.scryptSync(envKey, "postmaster-salt", 32);
     return cachedKey;
   }
@@ -31,15 +33,18 @@ function getEncryptionKey(): Buffer {
   
   if (dbPath) {
     const keyPath = join(dirname(dbPath), ".postmaster-key");
+    encryptionLogger.debug("Key file path", { keyPath });
     
     try {
       if (existsSync(keyPath)) {
         // Read existing key
+        encryptionLogger.info("Loading existing encryption key");
         const storedKey = readFileSync(keyPath, "utf8").trim();
         cachedKey = crypto.scryptSync(storedKey, "postmaster-salt", 32);
         return cachedKey;
       } else {
         // Generate new key and save it
+        encryptionLogger.info("Generating new encryption key", { keyPath });
         const newKey = crypto.randomBytes(32).toString("hex");
         mkdirSync(dirname(keyPath), { recursive: true });
         writeFileSync(keyPath, newKey, { mode: 0o600 }); // Owner read/write only
@@ -47,13 +52,16 @@ function getEncryptionKey(): Buffer {
         return cachedKey;
       }
     } catch (error) {
-      console.error("Error managing encryption key file:", error);
+      encryptionLogger.error("Error managing encryption key file", { keyPath, dbPath }, error);
       // Fall through to default key
     }
+  } else {
+    encryptionLogger.warn("No DATABASE_URL set, cannot determine key file location");
   }
   
   // Fallback: Use a deterministic key based on environment
   // This is less secure but ensures the app works
+  encryptionLogger.warn("Using fallback encryption key - API keys may not persist across reinstalls");
   const fallbackSeed = `postmaster-local-${process.platform}-${process.arch}`;
   cachedKey = crypto.scryptSync(fallbackSeed, "postmaster-salt", 32);
   return cachedKey;
@@ -85,6 +93,7 @@ export function decrypt(encryptedData: string): string {
   const parts = encryptedData.split(":");
 
   if (parts.length !== 3) {
+    encryptionLogger.error("Invalid encrypted data format", { partsCount: parts.length });
     throw new Error("Invalid encrypted data format");
   }
 
@@ -106,8 +115,14 @@ export function decrypt(encryptedData: string): string {
     if (error instanceof Error && 
         (error.message.includes("Unsupported state") || 
          error.message.includes("unable to authenticate"))) {
+      encryptionLogger.error("API key decryption failed - key mismatch", { 
+        ivLength: iv.length, 
+        authTagLength: authTag.length,
+        encryptedLength: encrypted.length 
+      }, error);
       throw new Error("API key decryption failed. Please re-enter your API key in Settings.");
     }
+    encryptionLogger.error("Unexpected decryption error", undefined, error);
     throw error;
   }
 }
