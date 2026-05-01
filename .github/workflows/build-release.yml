@@ -116,7 +116,19 @@ jobs:
         run: pnpm electron:compile
 
       - name: Build Mac ARM64 app
-        run: pnpm exec electron-builder --mac --arm64
+        run: |
+          # Check if signing secrets are available
+          if [ -z "$CSC_LINK" ]; then
+            echo "No code signing certificate found, building unsigned"
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          # Check if notarization secrets are available
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "No notarization credentials found, skipping notarization"
+            pnpm exec electron-builder --mac --arm64 --config.mac.notarize=false
+          else
+            pnpm exec electron-builder --mac --arm64
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
@@ -238,7 +250,19 @@ jobs:
         run: pnpm electron:compile
 
       - name: Build Mac x64 app
-        run: pnpm exec electron-builder --mac --x64
+        run: |
+          # Check if signing secrets are available
+          if [ -z "$CSC_LINK" ]; then
+            echo "No code signing certificate found, building unsigned"
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          # Check if notarization secrets are available
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "No notarization credentials found, skipping notarization"
+            pnpm exec electron-builder --mac --x64 --config.mac.notarize=false
+          else
+            pnpm exec electron-builder --mac --x64
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
