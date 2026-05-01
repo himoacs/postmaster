@@ -1,6 +1,6 @@
-import { app, BrowserWindow, shell, ipcMain } from "electron";
+import { app, BrowserWindow, shell, ipcMain, utilityProcess, UtilityProcess } from "electron";
 import { join } from "path";
-import { spawn, execSync, ChildProcess } from "child_process";
+import { execSync } from "child_process";
 import { existsSync, writeFileSync, appendFileSync, mkdirSync } from "fs";
 import { autoUpdater, UpdateInfo, ProgressInfo } from "electron-updater";
 
@@ -16,7 +16,7 @@ process.stderr.on("error", (err) => {
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
-let nextServer: ChildProcess | null = null;
+let nextServer: UtilityProcess | null = null;
 const isDev = process.env.NODE_ENV === "development";
 const PORT = 3456;
 
@@ -289,47 +289,34 @@ async function startNextServer(): Promise<void> {
     // User data path for database and encryption key
     const userDataPath = app.getPath("userData");
     
-    // Set environment variables
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
+    // Set environment variables for the server
+    const serverEnv: Record<string, string> = {
       PORT: String(PORT),
-      NODE_ENV: "production" as const,
+      NODE_ENV: "production",
       // Set database path to user data directory
       DATABASE_URL: `file:${join(userDataPath, "postmaster.db")}`,
-      // CRITICAL: Make Electron run as Node.js to avoid recursive spawning
-      ELECTRON_RUN_AS_NODE: "1",
     };
 
-    // Find a Node.js binary that won't show in the dock
-    // On macOS, using process.execPath (Electron) with ELECTRON_RUN_AS_NODE still shows in dock
-    // So we look for a bundled node binary first, then fall back to Electron
-    let nodeBinary = process.execPath; // fallback to Electron's node
-    
-    // Check for bundled node binary (preferred - matches native module ABI)
-    const bundledNode = join(process.resourcesPath, "node");
-    
-    if (existsSync(bundledNode)) {
-      nodeBinary = bundledNode;
-      // Don't need ELECTRON_RUN_AS_NODE for a real node binary
-      delete env.ELECTRON_RUN_AS_NODE;
-    }
-    // NOTE: We intentionally do NOT fall back to system Node.js anymore.
-    // System Node has different ABI than the native modules compiled for Electron.
-    // Using system Node causes "NODE_MODULE_VERSION mismatch" errors.
-    // The dock icon trade-off is acceptable for a working app.
-    
-    console.log("Using Node binary:", nodeBinary);
+    // Copy over any relevant environment variables
+    if (process.env.PATH) serverEnv.PATH = process.env.PATH;
+    if (process.env.HOME) serverEnv.HOME = process.env.HOME;
+    if (process.env.USER) serverEnv.USER = process.env.USER;
 
-    nextServer = spawn(nodeBinary, [serverPath], {
-      env,
+    console.log("Using Electron utilityProcess (no dock icon)");
+
+    // Use utilityProcess.fork() - this runs Node.js in a hidden process
+    // that doesn't show in the dock on macOS
+    nextServer = utilityProcess.fork(serverPath, [], {
+      env: serverEnv,
       cwd: join(process.resourcesPath, "server"),
       stdio: "pipe",
     });
 
     nextServer.stdout?.on("data", (data) => {
-      console.log("[Next.js]", data.toString());
+      const output = data.toString();
+      console.log("[Next.js]", output);
       // Resolve when server is ready
-      if (data.toString().includes("Ready") || data.toString().includes("started")) {
+      if (output.includes("Ready") || output.includes("started")) {
         resolve();
       }
     });
@@ -338,12 +325,11 @@ async function startNextServer(): Promise<void> {
       console.error("[Next.js Error]", data.toString());
     });
 
-    nextServer.on("error", (err) => {
-      console.error("Failed to start Next.js server:", err);
-      reject(err);
+    nextServer.on("spawn", () => {
+      console.log("Next.js server process spawned");
     });
 
-    nextServer.on("close", (code) => {
+    nextServer.on("exit", (code) => {
       console.log("Next.js server exited with code:", code);
       nextServer = null;
     });
