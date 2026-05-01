@@ -16,13 +16,15 @@ const nextConfig: NextConfig = {
   // Only keep better-sqlite3 as external (native module)
   serverExternalPackages: ["better-sqlite3"],
   
-  // Explicitly include native binaries in output tracing
+  // Explicitly include native binaries and Next.js runtime files in output tracing
   outputFileTracingIncludes: {
     "/**": [
       "./node_modules/.prisma/**/*",
       "./node_modules/@prisma/client/**/*",
       "./node_modules/**/better-sqlite3/**/*.node",
       "./node_modules/**/better-sqlite3/build/**/*",
+      // Include all Next.js server runtime files
+      "./node_modules/next/dist/compiled/next-server/*.js",
     ],
   },
   

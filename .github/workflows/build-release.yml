@@ -16,7 +16,8 @@ permissions:
 
 jobs:
   build-mac:
-    runs-on: macos-latest
+    # Use macos-14 for Apple Silicon (arm64) builds
+    runs-on: macos-14
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,6 +37,12 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      - name: Rebuild better-sqlite3 for Node.js (needed for Next.js build)
+        run: |
+          cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+          npm rebuild
+          cd ${{ github.workspace }}
 
       - name: Build Next.js
         run: pnpm build
