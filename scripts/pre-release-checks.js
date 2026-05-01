@@ -353,6 +353,63 @@ async function main() {
     checks.push(false);
   }
 
+  // 12. Verify native module in standalone (CRITICAL - prevents ABI mismatch)
+  log('\n🔍 Verifying native module in standalone build...', 'cyan');
+  const standalonePath = path.join(__dirname, '../.next/standalone_flat');
+  
+  if (!fs.existsSync(standalonePath)) {
+    log('⚠️  Standalone build not found, skipping native module check', 'yellow');
+    log('   Run electron:prepare && electron:rebuild-standalone first', 'yellow');
+    checks.push(true); // Skip if not built yet
+  } else {
+    let nativeModuleOk = true;
+    
+    // Check node_modules location
+    const nmPath = path.join(standalonePath, 'node_modules/better-sqlite3/build/Release/better_sqlite3.node');
+    if (fs.existsSync(nmPath)) {
+      const nmSize = fs.statSync(nmPath).size;
+      log(`✅ node_modules native module: ${(nmSize / 1024).toFixed(0)} KB`, 'green');
+      
+      // Electron build is ~1.8-2MB, Node.js build is ~1.2-1.4MB
+      if (nmSize < 1600000) {
+        log('❌ node_modules native module too small - likely Node.js build, not Electron!', 'red');
+        nativeModuleOk = false;
+      }
+    } else {
+      log('❌ node_modules native module missing', 'red');
+      nativeModuleOk = false;
+    }
+    
+    // Check .next/node_modules traced location (CRITICAL - this is where Next.js loads from!)
+    const tracedDir = path.join(standalonePath, '.next/node_modules');
+    if (fs.existsSync(tracedDir)) {
+      const entries = fs.readdirSync(tracedDir);
+      const betterSqliteDir = entries.find(e => e.startsWith('better-sqlite3-'));
+      
+      if (betterSqliteDir) {
+        const tracedPath = path.join(tracedDir, betterSqliteDir, 'build/Release/better_sqlite3.node');
+        if (fs.existsSync(tracedPath)) {
+          const tracedSize = fs.statSync(tracedPath).size;
+          log(`✅ .next/node_modules traced module: ${(tracedSize / 1024).toFixed(0)} KB`, 'green');
+          
+          if (tracedSize < 1600000) {
+            log('❌ CRITICAL: Traced native module too small - this is the ABI mismatch bug!', 'red');
+            log('   Next.js loads from .next/node_modules, not node_modules.', 'yellow');
+            log('   The traced module has Node.js binary, needs Electron binary.', 'yellow');
+            nativeModuleOk = false;
+          }
+        } else {
+          log('❌ Traced native module missing at: ' + tracedPath, 'red');
+          nativeModuleOk = false;
+        }
+      } else {
+        log('⚠️  No better-sqlite3-* directory in .next/node_modules (may be OK)', 'yellow');
+      }
+    }
+    
+    checks.push(nativeModuleOk);
+  }
+
   // Summary
   log('\n' + '='.repeat(60), 'blue');
   log('Pre-Release Validation Summary', 'blue');
