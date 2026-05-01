@@ -154,4 +154,29 @@ if (fs.existsSync(prismaClientPath)) {
   }
 }
 
+// Special handling for better-sqlite3 - also copy to .next/node_modules traced directory
+// Next.js traces native modules to .next/node_modules/better-sqlite3-xxxx/
+const standaloneNextDir = path.join(__dirname, '..', '.next', 'standalone_flat', '.next', 'node_modules');
+if (fs.existsSync(standaloneNextDir)) {
+  const nextNodeModulesEntries = fs.readdirSync(standaloneNextDir);
+  const betterSqliteTraced = nextNodeModulesEntries.find(e => e.startsWith('better-sqlite3-'));
+  
+  if (betterSqliteTraced) {
+    console.log(`\nFound Next.js traced better-sqlite3: ${betterSqliteTraced}`);
+    
+    // Copy native module from node_modules/better-sqlite3 to the traced directory
+    const srcNativeModule = path.join(standaloneDir, 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node');
+    const destTracedDir = path.join(standaloneNextDir, betterSqliteTraced, 'build', 'Release');
+    
+    if (fs.existsSync(srcNativeModule)) {
+      fs.mkdirSync(destTracedDir, { recursive: true });
+      const destNativeModule = path.join(destTracedDir, 'better_sqlite3.node');
+      fs.cpSync(srcNativeModule, destNativeModule);
+      console.log(`  ✓ Copied native module to ${betterSqliteTraced}/build/Release/`);
+    } else {
+      console.log(`  ⚠ Native module not found at ${srcNativeModule}`);
+    }
+  }
+}
+
 console.log('\nStandalone fix complete!');

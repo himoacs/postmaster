@@ -89,6 +89,21 @@ try {
     process.exit(1);
   }
   
+  // Also copy to .next/node_modules traced directory (Next.js traces native modules here)
+  const standaloneNextDir = path.join(standalonePath, '.next', 'node_modules');
+  if (fs.existsSync(standaloneNextDir)) {
+    const entries = fs.readdirSync(standaloneNextDir);
+    const tracedDir = entries.find(e => e.startsWith('better-sqlite3-'));
+    
+    if (tracedDir) {
+      console.log(`\nStep 3b: Also copying to traced directory: ${tracedDir}`);
+      const destTracedRelease = path.join(standaloneNextDir, tracedDir, 'build', 'Release');
+      fs.mkdirSync(destTracedRelease, { recursive: true });
+      fs.cpSync(nodeFile, path.join(destTracedRelease, 'better_sqlite3.node'));
+      console.log('✓ Native module also copied to traced directory');
+    }
+  }
+  
   // Step 4: Restore the original Node.js build
   console.log('\nStep 4: Restoring original Node.js build...');
   if (fs.existsSync(backupDir)) {
