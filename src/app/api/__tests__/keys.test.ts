@@ -165,7 +165,6 @@ describe('API: /api/keys', () => {
           encryptedKey: 'encrypted-sk-openai-key',
           isValid: true,
           validModels: JSON.stringify(mockValidation.models),
-          enabledModels: '[]',
           lastValidated: expect.any(Date),
         },
         create: {
@@ -173,7 +172,6 @@ describe('API: /api/keys', () => {
           encryptedKey: 'encrypted-sk-openai-key',
           isValid: true,
           validModels: JSON.stringify(mockValidation.models),
-          enabledModels: '[]',
           lastValidated: expect.any(Date),
         },
       });
