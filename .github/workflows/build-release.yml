@@ -15,9 +15,11 @@ permissions:
   contents: write
 
 jobs:
-  build-mac:
-    # Use macos-14 for Apple Silicon (arm64) builds
-    runs-on: macos-14
+  # ============================================================================
+  # macOS ARM64 (Apple Silicon) Build
+  # ============================================================================
+  build-mac-arm64:
+    runs-on: macos-14  # Apple Silicon runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,14 +57,66 @@ jobs:
       - name: Rebuild native modules for Electron
         run: pnpm electron:rebuild-standalone
 
+      - name: Verify native modules
+        run: |
+          echo "Verifying native module integrity..."
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check main location
+            const mainPath = '.next/standalone_flat/node_modules/better-sqlite3/build/Release/better_sqlite3.node';
+            if (!fs.existsSync(mainPath)) {
+              console.error('ERROR: Native module not found at', mainPath);
+              process.exit(1);
+            }
+            const mainSize = fs.statSync(mainPath).size;
+            console.log('Main location:', mainPath);
+            console.log('  Size:', (mainSize / 1024 / 1024).toFixed(2), 'MB');
+            
+            // Check traced location
+            const tracedDirs = fs.readdirSync('.next/standalone_flat/.next/node_modules')
+              .filter(d => d.startsWith('better-sqlite3-'));
+            if (tracedDirs.length === 0) {
+              console.error('ERROR: No traced better-sqlite3 directory found');
+              process.exit(1);
+            }
+            const tracedPath = path.join('.next/standalone_flat/.next/node_modules', tracedDirs[0], 'build/Release/better_sqlite3.node');
+            if (!fs.existsSync(tracedPath)) {
+              console.error('ERROR: Native module not found at traced location', tracedPath);
+              process.exit(1);
+            }
+            const tracedSize = fs.statSync(tracedPath).size;
+            console.log('Traced location:', tracedPath);
+            console.log('  Size:', (tracedSize / 1024 / 1024).toFixed(2), 'MB');
+            
+            // Verify sizes match
+            if (mainSize !== tracedSize) {
+              console.error('ERROR: Native module sizes do not match!');
+              console.error('  Main:', mainSize, 'Traced:', tracedSize);
+              process.exit(1);
+            }
+            
+            // Verify size is correct for Electron (should be ~1.9MB, not ~1.3MB for Node.js)
+            const MIN_SIZE = 1500000; // 1.5MB minimum for Electron build
+            if (mainSize < MIN_SIZE) {
+              console.error('ERROR: Native module too small (' + (mainSize/1024/1024).toFixed(2) + 'MB)');
+              console.error('  This suggests it was built for Node.js, not Electron');
+              console.error('  Expected: >1.5MB for Electron build');
+              process.exit(1);
+            }
+            
+            console.log('✓ Native modules verified successfully');
+          "
+
       - name: Prepare Electron dependencies
         run: pnpm electron:deps
 
       - name: Compile Electron
         run: pnpm electron:compile
 
-      - name: Build Mac app
-        run: pnpm exec electron-builder --mac
+      - name: Build Mac ARM64 app
+        run: pnpm exec electron-builder --mac --arm64
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
@@ -71,10 +125,132 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
-      - name: Upload Mac artifacts
+      - name: Upload Mac ARM64 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-builds
+          name: mac-arm64-builds
+          path: |
+            dist/*-arm64.dmg
+            dist/*-arm64.zip
+            dist/*-arm64-mac.zip
+            dist/*.yml
+            dist/*.blockmap
+          retention-days: 5
+
+  # ============================================================================
+  # macOS x64 (Intel) Build
+  # ============================================================================
+  build-mac-x64:
+    runs-on: macos-13  # Intel runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Rebuild better-sqlite3 for Node.js (needed for Next.js build)
+        run: |
+          cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+          npm rebuild
+          cd ${{ github.workspace }}
+
+      - name: Build Next.js
+        run: pnpm build
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'build-time-placeholder-key-32bytes!' }}
+
+      - name: Prepare standalone build
+        run: pnpm electron:prepare
+
+      - name: Rebuild native modules for Electron
+        run: pnpm electron:rebuild-standalone
+
+      - name: Verify native modules
+        run: |
+          echo "Verifying native module integrity..."
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check main location
+            const mainPath = '.next/standalone_flat/node_modules/better-sqlite3/build/Release/better_sqlite3.node';
+            if (!fs.existsSync(mainPath)) {
+              console.error('ERROR: Native module not found at', mainPath);
+              process.exit(1);
+            }
+            const mainSize = fs.statSync(mainPath).size;
+            console.log('Main location:', mainPath);
+            console.log('  Size:', (mainSize / 1024 / 1024).toFixed(2), 'MB');
+            
+            // Check traced location
+            const tracedDirs = fs.readdirSync('.next/standalone_flat/.next/node_modules')
+              .filter(d => d.startsWith('better-sqlite3-'));
+            if (tracedDirs.length === 0) {
+              console.error('ERROR: No traced better-sqlite3 directory found');
+              process.exit(1);
+            }
+            const tracedPath = path.join('.next/standalone_flat/.next/node_modules', tracedDirs[0], 'build/Release/better_sqlite3.node');
+            if (!fs.existsSync(tracedPath)) {
+              console.error('ERROR: Native module not found at traced location', tracedPath);
+              process.exit(1);
+            }
+            const tracedSize = fs.statSync(tracedPath).size;
+            console.log('Traced location:', tracedPath);
+            console.log('  Size:', (tracedSize / 1024 / 1024).toFixed(2), 'MB');
+            
+            // Verify sizes match
+            if (mainSize !== tracedSize) {
+              console.error('ERROR: Native module sizes do not match!');
+              console.error('  Main:', mainSize, 'Traced:', tracedSize);
+              process.exit(1);
+            }
+            
+            // Verify size is correct for Electron (should be ~1.9MB, not ~1.3MB for Node.js)
+            const MIN_SIZE = 1500000; // 1.5MB minimum for Electron build
+            if (mainSize < MIN_SIZE) {
+              console.error('ERROR: Native module too small (' + (mainSize/1024/1024).toFixed(2) + 'MB)');
+              console.error('  This suggests it was built for Node.js, not Electron');
+              console.error('  Expected: >1.5MB for Electron build');
+              process.exit(1);
+            }
+            
+            console.log('✓ Native modules verified successfully');
+          "
+
+      - name: Prepare Electron dependencies
+        run: pnpm electron:deps
+
+      - name: Compile Electron
+        run: pnpm electron:compile
+
+      - name: Build Mac x64 app
+        run: pnpm exec electron-builder --mac --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.MAC_CERTS }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
+      - name: Upload Mac x64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-x64-builds
           path: |
             dist/*.dmg
             dist/*.zip
@@ -139,13 +315,19 @@ jobs:
           retention-days: 5
 
   release:
-    needs: [build-mac, build-windows]
+    needs: [build-mac-arm64, build-mac-x64, build-windows]
     runs-on: ubuntu-latest
     steps:
-      - name: Download Mac artifacts
+      - name: Download Mac ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
-          name: mac-builds
+          name: mac-arm64-builds
+          path: dist/
+
+      - name: Download Mac x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-x64-builds
           path: dist/
 
       - name: Download Windows artifacts

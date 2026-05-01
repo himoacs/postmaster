@@ -17,6 +17,7 @@ const nodeModulesDir = path.join(__dirname, '..', 'node_modules');
 const modulesToCopy = [
   '@swc/helpers',
   '@next/env',
+  'next',        // Required for server.js - standalone only copies next/dist
   'caniuse-lite',
   'client-only',
   'server-only',
