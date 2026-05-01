@@ -40,7 +40,6 @@ const nextConfig: NextConfig = {
       "./e2e/**",
       "./scripts/**",
       "./build/**",
-      "./.env*",
     ],
   },
 };
