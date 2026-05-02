@@ -89,6 +89,8 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "Let's face it", category: "filler", severity: "high" },
   { pattern: "But let's get real", category: "filler", severity: "high" },
   { pattern: "What does this mean for you", category: "filler", severity: "high" },
+  { pattern: "Key takeaway", category: "filler", severity: "high" },
+  { pattern: "Key takeaways", category: "filler", severity: "high" },
   
   // Enthusiasm
   { pattern: "I'm excited to", category: "enthusiasm", severity: "high" },

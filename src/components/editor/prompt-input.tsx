@@ -160,6 +160,16 @@ export function PromptInput({
     fetchKnowledge();
   }, []);
 
+  // Recalculate word count when existing content changes (e.g., on remount)
+  useEffect(() => {
+    if (existingContent) {
+      const wordCount = existingContent.trim().split(/\s+/).filter(Boolean).length;
+      setExistingContentWordCount(wordCount);
+    } else {
+      setExistingContentWordCount(0);
+    }
+  }, [existingContent]);
+
   const toggleKnowledgeEntry = (id: string) => {
     if (selectedKnowledge.includes(id)) {
       onSelectedKnowledgeChange(selectedKnowledge.filter((k) => k !== id));
@@ -462,14 +472,14 @@ export function PromptInput({
         <Label htmlFor="prompt" className="text-base font-medium">
           {contentMode === "new" 
             ? "What do you want to write about?" 
-            : "How would you like to enhance this content?"
+            : "How would you like to enhance this content? (Optional)"
           }
         </Label>
         <Textarea
           id="prompt"
           placeholder={contentMode === "new" 
             ? "Describe the content you want to create. Be specific about the topic, key points, and any particular angle or perspective you want to take..."
-            : "Describe how you'd like to improve this content. For example: 'Make it more engaging', 'Add more technical details', 'Rewrite in a conversational tone'..."
+            : "Optional: Describe specific improvements (e.g., 'Make it more professional', 'Add more examples'). Leave empty for general enhancement..."
           }
           className="mt-2 min-h-[200px] resize-none"
           value={prompt}
@@ -477,14 +487,17 @@ export function PromptInput({
         />
         <div className="mt-2 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {prompt.length} characters
+            {contentMode === "enhance" && !prompt.trim()
+              ? "No specific instructions - AI will perform general enhancements"
+              : `${prompt.length} characters`
+            }
           </p>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={enhancePrompt}
-            disabled={isEnhancing || prompt.length < 10}
+            disabled={isEnhancing || prompt.length < 10 || contentMode === "enhance"}
             className="gap-2"
           >
             {isEnhancing ? (

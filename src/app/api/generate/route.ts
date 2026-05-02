@@ -42,13 +42,24 @@ export async function POST(request: NextRequest) {
       promptLength: prompt?.length,
       contentType,
       yoloMode,
+      contentMode,
       requestedModelsCount: requestedModels?.length,
       requestedModels: requestedModels?.map(m => `${m.provider}:${m.modelId}`),
     });
 
-    if (!prompt) {
+    // Prompt is optional for enhance mode (will use default enhancement instruction)
+    // But required for new content mode
+    if (!prompt && contentMode !== "enhance") {
       return NextResponse.json(
         { error: "Prompt is required" },
+        { status: 400 }
+      );
+    }
+    
+    // For enhance mode, require existing content
+    if (contentMode === "enhance" && !existingContent?.trim()) {
+      return NextResponse.json(
+        { error: "Existing content is required for enhance mode" },
         { status: 400 }
       );
     }
@@ -215,7 +226,8 @@ export async function POST(request: NextRequest) {
   const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences, enableEmojis, contentMode, existingContent, sourceMap);
 
   // Build user prompt with references
-  const userPrompt = prompt + referenceContext;
+  // For enhance mode with no prompt, use empty string as user didn't provide additional instructions
+  const userPrompt = (contentMode === "enhance" && !prompt) ? referenceContext : prompt + referenceContext;
 
   // Generate with each selected model in parallel
   const outputs: GenerationOutput[] = [];

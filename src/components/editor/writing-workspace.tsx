@@ -498,12 +498,17 @@ export function WritingWorkspace({
 
   const handleGenerate = async () => {
     // In YOLO mode, we don't need selected models - server will pick them
-    if (!prompt.trim()) return;
     if (!yoloMode && selectedModels.length < 1) return;
     
     // Require existing content when in enhance mode
     if (contentMode === "enhance" && !existingContent?.trim()) {
       toast.error("Please upload or paste content to enhance");
+      return;
+    }
+    
+    // For new content mode, prompt is required
+    if (contentMode === "new" && !prompt.trim()) {
+      toast.error("Please enter a prompt");
       return;
     }
 
@@ -1378,7 +1383,10 @@ export function WritingWorkspace({
                 onModelsChange={setSelectedModels}
                 onGenerate={handleGenerate}
                 isGenerating={false}
-                canGenerate={prompt.trim().length > 0 && selectedModels.length >= 1}
+                canGenerate={
+                  selectedModels.length >= 1 &&
+                  (contentMode === "enhance" ? !!existingContent?.trim() : prompt.trim().length > 0)
+                }
               />
             </div>
           )}

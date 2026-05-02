@@ -128,6 +128,8 @@ export default async function HistoryDetailPage({ params }: PageProps) {
         {/* Collapsible Content Sections */}
         <HistoryDetailContent
           prompt={generation.prompt}
+          contentMode={generation.contentMode}
+          sourceContent={generation.sourceContent}
           outputs={generation.outputs.map((output) => ({
             id: output.id,
             provider: output.provider,

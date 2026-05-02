@@ -13,28 +13,48 @@ type AIProvider = (typeof AI_PROVIDERS)[number];
 
 // GET /api/keys - List all API keys
 export async function GET() {
-  const keys = await prisma.aPIKey.findMany({
-    select: {
-      provider: true,
-      encryptedKey: true,
-      isValid: true,
-      validModels: true,
-      enabledModels: true,
-      lastValidated: true,
-    },
-  });
+  try {
+    const keys = await prisma.aPIKey.findMany({
+      select: {
+        provider: true,
+        encryptedKey: true,
+        isValid: true,
+        validModels: true,
+        enabledModels: true,
+        lastValidated: true,
+      },
+    });
 
-  // Mask the keys for display and parse validModels JSON
-  const maskedKeys = keys.map((key) => ({
-    provider: key.provider,
-    maskedKey: maskApiKey(decrypt(key.encryptedKey)),
-    isValid: key.isValid,
-    validModels: JSON.parse(key.validModels) as string[],
-    enabledModels: JSON.parse(key.enabledModels) as string[],
-    lastValidated: key.lastValidated,
-  }));
+    // Mask the keys for display and parse validModels JSON
+    // Handle decryption failures gracefully (e.g., after encryption key changes)
+    const maskedKeys = keys
+      .map((key) => {
+        try {
+          const decryptedKey = decrypt(key.encryptedKey);
+          return {
+            provider: key.provider,
+            maskedKey: maskApiKey(decryptedKey),
+            isValid: key.isValid,
+            validModels: JSON.parse(key.validModels) as string[],
+            enabledModels: JSON.parse(key.enabledModels) as string[],
+            lastValidated: key.lastValidated,
+          };
+        } catch (error) {
+          console.error(`Failed to decrypt API key for ${key.provider}:`, error);
+          // Return null for keys that can't be decrypted (will be filtered out)
+          return null;
+        }
+      })
+      .filter((key): key is NonNullable<typeof key> => key !== null);
 
-  return NextResponse.json({ keys: maskedKeys });
+    return NextResponse.json({ keys: maskedKeys });
+  } catch (error) {
+    console.error("Error fetching API keys:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch API keys", keys: [] },
+      { status: 500 }
+    );
+  }
 }
 
 // POST /api/keys - Save a new API key

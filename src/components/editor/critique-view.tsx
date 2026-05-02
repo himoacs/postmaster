@@ -137,7 +137,7 @@ export function CritiqueView({
                   Draft {index + 1}: {output.model}
                 </span>
                 <span className="text-xs text-muted-foreground ml-auto">
-                  {output.content.length} chars
+                  {output.content.split(/\s+/).filter(Boolean).length} words
                 </span>
               </div>
             ))}

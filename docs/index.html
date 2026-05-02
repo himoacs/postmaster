@@ -599,6 +599,202 @@
       flex-wrap: wrap;
     }
     
+    /* AI Guardrails Section - Typewriter Style */
+    .ai-guardrails {
+      padding: 96px 24px;
+      background: var(--background);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ai-guardrails-header {
+      max-width: 600px;
+      margin: 0 auto 64px;
+      text-align: center;
+    }
+
+    .ai-guardrails-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .ai-guardrails-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    .ai-guardrails-subtitle {
+      margin-top: 16px;
+      color: var(--muted-foreground);
+    }
+    
+    .ai-guardrails .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .phrase-transformations {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .phrase-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 24px;
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .phrase-card:hover {
+      background: var(--accent);
+    }
+
+    .phrase-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .phrase-card.typing::before {
+      opacity: 1;
+    }
+
+    .typewriter-container {
+      font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      height: 100px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .ai-text {
+      display: block;
+      color: var(--muted-foreground);
+      transition: all 0.4s ease;
+    }
+
+    .ai-text.crossed {
+      text-decoration: line-through;
+      text-decoration-color: rgba(239, 68, 68, 0.6);
+      text-decoration-thickness: 2px;
+      opacity: 0.5;
+    }
+
+    .human-text {
+      display: block;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .typewriter-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.2em;
+      background: var(--primary);
+      margin-left: 2px;
+      animation: blink 1s infinite;
+      vertical-align: text-bottom;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    .phrase-label {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+
+    .phrase-label.ai {
+      background: rgba(239, 68, 68, 0.1);
+      color: rgb(239, 68, 68);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .phrase-label.human {
+      background: rgba(34, 197, 94, 0.1);
+      color: rgb(34, 197, 94);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .phrase-label.hidden {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .guardrails-stats {
+      margin-top: 64px;
+      text-align: center;
+      padding: 48px 32px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .guardrails-stats h3 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 32px;
+      margin-top: 24px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      color: var(--muted-foreground);
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+    
     /* Screenshots Carousel */
     .screenshots {
       padding: 96px 24px;
@@ -880,6 +1076,26 @@
         width: 36px;
         height: 36px;
       }
+      
+      .phrase-transformations {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      
+      .phrase-card {
+        padding: 28px 20px;
+        height: 170px;
+      }
+      
+      .typewriter-container {
+        font-size: 0.9rem;
+        min-height: 90px;
+      }
     }
     
     /* Footer */
@@ -1045,6 +1261,94 @@
                 <div class="card-footer-divider"></div>
                 <p class="card-footer-text">"Synthesize the best elements..."</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Guardrails -->
+    <section class="ai-guardrails">
+      <div class="ai-guardrails-header">
+        <p class="ai-guardrails-badge">Built-in Protection</p>
+        <h2 class="ai-guardrails-title">Sounds Human, Not AI</h2>
+        <p class="ai-guardrails-subtitle">PostMaster includes 80+ anti-patterns that catch common AI phrases before they make it into your content. Your writing stays authentic and natural.</p>
+      </div>
+      
+      <div class="container">
+        
+        <div class="phrase-transformations">
+          <div class="phrase-card" data-ai="In today's fast-paced world, businesses need..." data-human="Businesses need...">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+          
+          <div class="phrase-card" data-ai="Content marketing — when done right — drives growth" data-human="Content marketing, when done right, drives growth">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+          
+          <div class="phrase-card" data-ai="It's not just about speed, it's about quality" data-human="Speed matters, but quality matters more">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+          
+          <div class="phrase-card" data-ai="This game-changing solution will revolutionize..." data-human="This solution changes...">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+          
+          <div class="phrase-card" data-ai="Let's delve into the complexities of..." data-human="Let's look at...">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+          
+          <div class="phrase-card" data-ai="Key takeaway: Your content sounds human" data-human="Your content sounds human">
+            <span class="phrase-label ai">⚠️ AI Detected</span>
+            <div class="typewriter-container">
+              <span class="ai-text"></span>
+              <span class="human-text"></span>
+              <span class="typewriter-cursor"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="guardrails-stats">
+          <h3>Built-in Protection</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">80+</div>
+              <div class="stat-label">AI Patterns Blocked</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">10</div>
+              <div class="stat-label">Pattern Categories</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">100%</div>
+              <div class="stat-label">Automatic Detection</div>
             </div>
           </div>
         </div>
@@ -1434,6 +1738,109 @@
       
       // Start autoplay
       startAutoplay();
+    })();
+    
+    // Typewriter Animation for AI Guardrails
+    (function() {
+      const cards = document.querySelectorAll('.phrase-card');
+      const TYPING_SPEED = 40; // ms per character
+      const PAUSE_BEFORE_CROSSOUT = 800; // pause after typing AI phrase
+      const PAUSE_BEFORE_HUMAN = 400; // pause after crossing out AI phrase
+      
+      class TypewriterCard {
+        constructor(card) {
+          this.card = card;
+          this.aiElement = card.querySelector('.ai-text');
+          this.humanElement = card.querySelector('.human-text');
+          this.cursor = card.querySelector('.typewriter-cursor');
+          this.label = card.querySelector('.phrase-label');
+          this.aiText = card.dataset.ai;
+          this.humanText = card.dataset.human;
+          this.isTyping = false;
+          this.hasAnimated = false;
+        }
+        
+        async sleep(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        async typeText(element, text, speed) {
+          // Position cursor after the element being typed
+          element.parentNode.insertBefore(this.cursor, element.nextSibling);
+          
+          for (let i = 0; i <= text.length; i++) {
+            if (!this.isTyping) return;
+            element.textContent = text.substring(0, i);
+            await this.sleep(speed);
+          }
+        }
+        
+        async animate() {
+          if (this.hasAnimated) return;
+          this.hasAnimated = true;
+          this.isTyping = true;
+          this.card.classList.add('typing');
+          
+          // Type AI phrase
+          await this.typeText(this.aiElement, this.aiText, TYPING_SPEED);
+          await this.sleep(PAUSE_BEFORE_CROSSOUT);
+          
+          // Cross out AI phrase
+          this.aiElement.classList.add('crossed');
+          await this.sleep(PAUSE_BEFORE_HUMAN);
+          
+          // Switch label
+          this.label.classList.add('hidden');
+          await this.sleep(200);
+          this.label.textContent = '✓ Fixed';
+          this.label.classList.remove('ai');
+          this.label.classList.add('human');
+          this.label.classList.remove('hidden');
+          
+          // Type human phrase
+          await this.typeText(this.humanElement, this.humanText, TYPING_SPEED);
+          
+          // Hide cursor after animation complete
+          this.cursor.style.display = 'none';
+          
+          this.isTyping = false;
+          this.card.classList.remove('typing');
+        }
+      }
+      
+      // Initialize all cards
+      const typewriters = Array.from(cards).map(card => new TypewriterCard(card));
+      
+      // Intersection Observer for scroll-triggered animations
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, index) => {
+          if (entry.isIntersecting) {
+            const card = typewriters.find(tw => tw.card === entry.target);
+            if (card) {
+              // Stagger the animations
+              const delay = typewriters.indexOf(card) * 200;
+              setTimeout(() => card.animate(), delay);
+              observer.unobserve(entry.target);
+            }
+          }
+        });
+      }, {
+        threshold: 0.5,
+        rootMargin: '0px'
+      });
+      
+      // Observe all cards
+      cards.forEach(card => observer.observe(card));
+      
+      // Also trigger on hover for interactivity
+      cards.forEach((card, index) => {
+        card.addEventListener('mouseenter', () => {
+          const typewriter = typewriters[index];
+          if (!typewriter.isTyping && !typewriter.hasAnimated) {
+            typewriter.animate();
+          }
+        });
+      });
     })();
   </script>
 </body>

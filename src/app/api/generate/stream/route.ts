@@ -48,8 +48,18 @@ export async function POST(request: NextRequest) {
 
     const { prompt, contentType, lengthPref, selectedModels: requestedModels, yoloMode, references, enableCitations, enableEmojis, contentMode, existingContent } = requestBody;
 
-    if (!prompt) {
+    // Prompt is optional for enhance mode (will use default enhancement instruction)
+    // But required for new content mode
+    if (!prompt && contentMode !== "enhance") {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    
+    // For enhance mode, require existing content
+    if (contentMode === "enhance" && !existingContent?.trim()) {
+      return new Response(JSON.stringify({ error: "Existing content is required for enhance mode" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -191,7 +201,8 @@ export async function POST(request: NextRequest) {
   // Build prompts
   const hasReferences = references && references.length > 0;
   const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences, enableEmojis, contentMode, existingContent, sourceMap);
-  const userPrompt = prompt + referenceContext;
+  // For enhance mode with no prompt, use empty string as user didn't provide additional instructions
+  const userPrompt = (contentMode === "enhance" && !prompt) ? referenceContext : prompt + referenceContext;
 
   // Create SSE stream
   const { stream, writer } = createSSEStream();
@@ -666,7 +677,7 @@ function buildSystemPrompt(
   let prompt = "";
   
   if (contentMode === "enhance" && existingContent) {
-    prompt = `You are a professional content editor and writer. Your task is to ENHANCE and IMPROVE the existing content provided below based on the user's instructions.
+    prompt = `You are a professional content editor and writer. Your task is to ENHANCE and IMPROVE the existing content provided below.
 
 EXISTING CONTENT TO ENHANCE:
 ---
@@ -677,11 +688,12 @@ ${getContentTypeGuidance(contentType)}
 
 IMPORTANT INSTRUCTIONS:
 - Preserve the core message and key information from the original content
-- Apply the user's requested changes/improvements throughout
+- Improve clarity, flow, style, and engagement
 - Maintain a similar length unless instructed otherwise (target ${lengthGuide})
 - Improve clarity, flow, and engagement while keeping the original intent
 - Do NOT add fabricated information or claims not present in the original
 - Use the existing content as your primary source of facts
+- If the user provides specific instructions, apply them throughout
 
 `;
   } else {

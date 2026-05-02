@@ -42,6 +42,8 @@ interface HistoryDetailContentProps {
   prompt: string;
   outputs: Output[];
   synthesizedContent: SynthesizedContent | null;
+  contentMode?: string;
+  sourceContent?: string | null;
 }
 
 interface SectionProps {
@@ -94,9 +96,34 @@ export function HistoryDetailContent({
   prompt,
   outputs,
   synthesizedContent,
+  contentMode,
+  sourceContent,
 }: HistoryDetailContentProps) {
   return (
     <div className="space-y-4">
+      {/* Original Content Section - Only show for enhance mode */}
+      {contentMode === "enhance" && sourceContent && (
+        <CollapsibleSection
+          title="Original Content"
+          icon={<FileText className="h-5 w-5 text-blue-500" />}
+          badge={
+            <Badge variant="outline" className="ml-2 font-normal">
+              Before Enhancement
+            </Badge>
+          }
+          defaultOpen={true}
+        >
+          <div className="space-y-2">
+            <div className="prose prose-sm prose-editorial max-w-none dark:prose-invert whitespace-pre-wrap">
+              {sourceContent}
+            </div>
+            <div className="text-xs text-muted-foreground pt-2 border-t">
+              {sourceContent.split(/\s+/).filter(Boolean).length} words
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
       {/* Prompt Section */}
       <CollapsibleSection
         title="Prompt"
