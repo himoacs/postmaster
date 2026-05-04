@@ -586,31 +586,35 @@ function buildSystemPrompt(
       }[lengthPref] || "a medium length";
   }
 
-  let prompt = "";
+  // Store user's optional prompt for enhance mode
+  const userPrompt = prompt;
+  let systemPrompt = "";
   
   // Different instructions based on content mode
   if (contentMode === "enhance" && existingContent) {
-    prompt = `You are a professional content editor and writer. Your task is to ENHANCE and IMPROVE the existing content provided below based on the user's instructions.
+    const exactWordCount = existingContent.trim().split(/\s+/).filter(Boolean).length;
+    
+    systemPrompt = `You are a professional content editor. Your task is to ENHANCE and IMPROVE the existing content.
 
 EXISTING CONTENT TO ENHANCE:
 ---
 ${existingContent}
 ---
 
-${getContentTypeGuidance(contentType)}
-
 IMPORTANT INSTRUCTIONS:
-- Preserve the core message and key information from the original content
-- Apply the user's requested changes/improvements throughout
-- CRITICAL: Maintain approximately the same length as the original content (target ${lengthGuide}, based on ${existingContent.trim().split(/\s+/).filter(Boolean).length} words in original)
-- The length target has been automatically matched to your existing content - maintain this unless the user explicitly requests otherwise
-- Improve clarity, flow, and engagement while keeping the original intent
+- Preserve the core message, format, and structure of the original content
+- Improve clarity, flow, grammar, and engagement
+- CRITICAL: Maintain approximately ${exactWordCount} words (the exact length of the original)
+- Do NOT change the content type or format - keep it as-is
 - Do NOT add fabricated information or claims not present in the original
 - Use the existing content as your primary source of facts
-
+${userPrompt ? `
+USER'S SPECIFIC ENHANCEMENT REQUEST:
+${userPrompt}
+` : ''}
 `;
   } else {
-    prompt = `You are a professional content writer. Write ${lengthGuide} of high-quality content.
+    systemPrompt = `You are a professional content writer. Write ${lengthGuide} of high-quality content.
 
 ${getContentTypeGuidance(contentType)}
 
@@ -619,7 +623,7 @@ ${getContentTypeGuidance(contentType)}
 
   // CRITICAL: Add grounding instructions when references exist
   if (hasReferences) {
-    prompt += `
+    systemPrompt += `
 CRITICAL - REFERENCE MATERIAL GROUNDING:
 You have been provided with REFERENCE MATERIALS at the end of the user's message. These are your AUTHORITATIVE source of truth.
 
@@ -646,25 +650,25 @@ When in doubt, quote directly from the references rather than paraphrasing.
   }
 
   if (styleProfile) {
-    prompt += "IMPORTANT - Match this writing style:\n";
+    systemPrompt += "IMPORTANT - Match this writing style:\n";
     
     if (styleProfile.tone) {
-      prompt += `- Tone: ${styleProfile.tone}\n`;
+      systemPrompt += `- Tone: ${styleProfile.tone}\n`;
     }
     if (styleProfile.voice) {
-      prompt += `- Voice: ${styleProfile.voice}\n`;
+      systemPrompt += `- Voice: ${styleProfile.voice}\n`;
     }
     if (styleProfile.vocabulary) {
-      prompt += `- Vocabulary: ${styleProfile.vocabulary}\n`;
+      systemPrompt += `- Vocabulary: ${styleProfile.vocabulary}\n`;
     }
     if (styleProfile.sentence) {
-      prompt += `- Sentence structure: ${styleProfile.sentence}\n`;
+      systemPrompt += `- Sentence structure: ${styleProfile.sentence}\n`;
     }
     if (styleProfile.patterns) {
       try {
         const patterns = JSON.parse(styleProfile.patterns);
         if (Array.isArray(patterns) && patterns.length > 0) {
-          prompt += `- Distinctive phrases/patterns to USE: ${patterns.join("; ")}\n`;
+          systemPrompt += `- Distinctive phrases/patterns to USE: ${patterns.join("; ")}\n`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -676,7 +680,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const vocab = JSON.parse(styleProfile.uniqueVocabulary);
         if (Array.isArray(vocab) && vocab.length > 0) {
-          prompt += `- Vocabulary fingerprint (words/phrases to incorporate naturally): ${vocab.slice(0, 10).join(", ")}\n`;
+          systemPrompt += `- Vocabulary fingerprint (words/phrases to incorporate naturally): ${vocab.slice(0, 10).join(", ")}\n`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -687,7 +691,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const openings = JSON.parse(styleProfile.openingStyles);
         if (Array.isArray(openings) && openings.length > 0) {
-          prompt += `- Opening style preferences: ${openings.join("; ")}\n`;
+          systemPrompt += `- Opening style preferences: ${openings.join("; ")}\n`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -698,7 +702,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const closings = JSON.parse(styleProfile.closingStyles);
         if (Array.isArray(closings) && closings.length > 0) {
-          prompt += `- Closing style preferences: ${closings.join("; ")}\n`;
+          systemPrompt += `- Closing style preferences: ${closings.join("; ")}\n`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -715,7 +719,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
           if (quirks.emoji) quirksList.push(`Emoji: ${quirks.emoji}`);
           if (quirks.caps) quirksList.push(`Caps style: ${quirks.caps}`);
           if (quirksList.length > 0) {
-            prompt += `- Writing quirks: ${quirksList.join("; ")}\n`;
+            systemPrompt += `- Writing quirks: ${quirksList.join("; ")}\n`;
           }
         }
       } catch {
@@ -728,7 +732,7 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const userAvoid = JSON.parse(styleProfile.avoidPatterns);
         if (Array.isArray(userAvoid) && userAvoid.length > 0) {
-          prompt += `- Phrases this author NEVER uses (avoid these): ${userAvoid.join("; ")}\n`;
+          systemPrompt += `- Phrases this author NEVER uses (avoid these): ${userAvoid.join("; ")}\n`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -736,10 +740,10 @@ When in doubt, quote directly from the references rather than paraphrasing.
     }
     
     if (styleProfile.bio) {
-      prompt += `\nAbout the author: ${styleProfile.bio}\n`;
+      systemPrompt += `\nAbout the author: ${styleProfile.bio}\n`;
     }
     if (styleProfile.context) {
-      prompt += `Writing context: ${styleProfile.context}\n`;
+      systemPrompt += `Writing context: ${styleProfile.context}\n`;
     }
     
     // Include few-shot examples if available
@@ -747,10 +751,10 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const excerpts = JSON.parse(styleProfile.sampleExcerpts);
         if (Array.isArray(excerpts) && excerpts.length > 0) {
-          prompt += `\nEXAMPLES OF THIS AUTHOR'S WRITING (mimic this style):
+          systemPrompt += `\nEXAMPLES OF THIS AUTHOR'S WRITING (mimic this style):
 `;
           excerpts.slice(0, 3).forEach((excerpt: string, i: number) => {
-            prompt += `Example ${i + 1}: "${excerpt}"\n`;
+            systemPrompt += `Example ${i + 1}: "${excerpt}"\n`;
           });
         }
       } catch {
@@ -761,18 +765,18 @@ When in doubt, quote directly from the references rather than paraphrasing.
 
   // Emoji preferences
   if (enableEmojis) {
-    prompt += `\n✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately for the content type. For social media posts (LinkedIn, Twitter), use 2-4 emojis. For professional content (emails, articles), use sparingly (0-2 emojis).\n`;
+    systemPrompt += `\n✨ EMOJI USAGE: Include relevant emojis to enhance engagement and emotional connection. Use them naturally and appropriately for the content type. For social media posts (LinkedIn, Twitter), use 2-4 emojis. For professional content (emails, articles), use sparingly (0-2 emojis).\n`;
   } else {
-    prompt += `\n📝 NO EMOJIS: Do not include any emojis or emoticons in the generated content.\n`;
+    systemPrompt += `\n📝 NO EMOJIS: Do not include any emojis or emoticons in the generated content.\n`;
   }
 
   // Add AI anti-patterns section (always include, but style-aware patterns take precedence)
-  prompt += buildAntiPatternPromptSection({
+  systemPrompt += buildAntiPatternPromptSection({
     includeSeverities: ["high", "medium"],
     maxPatterns: 35,
   });
 
-  prompt += `
+  systemPrompt += `
 Guidelines:
 - Write naturally and authentically - your goal is to sound like a real person, not AI
 - NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
@@ -799,7 +803,7 @@ Guidelines:
     
     const hasUrls = sourceMap && sourceMap.some(s => s.url);
     
-    prompt += `
+    systemPrompt += `
 CRITICAL - INLINE CITATIONS REQUIRED:
 You MUST cite sources throughout your writing. This is mandatory, not optional.
 ${sourcesInfo}
@@ -824,5 +828,5 @@ If you fail to include citations, the output will be rejected.
 `;
   }
 
-  return prompt;
+  return systemPrompt;
 }

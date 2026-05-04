@@ -429,21 +429,20 @@ function buildSimpleSystemPrompt(
   let prompt = "";
   
   if (contentMode === "enhance" && existingContent) {
-    prompt = `You are a professional content editor and writer. Your task is to ENHANCE and IMPROVE the existing content provided below based on the user's instructions.
+    const exactWordCount = existingContent.trim().split(/\s+/).filter(Boolean).length;
+    
+    prompt = `You are a professional content editor. Your task is to ENHANCE and IMPROVE the existing content.
 
 EXISTING CONTENT TO ENHANCE:
 ---
 ${existingContent}
 ---
 
-${getContentTypeGuidance(contentType)}
-
 IMPORTANT INSTRUCTIONS:
-- Preserve the core message and key information from the original content
-- Apply the user's requested changes/improvements throughout
-- CRITICAL: Maintain approximately the same length as the original content (target ${lengthGuide}, based on ${existingContent.trim().split(/\s+/).filter(Boolean).length} words in original)
-- The length target has been automatically matched to your existing content - maintain this unless the user explicitly requests otherwise
-- Improve clarity, flow, and engagement while keeping the original intent
+- Preserve the core message, format, and structure of the original content
+- Improve clarity, flow, grammar, and engagement
+- CRITICAL: Maintain approximately ${exactWordCount} words (the exact length of the original)
+- Do NOT change the content type or format - keep it as-is
 - Do NOT add fabricated information or claims not present in the original
 - Use the existing content as your primary source of facts
 

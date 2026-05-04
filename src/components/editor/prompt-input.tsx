@@ -562,72 +562,69 @@ export function PromptInput({
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="content-type">Content Type</Label>
-          <Select value={contentType} onValueChange={onContentTypeChange}>
-            <SelectTrigger id="content-type" className="w-full">
-              <SelectValue placeholder="Select content type" />
-            </SelectTrigger>
-            <SelectContent>
-              {contentTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="length">Target Length</Label>
-          <Select 
-            value={lengthPref} 
-            onValueChange={(value) => {
-              onLengthPrefChange(value);
-              setIsLengthAutoDetected(false); // Clear auto-detect flag when manually changed
-            }}
-          >
-            <SelectTrigger id="length" className="w-full">
-              <SelectValue placeholder="Select length" />
-            </SelectTrigger>
-            <SelectContent>
-              {getLengthOptions(contentType).map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isLengthAutoDetected && contentMode === "enhance" && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
-              Auto-detected from {existingContentWordCount.toLocaleString()} words
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="emojis">Add Emojis</Label>
-            <HelpTooltip
-              content={
-                <div className="space-y-1">
-                  <p>When enabled, the AI will include relevant emojis and emoticons in the generated content.</p>
-                  <p className="text-xs text-muted-foreground">Great for social media posts, casual emails, and engaging content.</p>
-                </div>
-              }
-            />
+      {/* Only show content type, length, and emojis in "new" mode */}
+      {contentMode === "new" && (
+        <div className="grid gap-6 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="content-type">Content Type</Label>
+            <Select value={contentType} onValueChange={onContentTypeChange}>
+              <SelectTrigger id="content-type" className="w-full">
+                <SelectValue placeholder="Select content type" />
+              </SelectTrigger>
+              <SelectContent>
+                {contentTypes.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2.5 py-2">
-            <Switch
-              id="emojis"
-              checked={enableEmojis}
-              onCheckedChange={onEnableEmojisChange}
-            />
+
+          <div className="space-y-2">
+            <Label htmlFor="length">Target Length</Label>
+            <Select 
+              value={lengthPref} 
+              onValueChange={(value) => {
+                onLengthPrefChange(value);
+                setIsLengthAutoDetected(false); // Clear auto-detect flag when manually changed
+              }}
+            >
+              <SelectTrigger id="length" className="w-full">
+                <SelectValue placeholder="Select length" />
+              </SelectTrigger>
+              <SelectContent>
+                {getLengthOptions(contentType).map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="emojis">Add Emojis</Label>
+              <HelpTooltip
+                content={
+                  <div className="space-y-1">
+                    <p>When enabled, the AI will include relevant emojis and emoticons in the generated content.</p>
+                    <p className="text-xs text-muted-foreground">Great for social media posts, casual emails, and engaging content.</p>
+                  </div>
+                }
+              />
+            </div>
+            <div className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2.5 py-2">
+              <Switch
+                id="emojis"
+                checked={enableEmojis}
+                onCheckedChange={onEnableEmojisChange}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Reference Sources Section */}
       <Collapsible open={isReferencesOpen} onOpenChange={setIsReferencesOpen}>
