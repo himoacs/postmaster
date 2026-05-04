@@ -150,6 +150,94 @@ cp data/postmaster.db prisma/template.db
 
 ---
 
+## Local Dev Testing Builds (Unsigned)
+
+For quick local testing on macOS **without** code signing or notarization (which can take 10+ minutes), use this command:
+
+### Quick Dev Build (macOS)
+
+```bash
+# Kill any running PostMaster instances first
+pkill -f "PostMaster.app" 2>/dev/null
+
+# Build without signing/notarization
+pnpm build && \
+pnpm electron:prepare && \
+pnpm electron:rebuild-standalone && \
+pnpm electron:compile && \
+CSC_IDENTITY_AUTO_DISCOVERY=false \
+npx electron-builder --mac --dir \
+  --config.mac.identity=null \
+  --config.mac.notarize=false
+```
+
+**What this does:**
+- `CSC_IDENTITY_AUTO_DISCOVERY=false` - Disables certificate auto-discovery
+- `--config.mac.identity=null` - **Explicitly disables code signing** (required!)
+- `--config.mac.notarize=false` - Disables notarization
+- `--dir` - Creates unpacked directory instead of DMG/installer (faster)
+- Output: `dist/mac-arm64/PostMaster.app` (or `dist/mac-x64/PostMaster.app`)
+
+**Note**: Setting `CSC_IDENTITY_AUTO_DISCOVERY=false` alone is NOT sufficient because electron-builder.yml has `hardenedRuntime: true` and `notarize: true`. You must also override `mac.identity` to truly skip signing.
+
+### Testing the Build
+
+```bash
+# Open the app from command line
+open dist/mac-arm64/PostMaster.app
+
+# Or run directly to see console logs
+dist/mac-arm64/PostMaster.app/Contents/MacOS/PostMaster
+```
+
+### Windows Dev Build (Unsigned)
+
+```bash
+pnpm build && ^
+pnpm electron:prepare && ^
+pnpm electron:rebuild-standalone && ^
+pnpm electron:compile && ^
+set CSC_IDENTITY_AUTO_DISCOVERY=false && npx electron-builder --win --dir
+```
+
+Output: `dist/win-unpacked/PostMaster.exe`
+
+### Linux Dev Build
+
+```bash
+pnpm build && \
+pnpm electron:prepare && \
+pnpm electron:rebuild-standalone && \
+pnpm electron:compile && \
+npx electron-builder --linux --dir
+```
+
+Output: `dist/linux-unpacked/postmaster`
+
+### When to Use Dev Builds
+
+✅ **Use unsigned dev builds for:**
+- Quick local testing of new features
+- UI/UX validation
+- Performance testing
+- Database migration testing
+- Bug reproduction
+
+❌ **Don't use unsigned dev builds for:**
+- Distribution to other users (will fail Gatekeeper on macOS)
+- Production releases
+- TestFlight/beta testing
+- Any scenario requiring app signing
+
+### Performance Comparison
+
+| Build Type | Time (approx) | Output |
+|-----------|---------------|--------|
+| **Dev build (unsigned)** | ~2-3 minutes | Unpacked app directory |
+| **Signed + notarized** | ~12-15 minutes | DMG + ZIP installers |
+
+---
+
 ## Building for Production
 
 ### Complete Build Process
