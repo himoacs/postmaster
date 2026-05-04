@@ -1208,18 +1208,23 @@ export function WritingWorkspace({
     }
   };
 
-  const handleSwapModel = async (index: number, newProvider: string, newModelId: string) => {
+  const handleSwapModel = async (
+    index: number, 
+    oldProvider: string, 
+    oldModelId: string,
+    newProvider: string, 
+    newModelId: string
+  ) => {
     if (!generationId || !outputs[index]) return;
     
-    const output = outputs[index];
     try {
       const response = await fetch("/api/generate/single", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           generationId,
-          provider: output.provider,
-          modelId: output.model,
+          provider: oldProvider,
+          modelId: oldModelId,
           newProvider,
           newModelId,
         }),
