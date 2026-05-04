@@ -74,7 +74,7 @@ export default async function HistoryPage() {
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
           <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
             <HeartHandshake className="h-4 w-4" />
-            Donate
+            Sponsor
           </a>
         </Button>
       </header>
