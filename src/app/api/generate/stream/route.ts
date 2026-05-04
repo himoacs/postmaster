@@ -689,8 +689,8 @@ ${getContentTypeGuidance(contentType)}
 IMPORTANT INSTRUCTIONS:
 - Preserve the core message and key information from the original content
 - Improve clarity, flow, style, and engagement
-- Maintain a similar length unless instructed otherwise (target ${lengthGuide})
-- Improve clarity, flow, and engagement while keeping the original intent
+- CRITICAL: Maintain approximately the same length as the original content (target ${lengthGuide}, based on ${existingContent.trim().split(/\s+/).filter(Boolean).length} words in original)
+- The length target has been automatically matched to your existing content - maintain this unless the user explicitly requests otherwise
 - Do NOT add fabricated information or claims not present in the original
 - Use the existing content as your primary source of facts
 - If the user provides specific instructions, apply them throughout

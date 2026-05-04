@@ -106,6 +106,35 @@ const getLengthOptions = (contentType: string) => {
   }
 };
 
+// Auto-detect appropriate length preference based on word count and content type
+const autoDetectLength = (wordCount: number, contentType: string): string => {
+  switch (contentType) {
+    case "TWEET_THREAD":
+      // Tweets: ~30 words per tweet on average
+      if (wordCount <= 120) return "short";    // 3-5 tweets
+      if (wordCount <= 300) return "medium";   // 6-10 tweets
+      return "long";                           // 11-15 tweets
+    
+    case "LINKEDIN_POST":
+      if (wordCount <= 75) return "short";     // 50-100 words
+      if (wordCount <= 250) return "medium";   // 150-200 words
+      return "long";                           // 300-400 words
+    
+    case "EMAIL":
+      if (wordCount <= 150) return "short";    // ~100 words
+      if (wordCount <= 300) return "medium";   // ~200 words
+      return "long";                           // ~400 words
+    
+    case "BLOG_POST":
+    case "ARTICLE":
+    case "OTHER":
+    default:
+      if (wordCount <= 450) return "short";    // ~300 words
+      if (wordCount <= 900) return "medium";   // ~600 words
+      return "long";                           // ~1200 words
+  }
+};
+
 export function PromptInput({
   prompt,
   onPromptChange,
@@ -140,6 +169,7 @@ export function PromptInput({
   const [existingContentWordCount, setExistingContentWordCount] = useState(0);
   const [isContentPreviewOpen, setIsContentPreviewOpen] = useState(false);
   const [pasteMode, setPasteMode] = useState<"upload" | "paste">("upload");
+  const [isLengthAutoDetected, setIsLengthAutoDetected] = useState(false);
 
   // Fetch active knowledge entries
   useEffect(() => {
@@ -169,6 +199,14 @@ export function PromptInput({
       setExistingContentWordCount(0);
     }
   }, [existingContent]);
+
+  // Re-detect length when content type changes in enhance mode with existing content
+  useEffect(() => {
+    if (contentMode === "enhance" && existingContent && existingContentWordCount > 0 && isLengthAutoDetected) {
+      const detectedLength = autoDetectLength(existingContentWordCount, contentType);
+      onLengthPrefChange(detectedLength);
+    }
+  }, [contentType, contentMode, existingContent, existingContentWordCount, isLengthAutoDetected, onLengthPrefChange]);
 
   const toggleKnowledgeEntry = (id: string) => {
     if (selectedKnowledge.includes(id)) {
@@ -283,6 +321,10 @@ export function PromptInput({
       setUploadedFileName(data.fileName);
       setExistingContentWordCount(data.wordCount);
       setIsContentPreviewOpen(true);
+      // Auto-detect and set appropriate length based on word count
+      const detectedLength = autoDetectLength(data.wordCount, contentType);
+      onLengthPrefChange(detectedLength);
+      setIsLengthAutoDetected(true);
       toast.success(`Extracted ${data.wordCount.toLocaleString()} words from ${data.fileName}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to extract content");
@@ -300,6 +342,7 @@ export function PromptInput({
     setUploadedFileName(null);
     setExistingContentWordCount(0);
     setIsContentPreviewOpen(false);
+    setIsLengthAutoDetected(false);
   };
 
   const handlePastedContent = (text: string) => {
@@ -309,6 +352,10 @@ export function PromptInput({
     setUploadedFileName(null);
     if (text.trim()) {
       setIsContentPreviewOpen(true);
+      // Auto-detect and set appropriate length based on word count
+      const detectedLength = autoDetectLength(wordCount, contentType);
+      onLengthPrefChange(detectedLength);
+      setIsLengthAutoDetected(true);
     }
   };
 
@@ -534,7 +581,13 @@ export function PromptInput({
 
         <div className="space-y-2">
           <Label htmlFor="length">Target Length</Label>
-          <Select value={lengthPref} onValueChange={onLengthPrefChange}>
+          <Select 
+            value={lengthPref} 
+            onValueChange={(value) => {
+              onLengthPrefChange(value);
+              setIsLengthAutoDetected(false); // Clear auto-detect flag when manually changed
+            }}
+          >
             <SelectTrigger id="length" className="w-full">
               <SelectValue placeholder="Select length" />
             </SelectTrigger>
@@ -546,6 +599,12 @@ export function PromptInput({
               ))}
             </SelectContent>
           </Select>
+          {isLengthAutoDetected && contentMode === "enhance" && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Auto-detected from {existingContentWordCount.toLocaleString()} words
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
