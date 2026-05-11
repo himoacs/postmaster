@@ -4,6 +4,9 @@ import { HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContentType, GenerationStatus, AIProvider } from "@/types";
 
+// Disable caching to always show fresh generations
+export const dynamic = "force-dynamic";
+
 interface GenerationOutput {
   provider: string;
   model: string;

@@ -5,6 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HeartHandshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Disable caching to always show fresh content samples
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
   // Fetch style profile and content samples
   const [styleProfile, contentSamples] = await Promise.all([
