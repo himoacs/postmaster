@@ -104,8 +104,8 @@ export async function fetchLiteLLMModels(
  */
 function supportsTemperature(modelId: string): boolean {
   const id = modelId.toLowerCase();
-  // Claude Opus 4.7 and newer don't support temperature
-  if (id.includes('claude-opus-4-7') || id.includes('claude-opus-4.7')) {
+  // Claude 4 models (opus, sonnet, etc.) don't support temperature
+  if (id.includes('claude-4') || id.includes('claude-opus-4') || id.includes('claude-sonnet-4')) {
     return false;
   }
   return true;
