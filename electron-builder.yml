@@ -61,6 +61,7 @@ mac:
         - x64
 
 dmg:
+  artifactName: "PostMaster-${arch}.${ext}"
   contents:
     - x: 130
       y: 220
@@ -68,6 +69,9 @@ dmg:
       y: 220
       type: link
       path: /Applications
+
+mac.zip:
+  artifactName: "PostMaster-${arch}.${ext}"
 
 win:
   icon: build/icon.ico
@@ -77,6 +81,7 @@ win:
         - x64
 
 nsis:
+  artifactName: "PostMaster-Setup.${ext}"
   oneClick: false
   allowToChangeInstallationDirectory: true
   installerIcon: build/icon.ico
