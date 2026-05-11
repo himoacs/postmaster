@@ -55,6 +55,11 @@ mac:
     - target: dmg
       arch:
         - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
 
 dmg:
   artifactName: "PostMaster-${arch}.${ext}"
@@ -65,6 +70,10 @@ dmg:
       y: 220
       type: link
       path: /Applications
+
+# ZIP files for auto-updater (required for macOS auto-updates)
+# Uses default naming: PostMaster-${version}-${arch}-mac.zip
+# The auto-updater reads latest-mac.yml which references these files
 
 win:
   icon: build/icon.ico
