@@ -45,20 +45,16 @@ asarUnpack:
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
-  hardenedRuntime: true
+  hardenedRuntime: false
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  notarize: true
+  identity: null
+  notarize: false
   target:
     - target: dmg
       arch:
         - arm64
-        - x64
-    - target: zip
-      arch:
-        - arm64
-        - x64
 
 dmg:
   artifactName: "PostMaster-${arch}.${ext}"
@@ -69,9 +65,6 @@ dmg:
       y: 220
       type: link
       path: /Applications
-
-mac.zip:
-  artifactName: "PostMaster-${arch}.${ext}"
 
 win:
   icon: build/icon.ico

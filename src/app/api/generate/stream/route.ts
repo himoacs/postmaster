@@ -738,7 +738,10 @@ When in doubt, quote directly from the references rather than paraphrasing.
   }
 
   if (styleProfile) {
-    prompt += "IMPORTANT - Match this writing style:\n";
+    prompt += `
+=== VOICE MATCHING REQUIREMENT ===
+You MUST write in the specific style of this author. Match their voice exactly:
+`;
     
     if (styleProfile.tone) {
       prompt += `- Tone: ${styleProfile.tone}\n`;
@@ -839,11 +842,16 @@ When in doubt, quote directly from the references rather than paraphrasing.
       try {
         const excerpts = JSON.parse(styleProfile.sampleExcerpts);
         if (Array.isArray(excerpts) && excerpts.length > 0) {
-          prompt += `\nEXAMPLES OF THIS AUTHOR'S WRITING (mimic this style):
+          prompt += `
+=== FEW-SHOT EXAMPLES: WRITE EXACTLY LIKE THIS ===
+Study these excerpts carefully. Your output MUST match this voice, rhythm, and style:
 `;
           excerpts.slice(0, 3).forEach((excerpt: string, i: number) => {
             prompt += `Example ${i + 1}: "${excerpt}"\n`;
           });
+          prompt += `
+Notice the word choices, sentence patterns, and rhythm. Replicate these qualities.
+`;
         }
       } catch {
         // Ignore JSON parse errors
@@ -861,17 +869,18 @@ When in doubt, quote directly from the references rather than paraphrasing.
   // Add AI anti-patterns section (always include, but style-aware patterns take precedence)
   prompt += buildAntiPatternPromptSection({
     includeSeverities: ["high", "medium"],
-    maxPatterns: 35,
+    maxPatterns: 50,
   });
 
   prompt += `
-Guidelines:
-- Write naturally and authentically - your goal is to sound like a real person, not AI
-- NEVER use em dashes (—); instead use commas, periods, colons, semicolons, or parentheses
-- Be engaging and provide value to the reader
-- Use markdown formatting for structure (## for headings, **bold**, *italic*, bullet lists with -, etc.)
-- Start with something that hooks the reader's attention
-- Vary your sentence structure and avoid formulaic patterns
+=== CORE WRITING REQUIREMENTS ===
+1. SOUND HUMAN: Your #1 goal is to write like a thoughtful human, NOT like AI. Every sentence should pass the "would a real person say this?" test.
+2. NO EM DASHES: Never use em dashes (—). Use commas, periods, colons, semicolons, or parentheses instead.
+3. BE SPECIFIC: Avoid vague generalizations. Use concrete details, examples, and specific language.
+4. HOOK THE READER: Start with something that creates curiosity or provides immediate value - NOT a generic observation.
+5. NATURAL FLOW: Vary sentence structure and length. Connect ideas without announcing transitions.
+6. USE MARKDOWN: Structure with ## for headings, **bold**, *italic*, - for bullets when appropriate.
+7. AUTHENTIC VOICE: Write with personality. Be direct. Skip corporate buzzwords and empty filler.
 `;
 
   if (enableCitations && hasReferences) {

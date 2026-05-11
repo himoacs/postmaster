@@ -30,6 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 interface PatchRequest {
   title?: string;
+  content?: string;
   isActive?: boolean;
 }
 
@@ -41,13 +42,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const body = (await request.json()) as PatchRequest;
 
     // Build update data
-    const updateData: { title?: string; isActive?: boolean } = {};
+    const updateData: { title?: string; content?: string; wordCount?: number; isActive?: boolean } = {};
     
     if (body.title !== undefined) {
       if (!body.title.trim()) {
         return NextResponse.json({ error: "Title cannot be empty" }, { status: 400 });
       }
       updateData.title = body.title.trim();
+    }
+    
+    if (body.content !== undefined) {
+      if (!body.content.trim()) {
+        return NextResponse.json({ error: "Content cannot be empty" }, { status: 400 });
+      }
+      updateData.content = body.content.trim();
+      // Recalculate word count when content changes
+      updateData.wordCount = body.content.split(/\s+/).filter(Boolean).length;
     }
     
     if (body.isActive !== undefined) {
@@ -67,6 +77,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         type: true,
         source: true,
         mimeType: true,
+        content: true,
         wordCount: true,
         isActive: true,
         createdAt: true,

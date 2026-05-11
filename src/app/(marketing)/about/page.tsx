@@ -1,57 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { PenLine, ArrowLeft, ExternalLink } from "lucide-react";
+import { ExternalLink, PenLine } from "lucide-react";
 
 export default function AboutPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Draggable area for Electron window */}
-      <div 
-        className="fixed top-0 left-0 right-0 h-14 z-40"
-        style={{ 
-          // @ts-expect-error - Electron-specific CSS property for window dragging
-          WebkitAppRegion: 'drag',
-          appRegion: 'drag'
-        }}
-      />
-      {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
-        <div className="container">
-          <div className="flex h-14 items-center">
-            <Link 
-              href="/" 
-              className="flex items-center gap-2.5"
-              style={{ 
-                // @ts-expect-error - Electron-specific CSS property
-                WebkitAppRegion: 'no-drag',
-                appRegion: 'no-drag'
-              }}
-            >
-              <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
-              <span className="font-serif text-lg font-medium">PostMaster</span>
-            </Link>
-            <div className="flex-1" />
-            <nav 
-              className="flex items-center gap-4"
-              style={{ 
-                // @ts-expect-error - Electron-specific CSS property
-                WebkitAppRegion: 'no-drag',
-                appRegion: 'no-drag'
-              }}
-            >
-              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-                <Link href="/" className="flex items-center gap-1.5">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </Link>
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 pt-14">
+    <div className="flex min-h-full flex-col">
+      <main className="flex-1">
         {/* Story Section - First */}
         <section className="border-b py-16 lg:py-24">
           <div className="container">

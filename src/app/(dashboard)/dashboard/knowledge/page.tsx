@@ -20,6 +20,7 @@ import {
   Database,
   Plus,
   Trash2,
+  Pencil,
   Link,
   FileText,
   FileType,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddKnowledgeDialog } from "@/components/knowledge/add-knowledge-dialog";
+import { EditKnowledgeDialog } from "@/components/knowledge/edit-knowledge-dialog";
 
 interface KnowledgeEntry {
   id: string;
@@ -59,6 +61,7 @@ export default function KnowledgePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editEntry, setEditEntry] = useState<KnowledgeEntry | null>(null);
 
   const fetchEntries = async () => {
     try {
@@ -293,6 +296,13 @@ export default function KnowledgePage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => setEditEntry(entry)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setDeleteId(entry.id)}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -312,6 +322,14 @@ export default function KnowledgePage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSuccess={handleEntryAdded}
+      />
+
+      {/* Edit Knowledge Dialog */}
+      <EditKnowledgeDialog
+        entry={editEntry}
+        open={!!editEntry}
+        onOpenChange={(open) => !open && setEditEntry(null)}
+        onSuccess={fetchEntries}
       />
 
       {/* Delete Confirmation */}

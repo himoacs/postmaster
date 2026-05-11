@@ -149,6 +149,47 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "Look no further", category: "hype", severity: "high" },
   { pattern: "Enter:", category: "opener", severity: "high" },
   { pattern: "Cue the", category: "opener", severity: "high" },
+  
+  // Additional high-severity AI tells
+  { pattern: "powerful tool", category: "buzzword", severity: "high" },
+  { pattern: "powerful way", category: "buzzword", severity: "high" },
+  { pattern: "it's clear that", category: "filler", severity: "high" },
+  { pattern: "In this article", category: "opener", severity: "high" },
+  { pattern: "In this post", category: "opener", severity: "high" },
+  { pattern: "dive deep", category: "transition", severity: "high" },
+  { pattern: "explore how", category: "opener", severity: "high" },
+  { pattern: "discover how", category: "opener", severity: "high" },
+  { pattern: "Buckle up", category: "opener", severity: "high" },
+  { pattern: "ready to take", category: "hype", severity: "high" },
+  { pattern: "The best part?", category: "filler", severity: "high" },
+  { pattern: "Here's why", category: "filler", severity: "high" },
+  { pattern: "Here's how", category: "filler", severity: "high" },
+  { pattern: "But wait", category: "filler", severity: "high" },
+  { pattern: "You might be wondering", category: "opener", severity: "high" },
+  { pattern: "You may be wondering", category: "opener", severity: "high" },
+  { pattern: "Whether you're", category: "opener", severity: "high" },
+  { pattern: "Whether you are", category: "opener", severity: "high" },
+  { pattern: "From X to Y", category: "structure", severity: "high" },
+  { pattern: "Let's explore", category: "transition", severity: "high" },
+  { pattern: "Let's take a look", category: "transition", severity: "high" },
+  { pattern: "Let's break it down", category: "transition", severity: "high" },
+  { pattern: "Gone are the days", category: "opener", severity: "high" },
+  { pattern: "The reality is", category: "filler", severity: "high" },
+  { pattern: "The fact is", category: "filler", severity: "high" },
+  { pattern: "simply put", category: "filler", severity: "high" },
+  { pattern: "put simply", category: "filler", severity: "high" },
+  { pattern: "make no mistake", category: "filler", severity: "high" },
+  { pattern: "the truth is", category: "filler", severity: "high" },
+  { pattern: "at its core", category: "filler", severity: "high" },
+  { pattern: "at the core", category: "filler", severity: "high" },
+  { pattern: "stands out", category: "buzzword", severity: "high" },
+  { pattern: "sets apart", category: "buzzword", severity: "high" },
+  { pattern: "takes it to the next level", category: "hype", severity: "high" },
+  { pattern: "brings to the table", category: "buzzword", severity: "high" },
+  { pattern: "paves the way", category: "buzzword", severity: "high" },
+  { pattern: "opens the door", category: "buzzword", severity: "high" },
+  { pattern: "opens doors", category: "buzzword", severity: "high" },
+  { pattern: "marks a", category: "buzzword", severity: "high" },
 ];
 
 /**
@@ -304,8 +345,11 @@ export function buildAntiPatternPromptSection(
   }
 
   let section = `
-CRITICAL - AVOID AI-SOUNDING LANGUAGE:
-The following phrases and patterns are strongly associated with AI-generated content. DO NOT use them:
+=== CRITICAL: ANTI-AI DETECTION REQUIREMENTS ===
+You MUST avoid ALL of the following phrases and patterns. They are DEAD GIVEAWAYS of AI-generated content.
+Using ANY of these will make the content sound robotic and inauthentic. This is your #1 priority.
+
+BANNED PHRASES AND PATTERNS:
 
 `;
 
@@ -327,14 +371,18 @@ The following phrases and patterns are strongly associated with AI-generated con
     section += `- "${phrases.join('", "')}"\n\n`;
   }
 
-  section += `Instead:
-- Use specific, concrete language
-- Start with something unexpected or direct
-- Vary sentence structure naturally
-- Let the content speak for itself without announcing structure
-- Be genuine rather than artificially enthusiastic
-- Avoid sentence stacking (consecutive short declarative sentences)
-- Connect ideas with natural transitions for coherent flow
+  section += `=== HOW TO WRITE LIKE A HUMAN ===
+Do these instead:
+- Start with something SPECIFIC to the topic, not a generic observation about "today's world"
+- Use concrete examples and details, not vague generalizations
+- Write like you're talking to a friend, not presenting to a boardroom
+- Avoid announcing what you're about to do ("Let me explain", "Here's the thing")
+- Skip the fake enthusiasm ("incredibly", "truly", "absolutely")
+- Vary your sentence lengths - mix short punchy sentences with longer flowing ones
+- Don't stack sentences that all start the same way
+- Use contractions naturally ("don't" instead of "do not") unless formal context requires otherwise
+- Transition naturally between ideas without announcing it ("Furthermore", "Moreover" sound robotic)
+- End with something memorable, not a summary of what was already said
 `;
 
   return section;

@@ -297,17 +297,17 @@
   }
 }
 
-/* Toast customization - match terracotta/warm theme for all types */
+/* Toast customization - green for success, terracotta for others */
 
-/* Success toasts - use primary terracotta color */
+/* Success toasts - use green for positive feedback */
 [data-sonner-toast][data-type="success"] {
-  background-color: var(--accent) !important;
-  border-color: var(--primary) !important;
-  color: var(--accent-foreground) !important;
+  background-color: oklch(0.95 0.08 145) !important;
+  border-color: oklch(0.55 0.18 145) !important;
+  color: oklch(0.30 0.10 145) !important;
 }
 
 [data-sonner-toast][data-type="success"] [data-icon] {
-  color: var(--primary) !important;
+  color: oklch(0.45 0.18 145) !important;
 }
 
 /* Info toasts - use primary terracotta color */
@@ -356,9 +356,13 @@
 
 /* Dark mode overrides */
 .dark [data-sonner-toast][data-type="success"] {
-  background-color: var(--accent) !important;
-  border-color: var(--primary) !important;
-  color: var(--accent-foreground) !important;
+  background-color: oklch(0.25 0.06 145) !important;
+  border-color: oklch(0.55 0.18 145) !important;
+  color: oklch(0.85 0.08 145) !important;
+}
+
+.dark [data-sonner-toast][data-type="success"] [data-icon] {
+  color: oklch(0.65 0.18 145) !important;
 }
 
 .dark [data-sonner-toast][data-type="info"] {

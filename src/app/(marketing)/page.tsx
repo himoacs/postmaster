@@ -1,74 +1,23 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-  PenLine,
   Layers,
-  Blend,
   RefreshCw,
   ImageIcon,
   Key,
   ArrowRight,
-  HeartHandshake,
   AlertTriangle,
   Target,
+  PenLine,
 } from "lucide-react";
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Draggable area for Electron window */}
-      <div 
-        className="fixed top-0 left-0 right-0 h-14 z-40"
-        style={{ 
-          // @ts-expect-error - Electron-specific CSS property for window dragging
-          WebkitAppRegion: 'drag',
-          appRegion: 'drag'
-        }}
-      />
-      {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b bg-background/80 backdrop-blur-sm">
-        <div className="container">
-          <div className="grid h-14 items-center lg:grid-cols-2 lg:gap-16">
-            <div className="flex items-center">
-              <Link 
-                href="/" 
-                className="flex items-center gap-2.5"
-                style={{ 
-                  // @ts-expect-error - Electron-specific CSS property
-                  WebkitAppRegion: 'no-drag',
-                  appRegion: 'no-drag'
-                }}
-              >
-                <PenLine className="h-5 w-5 text-primary" strokeWidth={1.5} />
-                <span className="font-serif text-lg font-medium">PostMaster</span>
-              </Link>
-            </div>
-            <nav 
-              className="flex items-center justify-end gap-4"
-              style={{ 
-                // @ts-expect-error - Electron-specific CSS property
-                WebkitAppRegion: 'no-drag',
-                appRegion: 'no-drag'
-              }}
-            >
-              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-                <Link href="#how-it-works">How it works</Link>
-              </Button>
-              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-                <Link href="/about">About</Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link href="/dashboard">Open Editor</Link>
-              </Button>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 pt-14">
+    <div className="flex min-h-full flex-col">
+      <main className="flex-1">
         {/* Hero - Split Screen */}
         <section className="border-b">
-          <div className="container grid min-h-[calc(100vh-3.5rem)] items-center gap-12 py-16 lg:grid-cols-2 lg:gap-16">
+          <div className="container grid min-h-[calc(100vh-57px)] items-center gap-12 py-8 lg:grid-cols-2 lg:gap-16">
             {/* Left: Text */}
             <div className="max-w-xl">
               <p className="mb-4 text-sm font-medium uppercase tracking-widest text-primary">

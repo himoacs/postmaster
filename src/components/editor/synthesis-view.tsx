@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useTextSelection } from "@/hooks/useTextSelection";
+import { AnnotationPopover } from "./annotation-popover";
+import { AnnotationAddButton } from "./annotation-add-button";
+import { AnnotationSidebar } from "./annotation-sidebar";
+import { AnnotationMark } from "./annotation-highlight";
+import {
+  Annotation,
+  generateAnnotationId,
+  formatAnnotationsAsFeedback,
+  hasOverlap,
+  ANNOTATION_COLORS,
+} from "@/types/annotation";
 import {
   Collapsible,
   CollapsibleContent,
@@ -19,6 +31,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
 import {
   ArrowLeft,
   Copy,
@@ -37,6 +52,7 @@ import {
   FileCode,
   ClipboardPaste,
   BarChart3,
+  FileType,
   GitCompare,
   BrainCircuit,
   X,
@@ -49,6 +65,7 @@ import {
   AlertTriangle,
   Sparkles,
   History as HistoryIcon,
+  MessageSquarePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageGenerator } from "./image-generator";
@@ -57,7 +74,7 @@ import { DiffView } from "./diff-view";
 import { FactCheckPanel } from "./fact-check-panel";
 import { SynthesisStrategy, CritiqueOutput, DebateSession, SynthesisReasoning } from "@/types";
 
-type SidePanelType = "refine" | "image" | "analyze" | "history" | "reasoning" | "factcheck" | "critiques" | "aicheck" | null;
+type SidePanelType = "refine" | "image" | "analyze" | "history" | "reasoning" | "factcheck" | "critiques" | "aicheck" | "annotate" | null;
 
 interface AICheckResult {
   patternScore: {
@@ -131,6 +148,26 @@ export function SynthesisView({
   const [aiCheckResult, setAiCheckResult] = useState<AICheckResult | null>(null);
   const [isCheckingAI, setIsCheckingAI] = useState(false);
 
+  // Annotation state
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const [showAddButton, setShowAddButton] = useState(false);
+  const [showAnnotationPopover, setShowAnnotationPopover] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<{
+    text: string;
+    rect: DOMRect;
+    startOffset: number;
+    endOffset: number;
+  } | null>(null);
+  const contentContainerRef = useRef<HTMLDivElement>(null);
+
+  // Text selection hook for annotation mode
+  const { selectedText, selectionRect, isSelecting, clearSelection } = useTextSelection({
+    containerRef: contentContainerRef,
+    enabled: isAnnotationMode && !isEditing,
+    minLength: 3,
+  });
+
   // Track original content with citations for restoration
   const [originalContentWithCitations, setOriginalContentWithCitations] = useState<string | null>(null);
   const [citationsRemoved, setCitationsRemoved] = useState(false);
@@ -149,6 +186,147 @@ export function SynthesisView({
   const togglePanel = (panel: SidePanelType) => {
     setActivePanel(activePanel === panel ? null : panel);
   };
+
+  // Show add button when text is selected in annotation mode
+  // Only trigger when user has finished selecting (isSelecting is false)
+  useEffect(() => {
+    if (isAnnotationMode && selectedText && selectionRect && !showAddButton && !showAnnotationPopover && !isSelecting) {
+      // For annotation, we just need valid selected text (minimum 3 chars)
+      const trimmedSelection = selectedText.trim();
+      
+      if (trimmedSelection.length >= 3) {
+        // Use approximate offsets based on text position in rendered content
+        // These are just for annotation tracking, not critical for accuracy
+        const startOffset = 0;
+        const endOffset = trimmedSelection.length;
+        
+        // Check for overlap with existing annotations by comparing text
+        const hasTextOverlap = annotations.some(ann => 
+          ann.selectedText === trimmedSelection ||
+          trimmedSelection.includes(ann.selectedText) ||
+          ann.selectedText.includes(trimmedSelection)
+        );
+        
+        if (!hasTextOverlap) {
+          setPendingSelection({
+            text: selectedText,
+            rect: selectionRect,
+            startOffset,
+            endOffset,
+          });
+          // Show the small add button first
+          setShowAddButton(true);
+        } else {
+          toast.error("This selection overlaps with an existing annotation");
+          clearSelection();
+        }
+      }
+    }
+    
+    // Hide add button when selection is cleared
+    if (!selectedText && showAddButton && !showAnnotationPopover) {
+      setShowAddButton(false);
+      setPendingSelection(null);
+    }
+  }, [selectedText, selectionRect, isAnnotationMode, showAddButton, showAnnotationPopover, isSelecting, annotations, clearSelection]);
+
+  // Handler for when user clicks the add button
+  const handleAddButtonClick = useCallback(() => {
+    setShowAddButton(false);
+    setShowAnnotationPopover(true);
+  }, []);
+
+  // Clear annotations when entering edit mode
+  useEffect(() => {
+    if (isEditing && annotations.length > 0) {
+      toast.info("Annotations cleared for editing");
+      setAnnotations([]);
+      setIsAnnotationMode(false);
+      setActivePanel(null);
+    }
+  }, [isEditing, annotations.length]);
+
+  // Clear annotations when content changes from iteration
+  useEffect(() => {
+    if (annotations.length > 0) {
+      setAnnotations([]);
+      setIsAnnotationMode(false);
+      if (activePanel === "annotate") {
+        setActivePanel(null);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]); // Only trigger on content prop change (iteration complete)
+
+  const handleAddAnnotation = useCallback((comment: string) => {
+    if (!pendingSelection) return;
+
+    const newAnnotation: Annotation = {
+      id: generateAnnotationId(),
+      selectedText: pendingSelection.text,
+      comment,
+      startOffset: pendingSelection.startOffset,
+      endOffset: pendingSelection.endOffset,
+      colorIndex: annotations.length % ANNOTATION_COLORS.length,
+      createdAt: Date.now(),
+    };
+
+    setAnnotations((prev) => [...prev, newAnnotation]);
+    setShowAddButton(false);
+    setShowAnnotationPopover(false);
+    setPendingSelection(null);
+    clearSelection();
+    
+    // Auto-open annotation sidebar if not already open
+    if (activePanel !== "annotate") {
+      setActivePanel("annotate");
+    }
+    
+    toast.success("Annotation added");
+  }, [pendingSelection, annotations.length, clearSelection, activePanel]);
+
+  const handleCancelAnnotation = useCallback(() => {
+    setShowAddButton(false);
+    setShowAnnotationPopover(false);
+    setPendingSelection(null);
+    clearSelection();
+  }, [clearSelection]);
+
+  const handleRemoveAnnotation = useCallback((annotationId: string) => {
+    setAnnotations((prev) => prev.filter((a) => a.id !== annotationId));
+  }, []);
+
+  const handleClearAllAnnotations = useCallback(() => {
+    setAnnotations([]);
+    toast.success("All annotations cleared");
+  }, []);
+
+  const handleSubmitAnnotations = useCallback(() => {
+    if (annotations.length === 0) return;
+    
+    const annotationFeedback = formatAnnotationsAsFeedback(annotations);
+    // Combine with any existing feedback
+    const combinedFeedback = feedback.trim()
+      ? `${feedback.trim()}\n\n${annotationFeedback}`
+      : annotationFeedback;
+    
+    onIterate(combinedFeedback, draftContent !== content ? draftContent : undefined);
+    // Annotations will be cleared by the content change effect
+    setFeedback("");
+  }, [annotations, feedback, onIterate, draftContent, content]);
+
+  const toggleAnnotationMode = useCallback(() => {
+    const newMode = !isAnnotationMode;
+    setIsAnnotationMode(newMode);
+    if (newMode) {
+      setActivePanel("annotate");
+      toast.info("Annotation mode: Select text to add comments");
+    } else {
+      if (activePanel === "annotate") {
+        setActivePanel(null);
+      }
+    }
+  }, [isAnnotationMode, activePanel]);
 
   const handleSaveEdits = () => {
     onContentChange?.(draftContent);
@@ -305,6 +483,253 @@ export function SynthesisView({
     }
   };
 
+  const downloadAsPDF = () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    const addPage = () => {
+      pdf.addPage();
+      y = margin;
+    };
+
+    const checkPageBreak = (height: number) => {
+      if (y + height > pageHeight - margin) {
+        addPage();
+      }
+    };
+
+    // Parse and render markdown with formatting
+    const lines = currentContent.split("\n");
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Handle headers
+      if (line.startsWith("# ")) {
+        checkPageBreak(20);
+        if (y > margin) y += 8; // Add space before header
+        pdf.setFontSize(24);
+        pdf.setFont("helvetica", "bold");
+        const headerText = line.slice(2);
+        const headerLines = pdf.splitTextToSize(headerText, maxWidth);
+        for (const hl of headerLines) {
+          checkPageBreak(12);
+          pdf.text(hl, margin, y);
+          y += 12;
+        }
+        y += 4;
+      } else if (line.startsWith("## ")) {
+        checkPageBreak(16);
+        if (y > margin) y += 6;
+        pdf.setFontSize(18);
+        pdf.setFont("helvetica", "bold");
+        const headerText = line.slice(3);
+        const headerLines = pdf.splitTextToSize(headerText, maxWidth);
+        for (const hl of headerLines) {
+          checkPageBreak(10);
+          pdf.text(hl, margin, y);
+          y += 10;
+        }
+        y += 3;
+      } else if (line.startsWith("### ")) {
+        checkPageBreak(14);
+        if (y > margin) y += 4;
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        const headerText = line.slice(4);
+        const headerLines = pdf.splitTextToSize(headerText, maxWidth);
+        for (const hl of headerLines) {
+          checkPageBreak(8);
+          pdf.text(hl, margin, y);
+          y += 8;
+        }
+        y += 2;
+      } else if (line.startsWith("#### ") || line.startsWith("##### ") || line.startsWith("###### ")) {
+        checkPageBreak(12);
+        if (y > margin) y += 3;
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        const headerText = line.replace(/^#{4,6}\s/, "");
+        const headerLines = pdf.splitTextToSize(headerText, maxWidth);
+        for (const hl of headerLines) {
+          checkPageBreak(7);
+          pdf.text(hl, margin, y);
+          y += 7;
+        }
+        y += 2;
+      } else if (line.match(/^[-*]\s/)) {
+        // Bullet list
+        checkPageBreak(7);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        const bulletText = line.replace(/^[-*]\s/, "");
+        const cleanText = bulletText
+          .replace(/\*\*(.*?)\*\*/g, "$1")
+          .replace(/\*(.*?)\*/g, "$1")
+          .replace(/`(.*?)`/g, "$1")
+          .replace(/\[(.*?)\]\(.*?\)/g, "$1");
+        const bulletLines = pdf.splitTextToSize(cleanText, maxWidth - 10);
+        pdf.text("•", margin, y);
+        for (let j = 0; j < bulletLines.length; j++) {
+          checkPageBreak(6);
+          pdf.text(bulletLines[j], margin + 8, y);
+          y += 6;
+        }
+      } else if (line.match(/^\d+\.\s/)) {
+        // Numbered list
+        checkPageBreak(7);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        const match = line.match(/^(\d+)\.\s(.*)$/);
+        if (match) {
+          const num = match[1];
+          const listText = match[2]
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .replace(/\*(.*?)\*/g, "$1")
+            .replace(/`(.*?)`/g, "$1")
+            .replace(/\[(.*?)\]\(.*?\)/g, "$1");
+          const listLines = pdf.splitTextToSize(listText, maxWidth - 12);
+          pdf.text(`${num}.`, margin, y);
+          for (let j = 0; j < listLines.length; j++) {
+            checkPageBreak(6);
+            pdf.text(listLines[j], margin + 10, y);
+            y += 6;
+          }
+        }
+      } else if (line.trim() === "") {
+        // Empty line - add paragraph spacing
+        y += 4;
+      } else if (line.startsWith("> ")) {
+        // Blockquote
+        checkPageBreak(7);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "italic");
+        const quoteText = line.slice(2)
+          .replace(/\*\*(.*?)\*\*/g, "$1")
+          .replace(/\*(.*?)\*/g, "$1");
+        const quoteLines = pdf.splitTextToSize(quoteText, maxWidth - 15);
+        // Draw a subtle line for blockquote
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineWidth(0.5);
+        for (const ql of quoteLines) {
+          checkPageBreak(6);
+          pdf.line(margin, y - 4, margin, y + 2);
+          pdf.text(ql, margin + 8, y);
+          y += 6;
+        }
+        pdf.setFont("helvetica", "normal");
+      } else if (line.startsWith("```")) {
+        // Code block - skip the fence line
+        continue;
+      } else {
+        // Regular paragraph - handle inline formatting
+        checkPageBreak(7);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        
+        // Clean inline formatting for PDF (jsPDF doesn't support mixed styles in one line easily)
+        const cleanText = line
+          .replace(/\*\*(.*?)\*\*/g, "$1")
+          .replace(/\*(.*?)\*/g, "$1")
+          .replace(/`(.*?)`/g, "$1")
+          .replace(/\[(.*?)\]\(.*?\)/g, "$1");
+        
+        const textLines = pdf.splitTextToSize(cleanText, maxWidth);
+        for (const tl of textLines) {
+          checkPageBreak(6);
+          pdf.text(tl, margin, y);
+          y += 6;
+        }
+      }
+    }
+
+    pdf.save(`postmaster-${Date.now()}.pdf`);
+    toast.success("Downloaded as PDF");
+  };
+
+  const downloadAsDOCX = async () => {
+    // Parse markdown into document elements
+    const paragraphs: Paragraph[] = [];
+    const lines = currentContent.split("\n");
+
+    for (const line of lines) {
+      if (line.startsWith("# ")) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.slice(2),
+            heading: HeadingLevel.HEADING_1,
+          })
+        );
+      } else if (line.startsWith("## ")) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.slice(3),
+            heading: HeadingLevel.HEADING_2,
+          })
+        );
+      } else if (line.startsWith("### ")) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.slice(4),
+            heading: HeadingLevel.HEADING_3,
+          })
+        );
+      } else if (line.trim() === "") {
+        paragraphs.push(new Paragraph({}));
+      } else {
+        // Handle bold and italic in text
+        const children: TextRun[] = [];
+        let remaining = line;
+        const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = regex.exec(remaining)) !== null) {
+          // Add text before match
+          if (match.index > lastIndex) {
+            children.push(new TextRun(remaining.slice(lastIndex, match.index)));
+          }
+          // Add formatted text
+          if (match[2]) {
+            // Bold
+            children.push(new TextRun({ text: match[2], bold: true }));
+          } else if (match[3]) {
+            // Italic
+            children.push(new TextRun({ text: match[3], italics: true }));
+          }
+          lastIndex = match.index + match[0].length;
+        }
+        // Add remaining text
+        if (lastIndex < remaining.length) {
+          children.push(new TextRun(remaining.slice(lastIndex)));
+        }
+
+        paragraphs.push(
+          new Paragraph({
+            children: children.length > 0 ? children : [new TextRun(line)],
+          })
+        );
+      }
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: paragraphs,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `postmaster-${Date.now()}.docx`);
+    toast.success("Downloaded as DOCX");
+  };
+
   const handleIterate = () => {
     if (!feedback.trim()) return;
     // Pass both feedback and the current (possibly modified) draft content
@@ -406,6 +831,14 @@ export function SynthesisView({
                 <FileCode className="mr-2 h-4 w-4" />
                 HTML (.html)
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadAsPDF}>
+                <FileType className="mr-2 h-4 w-4" />
+                PDF (.pdf)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={downloadAsDOCX}>
+                <FileType className="mr-2 h-4 w-4" />
+                Word (.docx)
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={copyAsRichText}>
                 <ClipboardPaste className="mr-2 h-4 w-4" />
@@ -484,6 +917,20 @@ export function SynthesisView({
           )}
           AI Check
         </Button>
+        <Button
+          variant={isAnnotationMode ? "default" : "outline"}
+          size="sm"
+          onClick={toggleAnnotationMode}
+          disabled={isEditing}
+        >
+          <MessageSquarePlus className="mr-2 h-4 w-4" />
+          Annotate
+          {annotations.length > 0 && (
+            <Badge variant="secondary" className="ml-2 h-5 min-w-5 px-1.5">
+              {annotations.length}
+            </Badge>
+          )}
+        </Button>
         {hasCritiques && (
           <Button
             variant={activePanel === "critiques" ? "default" : "outline"}
@@ -549,33 +996,85 @@ export function SynthesisView({
                 placeholder="Edit your draft content here..."
               />
             ) : (
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="prose prose-sm prose-editorial dark:prose-invert max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      a: ({ href, children }) => {
-                        // Handle citation links - show URL and open externally
-                        const handleClick = (e: React.MouseEvent) => {
-                          e.preventDefault();
-                          if (href) {
-                            window.open(href, '_blank', 'noopener,noreferrer');
+              <div className="relative" ref={contentContainerRef}>
+                {/* Annotation mode indicator - inline banner at top */}
+                {isAnnotationMode && (
+                  <div className="mb-3 flex items-center justify-center py-2 px-3 rounded-md bg-primary/10 border border-primary/20">
+                    <MessageSquarePlus className="h-4 w-4 mr-2 text-primary" />
+                    <span className="text-sm text-primary font-medium">
+                      Select text below to add annotations
+                    </span>
+                  </div>
+                )}
+                <ScrollArea className={`h-[500px] pr-4 ${isAnnotationMode ? "selection:bg-yellow-200/60 dark:selection:bg-yellow-500/40" : ""}`}>
+                  <div className={`prose prose-sm prose-editorial dark:prose-invert max-w-none ${isAnnotationMode ? "select-text cursor-text" : ""}`}>
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => {
+                          // Handle citation links - show URL and open externally
+                          const handleClick = (e: React.MouseEvent) => {
+                            e.preventDefault();
+                            if (href) {
+                              window.open(href, '_blank', 'noopener,noreferrer');
+                            }
+                          };
+                          return (
+                            <span
+                              onClick={handleClick}
+                              className="text-primary underline cursor-pointer hover:text-primary/80"
+                              title={href}
+                            >
+                              {children}
+                              {href && <span className="text-muted-foreground text-xs ml-1">({href})</span>}
+                            </span>
+                          );
+                        },
+                        code: ({ className, children, ...props }) => {
+                          // Check if it's an inline code or code block
+                          const isInline = !className;
+                          if (isInline) {
+                            return (
+                              <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono" {...props}>
+                                {children}
+                              </code>
+                            );
                           }
-                        };
-                        return (
-                          <span
-                            onClick={handleClick}
-                            className="text-primary underline cursor-pointer hover:text-primary/80"
-                            title={href}
-                          >
-                            {children}
-                            {href && <span className="text-muted-foreground text-xs ml-1">({href})</span>}
-                          </span>
-                        );
-                      }
-                    }}
-                  >{currentContent}</ReactMarkdown>
-                </div>
-              </ScrollArea>
+                          // Code block
+                          return (
+                            <code className={`block p-4 rounded-lg bg-muted overflow-x-auto text-sm font-mono ${className || ''}`} {...props}>
+                              {children}
+                            </code>
+                          );
+                        },
+                        pre: ({ children }) => {
+                          // Just pass through, styling handled by code component
+                          return <pre className="not-prose my-4">{children}</pre>;
+                        }
+                      }}
+                    >{currentContent}</ReactMarkdown>
+                  </div>
+                </ScrollArea>
+
+                {/* Annotation add button - shows when text is selected */}
+                {showAddButton && pendingSelection && (
+                  <AnnotationAddButton
+                    selectionRect={pendingSelection.rect}
+                    containerRef={contentContainerRef}
+                    onClick={handleAddButtonClick}
+                  />
+                )}
+
+                {/* Annotation popover - shows when add button is clicked */}
+                {showAnnotationPopover && pendingSelection && (
+                  <AnnotationPopover
+                    selectedText={pendingSelection.text}
+                    selectionRect={pendingSelection.rect}
+                    containerRef={contentContainerRef}
+                    onConfirm={handleAddAnnotation}
+                    onCancel={handleCancelAnnotation}
+                  />
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -583,14 +1082,17 @@ export function SynthesisView({
         {/* Side panel - conditionally rendered based on activePanel */}
         {activePanel && (
           <Card className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2 h-6 w-6 z-10"
-              onClick={() => setActivePanel(null)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {/* Close button - skip for annotation panel which has its own */}
+            {activePanel !== "annotate" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2 h-6 w-6 z-10"
+                onClick={() => setActivePanel(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
 
             {/* Refine panel */}
             {activePanel === "refine" && (
@@ -1090,6 +1592,24 @@ export function SynthesisView({
                   </ScrollArea>
                 </CardContent>
               </>
+            )}
+
+            {/* Annotation panel */}
+            {activePanel === "annotate" && (
+              <AnnotationSidebar
+                annotations={annotations}
+                onRemove={handleRemoveAnnotation}
+                onClearAll={handleClearAllAnnotations}
+                onSubmit={handleSubmitAnnotations}
+                onAnnotationClick={(ann) => {
+                  // Future: scroll to annotation in content
+                }}
+                onClose={() => {
+                  setActivePanel(null);
+                  setIsAnnotationMode(false);
+                }}
+                isSubmitting={false}
+              />
             )}
           </Card>
         )}

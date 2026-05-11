@@ -857,14 +857,15 @@ export function WritingWorkspace({
   };
 
   const handleSynthesize = async (starredSections?: { provider: AIProvider; text: string }[]) => {
-    // For basic strategy, go directly to synthesis
-    if (synthesisStrategy === "basic") {
+    // For basic strategy, or single model output, go directly to synthesis
+    // (critiquing/debate doesn't make sense with only one model)
+    if (synthesisStrategy === "basic" || outputs.length === 1) {
       setState("synthesizing");
       await performBasicSynthesis(starredSections);
       return;
     }
 
-    // For sequential/debate, first run critiquing phase
+    // For sequential/debate with multiple models, first run critiquing phase
     setState("critiquing");
     setCritiques([]);
     setDebateSession(null);
