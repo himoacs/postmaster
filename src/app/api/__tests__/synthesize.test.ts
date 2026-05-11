@@ -797,7 +797,7 @@ describe('API: /api/synthesize', () => {
       expect(response.status).toBe(200);
       expect(prisma.generation.findUnique).toHaveBeenCalledWith({
         where: { id: 'gen-1' },
-        select: { sourceMap: true },
+        select: { sourceMap: true, contentMode: true, sourceContent: true },
       });
       expect(generateWithOpenAI).toHaveBeenCalledWith(
         'decrypted-api-key',

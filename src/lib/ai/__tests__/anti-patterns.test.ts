@@ -120,7 +120,7 @@ describe("Anti-Patterns Module", () => {
     });
 
     it("should include high and medium severity by default", () => {
-      const section = buildAntiPatternPromptSection({ maxPatterns: 100 });
+      const section = buildAntiPatternPromptSection({ maxPatterns: 150 });
       // Should include some high severity patterns
       expect(section).toContain("In today's fast-paced world");
       // Should include some medium severity patterns (with higher limit to ensure they're included)
