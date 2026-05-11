@@ -80,7 +80,7 @@ export default function LandingPage() {
                 <span className="text-muted-foreground">Sound Like You.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-                PostMaster polishes AI-generated content, catches 80+ AI tells, and adapts to your unique voice—so your writing stays authentic.
+                PostMaster polishes AI-generated content, catches 80+ AI tells, and adapts to your unique voice so your writing stays authentic.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Button size="lg" asChild className="h-12 px-6">
