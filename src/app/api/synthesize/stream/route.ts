@@ -44,18 +44,27 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Retrieve sourceMap from Generation if not provided
+  // Retrieve sourceMap, contentMode, and sourceContent from Generation
   let sourceMap: Array<{ url: string; title: string }> = providedSourceMap || [];
-  if (!sourceMap || sourceMap.length === 0) {
-    const generation = await prisma.generation.findUnique({
-      where: { id: generationId },
-      select: { sourceMap: true },
-    });
-    if (generation?.sourceMap) {
-      try {
-        sourceMap = JSON.parse(generation.sourceMap);
-      } catch {
-        sourceMap = [];
+  let contentMode: string | null = null;
+  let sourceContent: string | null = null;
+  
+  const generation = await prisma.generation.findUnique({
+    where: { id: generationId },
+    select: { sourceMap: true, contentMode: true, sourceContent: true },
+  });
+  
+  if (generation) {
+    contentMode = generation.contentMode;
+    sourceContent = generation.sourceContent;
+    
+    if (!sourceMap || sourceMap.length === 0) {
+      if (generation.sourceMap) {
+        try {
+          sourceMap = JSON.parse(generation.sourceMap);
+        } catch {
+          sourceMap = [];
+        }
       }
     }
   }
@@ -79,8 +88,8 @@ export async function POST(request: NextRequest) {
 
   // Build synthesis prompt based on strategy
   const synthesisPrompt = strategy === "sequential" && critiques
-    ? buildConsensusPrompt(outputs, critiques, starredSections)
-    : buildSynthesisPrompt(outputs, starredSections);
+    ? buildConsensusPrompt(outputs, critiques, starredSections, sourceContent, contentMode)
+    : buildSynthesisPrompt(outputs, starredSections, sourceContent, contentMode);
 
   // Build citation context if sourceMap is available
   let citationContext = "";
@@ -341,14 +350,26 @@ async function getStreamGenerator(
 
 function buildSynthesisPrompt(
   outputs: GenerationOutput[],
-  starredSections?: { provider: AIProvider; text: string }[]
+  starredSections?: { provider: AIProvider; text: string }[],
+  sourceContent?: string | null,
+  contentMode?: string | null
 ): string {
   // Handle single output case
   if (outputs.length === 1) {
     const output = outputs[0];
     const providerName = AI_PROVIDERS[output.provider]?.name || output.provider;
     
-    let prompt = `Here is a draft from ${providerName} (${output.model}):\n\n`;
+    let prompt = "";
+    
+    // Include original content for enhance mode
+    if (contentMode === "enhance" && sourceContent) {
+      prompt += "=== ORIGINAL CONTENT (BEFORE ENHANCEMENT) ===\n\n";
+      prompt += sourceContent;
+      prompt += "\n\n=== ENHANCED DRAFT FROM AI MODEL ===\n\n";
+      prompt += "The model above enhanced the original content. Now polish and refine this enhanced version:\n\n";
+    }
+    
+    prompt += `Draft from ${providerName} (${output.model}):\n\n`;
     prompt += output.content;
     prompt += "\n\n";
     
@@ -373,7 +394,17 @@ IMPORTANT: Preserve all source citations in the format [Source: Title] or [Sourc
   }
 
   // Multiple outputs
-  let prompt = "Here are multiple drafts of the same content from different AI models:\n\n";
+  let prompt = "";
+  
+  // Include original content for enhance mode
+  if (contentMode === "enhance" && sourceContent) {
+    prompt += "=== ORIGINAL CONTENT (BEFORE ENHANCEMENT) ===\n\n";
+    prompt += sourceContent;
+    prompt += "\n\n=== ENHANCED DRAFTS FROM AI MODELS ===\n\n";
+    prompt += "The models above enhanced the original content. Now synthesize the best enhanced version:\n\n";
+  } else {
+    prompt += "Here are multiple drafts of the same content from different AI models:\n\n";
+  }
 
   outputs.forEach((output, index) => {
     const providerName = AI_PROVIDERS[output.provider]?.name || output.provider;
@@ -405,9 +436,21 @@ IMPORTANT: Preserve all source citations in the format [Source: Title] or [Sourc
 function buildConsensusPrompt(
   outputs: GenerationOutput[],
   critiques: CritiqueOutput[],
-  starredSections?: { provider: AIProvider; text: string }[]
+  starredSections?: { provider: AIProvider; text: string }[],
+  sourceContent?: string | null,
+  contentMode?: string | null
 ): string {
-  let prompt = "Here are multiple drafts of the same content from different AI models:\n\n";
+  let prompt = "";
+  
+  // Include original content for enhance mode
+  if (contentMode === "enhance" && sourceContent) {
+    prompt += "=== ORIGINAL CONTENT (BEFORE ENHANCEMENT) ===\n\n";
+    prompt += sourceContent;
+    prompt += "\n\n=== ENHANCED DRAFTS FROM AI MODELS ===\n\n";
+    prompt += "The models above enhanced the original content based on critique insights. Now synthesize the best enhanced version:\n\n";
+  } else {
+    prompt += "Here are multiple drafts of the same content from different AI models:\n\n";
+  }
 
   outputs.forEach((output, index) => {
     const providerName = AI_PROVIDERS[output.provider]?.name || output.provider;

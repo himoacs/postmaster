@@ -313,13 +313,16 @@ export function ComparisonView({
       )}
 
       {/* Output cards */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={outputs.length === 1 
+        ? "flex justify-center" 
+        : "grid gap-4 lg:grid-cols-2"
+      }>
         {outputs.map((output, index) => {
           const isFailed = isOutputFailed(output);
           const isRetrying = retryingIndex === index;
 
           return (
-            <Card key={index} className={`flex flex-col ${isFailed ? "border-destructive/50" : ""}`}>
+            <Card key={index} className={`flex flex-col ${isFailed ? "border-destructive/50" : ""} ${outputs.length === 1 ? "w-full max-w-3xl" : ""}`}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-2">

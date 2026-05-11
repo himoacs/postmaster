@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Zap, PenLine, MessagesSquare, Sparkles, Swords, RefreshCw, Loader2, CheckCircle2, Database } from "lucide-react";
+import { Zap, PenLine, MessagesSquare, Sparkles, Swords, RefreshCw, Loader2, CheckCircle2, Database, Settings, AlertCircle } from "lucide-react";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { WorkflowProgress } from "./workflow-progress";
 import { ProductTour } from "@/components/onboarding/product-tour";
@@ -39,6 +39,14 @@ const SYNTHESIZING_MESSAGES = [
   { message: "Merging best elements...", duration: 2000 },
   { message: "Harmonizing writing styles...", duration: 1500 },
   { message: "Finalizing content...", duration: 2000 },
+];
+
+const POLISHING_MESSAGES = [
+  { message: "Reviewing your content...", duration: 1000 },
+  { message: "Improving clarity and flow...", duration: 1500 },
+  { message: "Enhancing structure and coherence...", duration: 2000 },
+  { message: "Refining word choice and tone...", duration: 1500 },
+  { message: "Final polish and quality check...", duration: 2000 },
 ];
 
 const ITERATING_MESSAGES = [
@@ -147,6 +155,20 @@ export function WritingWorkspace({
   
   // User's preferred primary model for synthesis
   const [userPrimaryModel, setUserPrimaryModel] = useState<SelectedModel | null>(null);
+  
+  // Advanced mode state (simple vs advanced model selection)
+  const [advancedMode, setAdvancedMode] = useState(() => {
+    // Load from localStorage, default to false (simple mode)
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('editorAdvancedMode');
+      return stored === 'true';
+    }
+    return false;
+  });
+  
+  // Primary model from settings (for simple mode)
+  const [primaryModel, setPrimaryModel] = useState<SelectedModel | null>(null);
+  const [primaryModelLoading, setPrimaryModelLoading] = useState(true);
 
   // All available models (for swap functionality)
   const [allAvailableModels, setAllAvailableModels] = useState<SelectedModel[]>([]);
@@ -248,6 +270,50 @@ export function WritingWorkspace({
     loadPreferences();
   }, [allAvailableModels]);
 
+  // Persist advancedMode to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('editorAdvancedMode', String(advancedMode));
+    }
+  }, [advancedMode]);
+
+  // Load primary model from preferences for simple mode
+  useEffect(() => {
+    async function loadPrimaryModel() {
+      try {
+        const response = await fetch("/api/preferences");
+        if (response.ok) {
+          const prefs = await response.json();
+          if (prefs.primaryModelProvider && prefs.primaryModelId) {
+            const model: SelectedModel = {
+              provider: prefs.primaryModelProvider,
+              modelId: prefs.primaryModelId,
+            };
+            setPrimaryModel(model);
+            
+            // In simple mode, automatically set selectedModels to primary model
+            if (!advancedMode && selectedModels.length === 0) {
+              setSelectedModels([model]);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load primary model:", error);
+      } finally {
+        setPrimaryModelLoading(false);
+      }
+    }
+    
+    loadPrimaryModel();
+  }, []);
+
+  // When switching from advanced to simple mode, use primary model
+  useEffect(() => {
+    if (!advancedMode && primaryModel && !yoloMode) {
+      setSelectedModels([primaryModel]);
+    }
+  }, [advancedMode, primaryModel, yoloMode]);
+
   // Get the effective primary model: user preference > first selected model
   const getEffectivePrimaryModel = (): SelectedModel => {
     // If user has set a primary model in preferences, use it
@@ -298,7 +364,7 @@ export function WritingWorkspace({
     
     let messageIndex = 0;
     let totalDuration = 0;
-    const messages = SYNTHESIZING_MESSAGES;
+    const messages = outputs.length === 1 ? POLISHING_MESSAGES : SYNTHESIZING_MESSAGES;
     const totalTime = messages.reduce((sum, m) => sum + m.duration, 0);
     
     setProgressMessage(messages[0].message);
@@ -1312,42 +1378,141 @@ export function WritingWorkspace({
             />
           </div>
 
-          {/* YOLO Mode Toggle */}
-          <div className="rounded-lg border bg-card p-6" data-tour="yolo-mode">
+          {/* Advanced Mode Toggle */}
+          <div className="rounded-lg border bg-card p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Zap className="h-5 w-5 text-primary" />
+                  <Settings className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="yolo-mode" className="text-base font-medium cursor-pointer">
-                      YOLO Mode
+                    <Label htmlFor="advanced-mode" className="text-base font-medium cursor-pointer">
+                      Advanced Mode
                     </Label>
                     <HelpTooltip 
                       content={
                         <div className="space-y-2">
-                          <p className="font-medium">Auto-Select Optimal Models</p>
-                          <p>PostMaster analyzes your content type and selects 3 high-quality models from different providers for diverse perspectives.</p>
-                          <p className="text-xs">Selection criteria: model capabilities, cost tier, and provider diversity.</p>
+                          <p className="font-medium">Multi-Model Features</p>
+                          <p>Enable to access YOLO mode (automatic model selection) and manual multi-model selection for comparing outputs.</p>
+                          <p className="text-xs">When disabled, you'll use your primary model from Settings for a simpler, focused experience.</p>
                         </div>
                       }
                     />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Auto-select optimal models — just write and generate
+                    {advancedMode ? "Access YOLO and multi-model selection" : "Simple, single-model experience"}
                   </p>
                 </div>
               </div>
               <Switch
-                id="yolo-mode"
-                checked={yoloMode}
-                onCheckedChange={setYoloMode}
+                id="advanced-mode"
+                checked={advancedMode}
+                onCheckedChange={setAdvancedMode}
               />
             </div>
 
-            {yoloMode && (
-              <div className="mt-4 space-y-3">
+            {/* Simple mode: Show current primary model */}
+            {!advancedMode && (
+              <div className="mt-4 rounded-lg bg-muted/50 p-4">
+                {primaryModelLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading your primary model...</span>
+                  </div>
+                ) : primaryModel ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-sm">
+                          {(() => {
+                            const { getModelById, getProviderById } = require("@/lib/ai/providers");
+                            const modelInfo = getModelById(primaryModel.provider as AIProvider, primaryModel.modelId);
+                            const providerInfo = getProviderById(primaryModel.provider as AIProvider);
+                            return `${providerInfo?.name || primaryModel.provider} - ${modelInfo?.name || primaryModel.modelId}`;
+                          })()}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.location.href = "/dashboard/settings"}
+                        className="text-xs"
+                      >
+                        Change in Settings
+                      </Button>
+                    </div>
+                    <div className="mt-4">
+                      <Button
+                        onClick={handleGenerate}
+                        disabled={!prompt.trim() && contentMode !== "enhance"}
+                        size="lg"
+                        className="w-full sm:w-auto"
+                      >
+                        <PenLine className="mr-2 h-4 w-4" />
+                        Generate Content
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-500">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>No primary model configured</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Please set a primary model in Settings to use simple mode, or enable Advanced Mode to select models manually.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.location.href = "/dashboard/settings"}
+                    >
+                      Configure Primary Model
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* YOLO Mode Toggle (only in advanced mode) */}
+          {advancedMode && (
+            <div className="rounded-lg border bg-card p-6" data-tour="yolo-mode">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                    <Zap className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="yolo-mode" className="text-base font-medium cursor-pointer">
+                        YOLO Mode
+                      </Label>
+                      <HelpTooltip 
+                        content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Auto-Select Optimal Models</p>
+                            <p>PostMaster analyzes your content type and selects 3 high-quality models from different providers for diverse perspectives.</p>
+                            <p className="text-xs">Selection criteria: model capabilities, cost tier, and provider diversity.</p>
+                          </div>
+                        }
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Auto-select optimal models — just write and generate
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="yolo-mode"
+                  checked={yoloMode}
+                  onCheckedChange={setYoloMode}
+                />
+              </div>
+
+              {yoloMode && (
+                <div className="mt-4 space-y-3">
                 <div className="rounded-lg bg-primary/5 p-4">
                   <p className="text-sm text-muted-foreground">
                     PostMaster will automatically select 3 high-quality models from different providers 
@@ -1378,10 +1543,11 @@ export function WritingWorkspace({
                 )}
               </div>
             )}
-          </div>
+            </div>
+          )}
 
-          {/* Manual Model Selection (hidden in YOLO mode) */}
-          {!yoloMode && (
+          {/* Manual Model Selection (only in advanced mode, hidden in YOLO mode) */}
+          {advancedMode && !yoloMode && (
             <div className="rounded-lg border bg-card p-6" data-tour="model-selector">
               <ModelSelector
                 selectedModels={selectedModels}
@@ -1403,7 +1569,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
@@ -1420,7 +1586,9 @@ export function WritingWorkspace({
               <p className="mt-2 text-sm text-muted-foreground">
                 {yoloMode 
                   ? `Using ${selectedModels.length || 3} optimally selected models`
-                  : `Comparing ${selectedModels.length} models in parallel`
+                  : selectedModels.length === 1
+                    ? "Generating your content"
+                    : `Comparing ${selectedModels.length} models in parallel`
                 }
               </p>
               
@@ -1522,7 +1690,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 overflow-auto p-6">
@@ -1549,7 +1717,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 overflow-auto">
@@ -1568,7 +1736,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 grid overflow-hidden" style={{ gridTemplateColumns: '1fr 360px' }}>
@@ -1586,10 +1754,17 @@ export function WritingWorkspace({
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 {outputs.length === 1 
-                  ? "Refining and enhancing your draft"
+                  ? "Improving clarity, flow, and overall quality of your content"
                   : "Combining the best elements from all outputs"
                 }
               </p>
+              
+              {/* Additional context for single model polishing */}
+              {outputs.length === 1 && (
+                <div className="mt-4 rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
+                  <p className="text-center">The AI is reviewing your content to enhance readability, strengthen arguments, and ensure consistency throughout.</p>
+                </div>
+              )}
               
               {/* Progress bar */}
               <div className="mt-8 space-y-2">
@@ -1622,6 +1797,7 @@ export function WritingWorkspace({
               outputs={new Map()}
               mode="synthesizing"
               synthesisContent={streamingSynthesis}
+              isSingleModel={outputs.length === 1}
               className="h-full overflow-hidden"
             />
           </div>
@@ -1633,7 +1809,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 flex items-center justify-center">
@@ -1665,7 +1841,7 @@ export function WritingWorkspace({
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Workflow Progress */}
           <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4">
-            <WorkflowProgress currentStep={state} />
+            <WorkflowProgress currentStep={state} isSingleModel={outputs.length === 1} />
           </div>
           
           <div className="flex-1 min-h-0 overflow-auto p-6">
@@ -1682,6 +1858,8 @@ export function WritingWorkspace({
             synthesisStrategy={synthesisStrategy}
             critiques={critiques}
             debateSession={debateSession}
+            contentMode={contentMode}
+            originalContent={contentMode === "enhance" ? existingContent : null}
           />
         </div>
         </div>

@@ -9,6 +9,8 @@ import {
   Key,
   ArrowRight,
   HeartHandshake,
+  AlertTriangle,
+  Target,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -55,12 +57,6 @@ export default function LandingPage() {
               <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
                 <Link href="/about">About</Link>
               </Button>
-              <Button size="sm" variant="ghost" asChild className="text-muted-foreground">
-                <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-                  <HeartHandshake className="h-4 w-4" />
-                  Sponsor
-                </a>
-              </Button>
               <Button size="sm" asChild>
                 <Link href="/dashboard">Open Editor</Link>
               </Button>
@@ -76,15 +72,15 @@ export default function LandingPage() {
             {/* Left: Text */}
             <div className="max-w-xl">
               <p className="mb-4 text-sm font-medium uppercase tracking-widest text-primary">
-                Multi-model writing assistant
+                AI Writing Assistant That Sounds Human
               </p>
               <h1 className="font-serif text-4xl font-normal leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                Skip the AI slop.
+                Write Naturally.
                 <br />
-                <span className="text-muted-foreground">Write in your voice.</span>
+                <span className="text-muted-foreground">Sound Like You.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-                PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral, or your own local models via Ollama—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
+                PostMaster polishes AI-generated content, catches 80+ AI tells, and adapts to your unique voice—so your writing stays authentic.
               </p>
               <div className="mt-10 flex flex-wrap gap-4">
                 <Button size="lg" asChild className="h-12 px-6">
@@ -99,54 +95,71 @@ export default function LandingPage() {
               </div>
             </div>
             
-            {/* Right: Visual */}
+            {/* Right: Voice Analyzer Visual */}
             <div className="relative hidden lg:block">
-              <div className="relative mx-auto max-w-md">
-                {/* Stacked cards visualization */}
-                <div className="absolute -top-4 -left-4 h-80 w-full rounded-lg border bg-card/50 shadow-sm" />
-                <div className="absolute -top-2 -left-2 h-80 w-full rounded-lg border bg-card/70 shadow-sm" />
-                <div className="relative h-80 w-full rounded-lg border bg-card p-6 shadow-md">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
-                    <span className="font-mono">comparing 5 models...</span>
+              <div className="rounded-2xl border bg-card p-8 shadow-lg" style={{ minWidth: '600px' }}>
+                <div className="grid gap-7" style={{ gridTemplateColumns: '28% 36% 36%' }}>
+                  {/* Samples Section */}
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Samples
+                    </span>
+                    <div className="flex gap-2.5 mt-auto">
+                      <div className="h-[70px] w-[50px] rounded bg-primary shadow-md" />
+                      <div className="h-[70px] w-[50px] rounded bg-primary shadow-md" />
+                      <div className="h-[70px] w-[50px] rounded bg-primary shadow-md" />
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div className="h-full w-full rounded-full bg-gradient-to-r from-primary via-yellow-600 to-green-500" />
+                    </div>
+                    <span className="text-xs text-muted-foreground mb-auto">Analyzing...</span>
                   </div>
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">OpenAI</span>
-                      <div className="h-1.5 w-32 rounded-full bg-muted">
-                        <div className="h-1.5 w-28 rounded-full bg-primary/60" />
+                  
+                  {/* Voice Profile Section */}
+                  <div className="flex flex-col gap-3 border-l border-r border-border px-5">
+                    <span className="text-center text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+                      Voice Profile
+                    </span>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-green-600">✓</span>
+                        <span className="text-muted-foreground text-sm">Tone:</span>
+                        <span className="font-mono text-xs font-semibold">Direct</span>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Claude</span>
-                      <div className="h-1.5 w-32 rounded-full bg-muted">
-                        <div className="h-1.5 w-30 rounded-full bg-primary/70" />
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-green-600">✓</span>
+                        <span className="text-muted-foreground text-sm">Length:</span>
+                        <span className="font-mono text-xs font-semibold whitespace-nowrap">12-18 words</span>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Grok</span>
-                      <div className="h-1.5 w-32 rounded-full bg-muted">
-                        <div className="h-1.5 w-24 rounded-full bg-primary/50" />
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-green-600">✓</span>
+                        <span className="text-muted-foreground text-sm">Jargon:</span>
+                        <span className="font-mono text-xs font-semibold">Low</span>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Mistral</span>
-                      <div className="h-1.5 w-32 rounded-full bg-muted">
-                        <div className="h-1.5 w-26 rounded-full bg-primary/55" />
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-green-600">✓</span>
+                        <span className="text-muted-foreground text-sm whitespace-nowrap">Em-dashes:</span>
+                        <span className="font-mono text-xs font-semibold">None</span>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Ollama</span>
-                      <div className="h-1.5 w-32 rounded-full bg-muted">
-                        <div className="h-1.5 w-25 rounded-full bg-primary/50" />
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-green-600">✓</span>
+                        <span className="text-muted-foreground text-sm">Match:</span>
+                        <span className="font-mono text-xs font-semibold">94%</span>
                       </div>
                     </div>
                   </div>
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <div className="h-px bg-border" />
-                    <p className="mt-4 font-serif text-sm italic text-muted-foreground">
-                      "Synthesize the best elements..."
-                    </p>
+                  
+                  {/* Preview Section */}
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Preview
+                    </span>
+                    <div className="rounded-lg border bg-muted p-4 text-center text-sm leading-relaxed max-w-[180px]">
+                      AI is powerful, and when used correctly, it transforms how we work.
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-3 py-1 text-xs font-semibold text-green-600 whitespace-nowrap">
+                      ✓ Voice Matched
+                    </span>
                   </div>
                 </div>
               </div>
@@ -171,40 +184,40 @@ export default function LandingPage() {
             
             <div className="mx-auto mt-20 grid max-w-5xl gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-3">
               <FeatureCard
-                icon={<Layers className="h-5 w-5" />}
+                icon={<AlertTriangle className="h-5 w-5" />}
                 number="01"
-                title="Compare Models"
-                description="Submit your prompt once, receive outputs from multiple AI models. See how each interprets your request."
+                title="Keep Your Writing Human"
+                description="Detects 80+ AI phrases and clichés—like 'dive in,' 'game-changer,' or 'leverage'—so your writing sounds natural, not robotic."
               />
               <FeatureCard
-                icon={<Blend className="h-5 w-5" />}
+                icon={<Target className="h-5 w-5" />}
                 number="02"
-                title="Synthesize Results"
-                description="Pick the strongest elements from each output. Combine them into a cohesive draft that captures your intent."
+                title="Learn & Match Your Voice"
+                description="Upload samples of your writing. PostMaster analyzes your tone, rhythm, and vocabulary to generate content that sounds like you."
               />
               <FeatureCard
                 icon={<RefreshCw className="h-5 w-5" />}
                 number="03"
-                title="Refine & Iterate"
-                description="Provide feedback, adjust tone, tighten phrasing. Iterate until every sentence feels intentional."
+                title="Polish & Refine Iteratively"
+                description="Provide feedback, tighten phrasing, adjust tone. Iterate with the AI until every sentence feels intentional and human."
               />
               <FeatureCard
-                icon={<PenLine className="h-5 w-5" />}
+                icon={<Layers className="h-5 w-5" />}
                 number="04"
-                title="Learn Your Style"
-                description="Share examples of your writing. PostMaster analyzes your voice to generate content that sounds like you."
+                title="Advanced: Compare Multiple Models"
+                description="Submit your prompt once, receive outputs from multiple AI models. See how each interprets your request and pick the best."
               />
               <FeatureCard
                 icon={<ImageIcon className="h-5 w-5" />}
                 number="05"
-                title="Generate Images"
-                description="Create matching visuals with DALL-E or Stable Diffusion, integrated directly into your workflow."
+                title="Generate Matching Visuals"
+                description="Create images with DALL-E or Stable Diffusion, integrated directly into your workflow alongside your text."
               />
               <FeatureCard
                 icon={<Key className="h-5 w-5" />}
                 number="06"
-                title="Use Your Own Keys"
-                description="Bring your API keys for complete control. No subscriptions, just pay for what you use."
+                title="Privacy: Use Your Own Keys"
+                description="Bring your own API keys for complete control. No subscriptions, no data harvesting—just pay for what you use."
               />
             </div>
           </div>

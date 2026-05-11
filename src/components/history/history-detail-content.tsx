@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Sparkles,
   ImageIcon,
+  GitCompare,
 } from "lucide-react";
 
 interface Output {
@@ -92,6 +93,53 @@ function CollapsibleSection({
   );
 }
 
+interface DiffLine {
+  type: "added" | "removed" | "unchanged";
+  content: string;
+}
+
+function computeSimpleDiff(oldText: string, newText: string): DiffLine[] {
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  const result: DiffLine[] = [];
+
+  // Simple LCS-based diff
+  const dp: number[][] = Array(oldLines.length + 1)
+    .fill(null)
+    .map(() => Array(newLines.length + 1).fill(0));
+
+  for (let i = 1; i <= oldLines.length; i++) {
+    for (let j = 1; j <= newLines.length; j++) {
+      if (oldLines[i - 1] === newLines[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+
+  // Backtrack to find diff
+  let i = oldLines.length;
+  let j = newLines.length;
+  const temp: DiffLine[] = [];
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+      temp.push({ type: "unchanged", content: oldLines[i - 1] });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      temp.push({ type: "added", content: newLines[j - 1] });
+      j--;
+    } else {
+      temp.push({ type: "removed", content: oldLines[i - 1] });
+      i--;
+    }
+  }
+
+  return temp.reverse();
+}
+
 export function HistoryDetailContent({
   prompt,
   outputs,
@@ -99,6 +147,13 @@ export function HistoryDetailContent({
   contentMode,
   sourceContent,
 }: HistoryDetailContentProps) {
+  console.log("[HistoryDetailContent] Rendering with:", {
+    outputsLength: outputs.length,
+    hasSynthesizedContent: !!synthesizedContent,
+    shouldDefaultOpen: !synthesizedContent || outputs.length === 1,
+    contentMode,
+  });
+
   return (
     <div className="space-y-4">
       {/* Original Content Section - Only show for enhance mode */}
@@ -132,6 +187,62 @@ export function HistoryDetailContent({
       >
         <p className="text-sm whitespace-pre-wrap">{prompt}</p>
       </CollapsibleSection>
+
+      {/* Diff Section - Only show for enhance mode when we have both original and synthesized */}
+      {contentMode === "enhance" && sourceContent && synthesizedContent && (
+        <CollapsibleSection
+          title="Changes Made"
+          icon={<GitCompare className="h-5 w-5 text-green-500" />}
+          badge={
+            <Badge variant="outline" className="ml-2 font-normal">
+              Diff View
+            </Badge>
+          }
+          defaultOpen={true}
+        >
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground mb-3">
+              Line-by-line comparison showing changes from original to enhanced content
+            </div>
+            <div className="font-mono text-xs border rounded-lg overflow-hidden">
+              {computeSimpleDiff(sourceContent, synthesizedContent.content).map((line, idx) => {
+                if (line.type === "unchanged") {
+                  return (
+                    <div key={idx} className="px-3 py-1 bg-background">
+                      <span className="text-muted-foreground mr-3 select-none">│</span>
+                      {line.content}
+                    </div>
+                  );
+                } else if (line.type === "added") {
+                  return (
+                    <div key={idx} className="px-3 py-1 bg-green-500/10 text-green-700 dark:text-green-400">
+                      <span className="mr-3 select-none">+</span>
+                      {line.content}
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div key={idx} className="px-3 py-1 bg-red-500/10 text-red-700 dark:text-red-400">
+                      <span className="mr-3 select-none">-</span>
+                      {line.content}
+                    </div>
+                  );
+                }
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground pt-2 flex items-center gap-4">
+              <span className="flex items-center gap-1">
+                <span className="text-green-600 dark:text-green-400">+</span>
+                Added lines
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="text-red-600 dark:text-red-400">-</span>
+                Removed lines
+              </span>
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Synthesized Output Section */}
       {synthesizedContent && (
@@ -183,7 +294,7 @@ export function HistoryDetailContent({
             {outputs.length}
           </Badge>
         }
-        defaultOpen={false}
+        defaultOpen={outputs.length === 1 || !synthesizedContent}
       >
         <div className="space-y-4">
           {outputs.map((output) => {

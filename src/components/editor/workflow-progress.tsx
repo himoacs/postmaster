@@ -7,14 +7,15 @@ export type WorkspaceStep = "input" | "generating" | "comparing" | "critiquing" 
 
 interface WorkflowProgressProps {
   currentStep: WorkspaceStep;
+  isSingleModel?: boolean; // Use "Polishing" instead of "Synthesizing" for single model
   className?: string;
 }
 
 const steps = [
   { id: "input", label: "Input", shortLabel: "Input" },
   { id: "generating", label: "Generating", shortLabel: "Generate" },
-  { id: "comparing", label: "Comparing", shortLabel: "Compare" },
-  { id: "synthesizing", label: "Synthesizing", shortLabel: "Synthesize" },
+  { id: "comparing", label: "Comparing", shortLabel: "Compare", altLabel: "Reviewing", altShortLabel: "Review" },
+  { id: "synthesizing", label: "Synthesizing", shortLabel: "Synthesize", altLabel: "Polishing", altShortLabel: "Polish" },
   { id: "complete", label: "Complete", shortLabel: "Done" },
 ] as const;
 
@@ -33,7 +34,7 @@ const stepOrder: Record<WorkspaceStep, number> = {
  * Visual progress indicator showing where user is in the content generation workflow
  * Displays: Input → Generate → Compare → Synthesize → Complete
  */
-export function WorkflowProgress({ currentStep, className }: WorkflowProgressProps) {
+export function WorkflowProgress({ currentStep, isSingleModel = false, className }: WorkflowProgressProps) {
   const currentStepIndex = stepOrder[currentStep];
 
   // For critique and iterate states, show them in progress messages but don't add separate steps
@@ -85,8 +86,12 @@ export function WorkflowProgress({ currentStep, className }: WorkflowProgressPro
                       !isCompleted && !isCurrent && "text-muted-foreground"
                     )}
                   >
-                    <span className="hidden sm:inline">{step.label}</span>
-                    <span className="sm:hidden">{step.shortLabel}</span>
+                    <span className="hidden sm:inline">
+                      {(step.id === "synthesizing" || step.id === "comparing") && isSingleModel ? (step as any).altLabel || step.label : step.label}
+                    </span>
+                    <span className="sm:hidden">
+                      {(step.id === "synthesizing" || step.id === "comparing") && isSingleModel ? (step as any).altShortLabel || step.shortLabel : step.shortLabel}
+                    </span>
                   </span>
 
                   {/* Sub-step indicators for critique/iterate */}

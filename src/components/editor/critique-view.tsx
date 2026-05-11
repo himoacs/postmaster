@@ -39,12 +39,14 @@ export function CritiqueView({
 
         {/* Title */}
         <p className="mt-6 font-serif text-xl">
-          {isDebate ? "Multi-Model Debate" : "Cross-Model Critique"}
+          {isDebate ? "Multi-Model Debate" : outputs.length === 1 ? "Content Analysis" : "Cross-Model Critique"}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           {isDebate 
             ? "Models are debating to find the best approach"
-            : "Models are analyzing each other's outputs"
+            : outputs.length === 1
+              ? "Analyzing your content for improvements"
+              : "Models are analyzing each other's outputs"
           }
         </p>
 

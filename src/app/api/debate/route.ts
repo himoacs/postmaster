@@ -410,10 +410,10 @@ async function synthesizeWithDebateInsights(
   primaryModel: SelectedModel,
   transcript: DebateTranscriptEntry[]
 ): Promise<string> {
-  // Fetch generation record to get preferences
+  // Fetch generation record to get preferences and source content
   const generation = await prisma.generation.findUnique({
     where: { id: generationId },
-    select: { contentType: true, lengthPref: true, enableEmojis: true },
+    select: { contentType: true, lengthPref: true, enableEmojis: true, contentMode: true, sourceContent: true },
   });
   if (!generation) throw new Error("Generation not found");
   let decryptedKey = "";
@@ -429,7 +429,7 @@ async function synthesizeWithDebateInsights(
 
   // Build length guidance based on content type and preference
   let lengthGuide: string;
-  const { contentType, lengthPref = "medium", enableEmojis } = generation;
+  const { contentType, lengthPref = "medium", enableEmojis, contentMode, sourceContent } = generation;
   const safeLength = (lengthPref || "medium") as "short" | "medium" | "long";
   
   switch (contentType) {
@@ -483,7 +483,16 @@ STYLE REQUIREMENTS:
 
 Output ONLY the final content, no meta-commentary.`;
 
-  let userPrompt = "=== ORIGINAL DRAFTS ===\n\n";
+  let userPrompt = "";
+  
+  // Include original content for enhance mode
+  if (contentMode === "enhance" && sourceContent) {
+    userPrompt += "=== ORIGINAL CONTENT (BEFORE ENHANCEMENT) ===\n\n";
+    userPrompt += sourceContent;
+    userPrompt += "\n\n";
+  }
+  
+  userPrompt += "=== ORIGINAL DRAFTS ===\n\n";
   outputs.forEach((output, index) => {
     const providerName = AI_PROVIDERS[output.provider]?.name || output.provider;
     userPrompt += `--- DRAFT ${index + 1} (${providerName}) ---\n${output.content}\n\n`;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchUrlContent } from "@/lib/url-fetcher";
 import * as cheerio from "cheerio";
 
 interface DiscoveredArticle {
@@ -23,106 +24,43 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Fetch the page
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; PostMaster/1.0; +https://postmaster.app)",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
+    // Fetch the page using url-fetcher (handles JS-rendered sites like Medium)
+    const fetchedContent = await fetchUrlContent(url);
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.status}`);
+    if (fetchedContent.error) {
+      throw new Error(fetchedContent.error);
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Find article links using various common patterns
+    // For Medium author pages, we need to parse from the rendered content
+    // Try to extract article links from the content
     const discoveredArticles: DiscoveredArticle[] = [];
-    const seenUrls = new Set<string>();
 
-    // Common selectors for article links on author/blog pages
-    const articleSelectors = [
-      // Direct article elements
-      "article a[href]",
-      ".post a[href]",
-      ".blog-post a[href]",
-      ".entry a[href]",
-      
-      // List items that are posts
-      ".post-list a[href]",
-      ".posts a[href]",
-      ".articles a[href]",
-      ".blog-list a[href]",
-      
-      // Card-style layouts
-      ".post-card a[href]",
-      ".article-card a[href]",
-      ".blog-card a[href]",
-      
-      // Heading links (often titles)
-      "h2 a[href]",
-      "h3 a[href]",
-      ".post-title a[href]",
-      ".entry-title a[href]",
-      ".article-title a[href]",
-      
-      // Generic content links
-      "main a[href]",
-      ".content a[href]",
-      "#content a[href]",
-    ];
-
-    // Try each selector
-    for (const selector of articleSelectors) {
-      if (discoveredArticles.length >= maxArticles) break;
-
-      $(selector).each((_, element) => {
-        if (discoveredArticles.length >= maxArticles) return false;
-
-        const href = $(element).attr("href");
-        if (!href) return;
-
-        // Resolve relative URLs
-        let absoluteUrl: string;
-        try {
-          absoluteUrl = new URL(href, baseUrl).href;
-        } catch {
-          return;
-        }
-
-        // Skip if already seen
-        if (seenUrls.has(absoluteUrl)) return;
-
-        // Filter out non-article URLs
-        if (!isLikelyArticleUrl(absoluteUrl, baseUrl.origin)) return;
-
-        seenUrls.add(absoluteUrl);
-
-        // Get title with multiple fallback strategies
-        let title = extractArticleTitle($, element, absoluteUrl);
-
-        // Skip if title looks like navigation
-        if (isNavigationText(title)) return;
-
-        discoveredArticles.push({
-          url: absoluteUrl,
-          title: title.substring(0, 200) || absoluteUrl,
-        });
+    // Check if this is a Medium author page
+    if (url.includes('medium.com')) {
+      discoveredArticles.push(...await discoverMediumArticles(url, baseUrl, maxArticles));
+    } else {
+      // For other sites, try to fetch HTML directly for link extraction
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; PostMaster/1.0; +https://postmaster.app)",
+        },
+        signal: AbortSignal.timeout(15000),
       });
-    }
 
-    // Remove duplicates and sort by title
-    const uniqueArticles = Array.from(
-      new Map(discoveredArticles.map((a) => [a.url, a])).values()
-    ).slice(0, maxArticles);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch URL: ${response.status}`);
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      discoveredArticles.push(...extractArticlesFromHtml($, baseUrl, maxArticles));
+    }
 
     return NextResponse.json({
       sourceUrl: url,
-      articles: uniqueArticles,
-      totalFound: uniqueArticles.length,
+      articles: discoveredArticles,
+      totalFound: discoveredArticles.length,
     });
   } catch (error) {
     console.error("Error discovering articles:", error);
@@ -136,6 +74,168 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Discover articles from Medium author pages
+ */
+async function discoverMediumArticles(
+  url: string,
+  baseUrl: URL,
+  maxArticles: number
+): Promise<DiscoveredArticle[]> {
+  // For Medium, we need to use their API or RSS feed
+  // Medium author pages have an RSS feed at /feed
+  const username = url.match(/@([^/]+)/)?.[1];
+  
+  if (!username) {
+    throw new Error("Could not extract username from Medium URL");
+  }
+
+  // Try RSS feed approach
+  const rssFeedUrl = `https://medium.com/feed/@${username}`;
+  
+  try {
+    const response = await fetch(rssFeedUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; PostMaster/1.0; +https://postmaster.app)",
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Medium RSS feed: ${response.status}`);
+    }
+
+    const rssXml = await response.text();
+    return parseMediumRss(rssXml, maxArticles);
+  } catch (error) {
+    console.error("Failed to fetch Medium RSS:", error);
+    // Fallback: return empty array and let user add articles manually
+    return [];
+  }
+}
+
+/**
+ * Parse Medium RSS feed to extract article links
+ */
+function parseMediumRss(rssXml: string, maxArticles: number): DiscoveredArticle[] {
+  const articles: DiscoveredArticle[] = [];
+  
+  // Use regex to extract items from RSS (simple approach)
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  const titleRegex = /<title><!\[CDATA\[([^\]]+)\]\]><\/title>/;
+  const linkRegex = /<link>([^<]+)<\/link>/;
+  
+  let match;
+  while ((match = itemRegex.exec(rssXml)) !== null && articles.length < maxArticles) {
+    const itemContent = match[1];
+    const titleMatch = itemContent.match(titleRegex);
+    const linkMatch = itemContent.match(linkRegex);
+    
+    if (titleMatch && linkMatch) {
+      // Clean up Medium tracking parameters
+      const cleanUrl = linkMatch[1].split('?')[0];
+      articles.push({
+        url: cleanUrl,
+        title: titleMatch[1],
+      });
+    }
+  }
+  
+  return articles;
+}
+
+/**
+ * Extract articles from HTML using cheerio
+ */
+function extractArticlesFromHtml(
+  $: ReturnType<typeof cheerio.load>,
+  baseUrl: URL,
+  maxArticles: number
+): DiscoveredArticle[] {
+
+  // Find article links using various common patterns
+  const discoveredArticles: DiscoveredArticle[] = [];
+  const seenUrls = new Set<string>();
+
+  // Common selectors for article links on author/blog pages
+  const articleSelectors = [
+    // Direct article elements
+    "article a[href]",
+    ".post a[href]",
+    ".blog-post a[href]",
+    ".entry a[href]",
+    
+    // List items that are posts
+    ".post-list a[href]",
+    ".posts a[href]",
+    ".articles a[href]",
+    ".blog-list a[href]",
+    
+    // Card-style layouts
+    ".post-card a[href]",
+    ".article-card a[href]",
+    ".blog-card a[href]",
+    
+    // Heading links (often titles)
+    "h2 a[href]",
+    "h3 a[href]",
+    ".post-title a[href]",
+    ".entry-title a[href]",
+    ".article-title a[href]",
+    
+    // Generic content links
+    "main a[href]",
+    ".content a[href]",
+    "#content a[href]",
+  ];
+
+  // Try each selector
+  for (const selector of articleSelectors) {
+    if (discoveredArticles.length >= maxArticles) break;
+
+    $(selector).each((_, element) => {
+      if (discoveredArticles.length >= maxArticles) return false;
+
+      const href = $(element).attr("href");
+      if (!href) return;
+
+      // Resolve relative URLs
+      let absoluteUrl: string;
+      try {
+        absoluteUrl = new URL(href, baseUrl).href;
+      } catch {
+        return;
+      }
+
+      // Skip if already seen
+      if (seenUrls.has(absoluteUrl)) return;
+
+      // Filter out non-article URLs
+      if (!isLikelyArticleUrl(absoluteUrl, baseUrl.origin)) return;
+
+      seenUrls.add(absoluteUrl);
+
+      // Get title with multiple fallback strategies
+      let title = extractArticleTitle($, element, absoluteUrl);
+
+      // Skip if title looks like navigation
+      if (isNavigationText(title)) return;
+
+      discoveredArticles.push({
+        url: absoluteUrl,
+        title: title.substring(0, 200) || absoluteUrl,
+      });
+    });
+  }
+
+  // Remove duplicates and sort by title
+  const uniqueArticles = Array.from(
+    new Map(discoveredArticles.map((a) => [a.url, a])).values()
+  ).slice(0, maxArticles);
+
+  return uniqueArticles;
 }
 
 /**

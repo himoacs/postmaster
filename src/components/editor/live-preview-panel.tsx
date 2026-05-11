@@ -19,6 +19,7 @@ interface LivePreviewPanelProps {
   outputs: Map<string, StreamingOutput>;
   mode: "generating" | "synthesizing";
   synthesisContent?: string;
+  isSingleModel?: boolean; // Whether single model is being polished (not synthesized)
   rotationInterval?: number; // ms between model switches, default 3000
   className?: string;
 }
@@ -38,6 +39,7 @@ export function LivePreviewPanel({
   outputs,
   mode,
   synthesisContent,
+  isSingleModel = false,
   rotationInterval = 3000,
   className,
 }: LivePreviewPanelProps) {
@@ -99,6 +101,8 @@ export function LivePreviewPanel({
 
   // Synthesis mode - show synthesis in progress or streaming content
   if (mode === "synthesizing") {
+    const label = isSingleModel ? "Polishing" : "Synthesizing";
+    
     // If we have streaming content, show it
     if (synthesisContent) {
       const previewText = getPreviewContent(synthesisContent);
@@ -109,7 +113,7 @@ export function LivePreviewPanel({
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
               <Zap className="h-3.5 w-3.5 text-primary" />
             </div>
-            <span className="text-sm font-medium">Synthesizing</span>
+            <span className="text-sm font-medium">{label}</span>
             <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground ml-auto" />
           </div>
           
@@ -133,7 +137,7 @@ export function LivePreviewPanel({
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
             <Zap className="h-3.5 w-3.5 text-primary" />
           </div>
-          <span className="text-sm font-medium">Synthesizing</span>
+          <span className="text-sm font-medium">{label}</span>
           <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground ml-auto" />
         </div>
         

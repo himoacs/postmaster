@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import * as cheerio from "cheerio";
+import { fetchUrlContent } from "@/lib/url-fetcher";
 
 // POST /api/samples - Add a content sample
 export async function POST(request: NextRequest) {
@@ -30,58 +30,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Fetch and extract content
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; PostMaster/1.0; +https://postmaster.app)",
-      },
-    });
+    // Fetch and extract content using url-fetcher (handles JS-rendered sites like Medium)
+    const fetchedContent = await fetchUrlContent(url);
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch URL");
+    if (fetchedContent.error) {
+      throw new Error(fetchedContent.error);
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Extract title
-    const title =
-      $("title").text().trim() ||
-      $("h1").first().text().trim() ||
-      $('meta[property="og:title"]').attr("content")?.trim() ||
-      url;
-
-    // Extract main content (common article selectors)
-    const contentSelectors = [
-      "article",
-      ".post-content",
-      ".entry-content",
-      ".article-content",
-      ".content",
-      "main",
-      ".blog-post",
-      "#content",
-    ];
-
-    let extractedText = "";
-    for (const selector of contentSelectors) {
-      const element = $(selector);
-      if (element.length > 0) {
-        extractedText = element.text().trim();
-        break;
-      }
-    }
-
-    // Fallback to body text
-    if (!extractedText) {
-      // Remove scripts, styles, nav, footer, etc.
-      $("script, style, nav, footer, header, aside, .sidebar, .comments").remove();
-      extractedText = $("body").text().trim();
-    }
-
-    // Clean up whitespace
-    extractedText = extractedText.replace(/\s+/g, " ").trim();
+    const title = fetchedContent.title || url;
+    const extractedText = fetchedContent.content;
 
     // Calculate word count
     const wordCount = extractedText.split(/\s+/).filter(Boolean).length;

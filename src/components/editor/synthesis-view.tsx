@@ -48,6 +48,7 @@ import {
   Loader2,
   AlertTriangle,
   Sparkles,
+  History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ImageGenerator } from "./image-generator";
@@ -102,6 +103,8 @@ interface SynthesisViewProps {
   synthesisStrategy?: SynthesisStrategy;
   critiques?: CritiqueOutput[];
   debateSession?: DebateSession | null;
+  contentMode?: "new" | "enhance";
+  originalContent?: string | null;
 }
 
 export function SynthesisView({
@@ -117,6 +120,8 @@ export function SynthesisView({
   synthesisStrategy = "basic",
   critiques = [],
   debateSession,
+  contentMode,
+  originalContent,
 }: SynthesisViewProps) {
   const [feedback, setFeedback] = useState("");
   const [copied, setCopied] = useState(false);
@@ -679,13 +684,99 @@ export function SynthesisView({
 
             {/* History/Diff panel */}
             {activePanel === "history" && synthesisId && (
-              <div className="p-4">
-                <DiffView 
-                  synthesisId={synthesisId} 
-                  currentContent={currentContent}
-                  embedded 
-                />
-              </div>
+              <>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HistoryIcon className="h-4 w-4" />
+                    Version History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ScrollArea className="h-[500px] pr-4">
+                    <div className="space-y-4">
+                      {/* Original → Enhanced diff (if enhance mode) */}
+                      {contentMode === "enhance" && originalContent && (
+                        <div className="pb-4 border-b">
+                          <div className="flex items-center gap-2 mb-3">
+                            <GitCompare className="h-4 w-4 text-green-500" />
+                            <h3 className="text-sm font-medium">Original → Enhanced</h3>
+                            <Badge variant="outline" className="ml-auto text-xs">
+                              {originalContent.split(/\s+/).filter(Boolean).length} → {currentContent.split(/\s+/).filter(Boolean).length} words
+                            </Badge>
+                          </div>
+                          
+                          <div className="font-mono text-xs border rounded-lg overflow-hidden">
+                            {(() => {
+                              const oldLines = originalContent.split('\n');
+                              const newLines = currentContent.split('\n');
+                              
+                              // LCS diff computation
+                              const dp: number[][] = Array(oldLines.length + 1).fill(null).map(() => Array(newLines.length + 1).fill(0));
+                              
+                              for (let i = 1; i <= oldLines.length; i++) {
+                                for (let j = 1; j <= newLines.length; j++) {
+                                  if (oldLines[i - 1] === newLines[j - 1]) {
+                                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                                  } else {
+                                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                                  }
+                                }
+                              }
+                              
+                              let i = oldLines.length;
+                              let j = newLines.length;
+                              const diffLines: Array<{ type: 'added' | 'removed' | 'unchanged'; content: string }> = [];
+                              
+                              while (i > 0 || j > 0) {
+                                if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+                                  diffLines.push({ type: 'unchanged', content: oldLines[i - 1] });
+                                  i--;
+                                  j--;
+                                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                                  diffLines.push({ type: 'added', content: newLines[j - 1] });
+                                  j--;
+                                } else {
+                                  diffLines.push({ type: 'removed', content: oldLines[i - 1] });
+                                  i--;
+                                }
+                              }
+                              
+                              return diffLines.reverse().map((line, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`px-3 py-1 ${
+                                    line.type === 'added'
+                                      ? 'bg-green-500/10 border-l-2 border-green-500'
+                                      : line.type === 'removed'
+                                      ? 'bg-red-500/10 border-l-2 border-red-500'
+                                      : 'bg-background'
+                                  }`}
+                                >
+                                  <span className="inline-block w-6 text-muted-foreground mr-2">
+                                    {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : '│'}
+                                  </span>
+                                  <span className={line.type === 'added' ? 'text-green-600 dark:text-green-400' : line.type === 'removed' ? 'text-red-600 dark:text-red-400' : ''}>
+                                    {line.content || ' '}
+                                  </span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Version-to-version diffs */}
+                      <div>
+                        <DiffView 
+                          synthesisId={synthesisId} 
+                          currentContent={currentContent}
+                          embedded 
+                        />
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </>
             )}
 
             {/* AI Reasoning panel */}

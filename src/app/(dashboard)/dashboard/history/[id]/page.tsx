@@ -38,6 +38,8 @@ const statusColors: Record<GenerationStatus, string> = {
 export default async function HistoryDetailPage({ params }: PageProps) {
   const { id } = await params;
 
+  console.log("[HistoryDetailPage] Loading generation:", id);
+
   const generation = await prisma.generation.findUnique({
     where: { id },
     include: {
@@ -47,8 +49,15 @@ export default async function HistoryDetailPage({ params }: PageProps) {
   });
 
   if (!generation) {
+    console.log("[HistoryDetailPage] Generation not found:", id);
     notFound();
   }
+
+  console.log("[HistoryDetailPage] Found generation:", {
+    id: generation.id,
+    outputsCount: generation.outputs.length,
+    hasSynthesizedContent: !!generation.synthesizedContent,
+  });
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", {

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PostMaster - Multi-model AI Writing Assistant</title>
-  <meta name="description" content="Write with clarity, refine with precision. PostMaster runs your prompts through multiple AI models simultaneously so you can compare outputs and synthesize the best content.">
+  <title>PostMaster - AI Writing Assistant That Sounds Human</title>
+  <meta name="description" content="Polish AI-generated content, catch 80+ AI tells, and preserve your unique voice. Write with AI assistance that doesn't sound like AI slop.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a0522d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 20h9'/><path d='M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z'/><path d='m15 5 3 3'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,8 +206,8 @@
       margin: 0 auto;
       padding: 80px 24px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 48px;
       align-items: center;
       min-height: calc(100vh - 56px);
     }
@@ -434,6 +434,380 @@
       font-size: 0.875rem;
       font-style: italic;
       color: var(--muted-foreground);
+    }
+    
+    /* Voice Analyzer Visual */
+    .voice-analyzer {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+      display: grid;
+      grid-template-columns: 28% 36% 36%;
+      gap: 28px;
+      min-height: 280px;
+      transition: all 0.3s;
+    }
+    
+    .voice-analyzer:hover {
+      box-shadow: 0 12px 48px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    @media (max-width: 900px) {
+      .voice-analyzer {
+        display: none;
+      }
+    }
+    
+    .analyzer-section {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+    
+    .analyzer-section + .analyzer-section::before {
+      content: '';
+      position: absolute;
+      left: -14px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, var(--border) 10%, var(--border) 90%, transparent);
+    }
+    
+    .analyzer-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      margin-bottom: 16px;
+      height: 14px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .analyzer-metrics .analyzer-title,
+    .analyzer-preview .analyzer-title {
+      justify-content: center;
+    }
+    
+    /* Input Section */
+    .analyzer-input {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding-top: 0;
+    }
+    
+    .doc-icons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 4px;
+      margin-top: auto;
+    }
+    
+    .doc-icon {
+      width: 36px;
+      height: 44px;
+      background: var(--primary);
+      border-radius: 5px;
+      position: relative;
+      opacity: 0;
+      box-shadow: 0 2px 8px rgba(160, 82, 45, 0.25);
+    }
+    
+    .doc-icon::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 10px;
+      height: 10px;
+      background: var(--card);
+      clip-path: polygon(0 0, 100% 100%, 0 100%);
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 5px;
+      background: var(--muted);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), #16a34a);
+      border-radius: 3px;
+    }
+    
+    .analyzer-label {
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+      text-align: center;
+      margin-top: 4px;
+      margin-bottom: auto;
+    }
+    
+    /* Metrics Section */
+    .analyzer-metrics {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+      padding-top: 0;
+    }
+    
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      opacity: 0;
+    }
+    
+    .metric-check {
+      color: #16a34a;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transform: scale(0);
+      flex-shrink: 0;
+    }
+    
+    .metric-label {
+      color: var(--muted-foreground);
+      font-family: 'Inter', sans-serif;
+      flex-shrink: 0;
+    }
+    
+    .metric-value {
+      color: var(--foreground);
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    /* Preview Section */
+    .analyzer-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 0;
+    }
+    
+    .preview-window {
+      background: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--foreground);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 200px;
+      margin: 0 auto;
+    }
+    
+    .preview-text {
+      word-wrap: break-word;
+      max-width: 100%;
+      text-align: center;
+    }
+    
+    .preview-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 16px;
+      background: var(--primary);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: cursorBlink 0.8s step-end infinite;
+    }
+    
+    .typing-cursor {
+      display: none;
+    }
+    
+    .voice-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: rgba(22, 163, 74, 0.15);
+      color: #16a34a;
+      border: 1px solid rgba(22, 163, 74, 0.3);
+      border-radius: 12px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      align-self: center;
+      opacity: 0;
+      transform: translateY(10px);
+      white-space: nowrap;
+    }
+    
+    /* Voice Analyzer Animations */
+    @keyframes docFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes docPulse {
+      0%, 100% {
+        opacity: 0.7;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+    
+    @keyframes progressFill {
+      from {
+        width: 0%;
+      }
+      to {
+        width: 100%;
+      }
+    }
+    
+    @keyframes metricReveal {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes checkPop {
+      0% {
+        transform: scale(0) rotate(-45deg);
+      }
+      50% {
+        transform: scale(1.2) rotate(0deg);
+      }
+      100% {
+        transform: scale(1) rotate(0deg);
+      }
+    }
+    
+    @keyframes cursorBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+    }
+    
+    @keyframes cursorBlink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+    }
+    
+    @keyframes badgeFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Animation Timeline */
+    .doc-icon:nth-child(1) {
+      animation: docFadeIn 0.4s ease-out 0.2s forwards, docPulse 2s ease-in-out 0.6s infinite;
+    }
+    
+    .doc-icon:nth-child(2) {
+      animation: docFadeIn 0.4s ease-out 0.4s forwards, docPulse 2s ease-in-out 0.8s infinite;
+    }
+    
+    .doc-icon:nth-child(3) {
+      animation: docFadeIn 0.4s ease-out 0.6s forwards, docPulse 2s ease-in-out 1s infinite;
+    }
+    
+    .progress-fill {
+      animation: progressFill 1s ease-out 1s forwards;
+    }
+    
+    .metric-item:nth-child(1) {
+      animation: metricReveal 0.4s ease-out 1.5s forwards;
+    }
+    
+    .metric-item:nth-child(2) {
+      animation: metricReveal 0.4s ease-out 1.8s forwards;
+    }
+    
+    .metric-item:nth-child(3) {
+      animation: metricReveal 0.4s ease-out 2.1s forwards;
+    }
+    
+    .metric-item:nth-child(4) {
+      animation: metricReveal 0.4s ease-out 2.4s forwards;
+    }
+    
+    .metric-item:nth-child(5) {
+      animation: metricReveal 0.4s ease-out 2.7s forwards;
+    }
+    
+    .metric-item:nth-child(1) .metric-check {
+      animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 1.5s forwards;
+    }
+    
+    .metric-item:nth-child(2) .metric-check {
+      animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 1.8s forwards;
+    }
+    
+    .metric-item:nth-child(3) .metric-check {
+      animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 2.1s forwards;
+    }
+    
+    .metric-item:nth-child(4) .metric-check {
+      animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 2.4s forwards;
+    }
+    
+    .metric-item:nth-child(5) .metric-check {
+      animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) 2.7s forwards;
+    }
+    
+    /* Pause on hover */
+    .voice-analyzer:hover .doc-icon,
+    .voice-analyzer:hover .progress-fill,
+    .voice-analyzer:hover .metric-item,
+    .voice-analyzer:hover .metric-check,
+    .voice-analyzer:hover .voice-badge {
+      animation-play-state: paused;
     }
     
     /* Features */
@@ -1302,7 +1676,6 @@
       <nav>
         <a href="#how-it-works">How it works</a>
         <a href="#about">About</a>
-        <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer">Sponsor</a>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
           <svg id="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"/>
@@ -1332,13 +1705,13 @@
     <section class="hero">
       <div class="hero-content">
         <div>
-          <p class="hero-badge">Multi-model writing assistant</p>
+          <p class="hero-badge">AI Writing Assistant That Sounds Human</p>
           <h1 class="serif">
-            Skip the AI slop.<br>
-            <span>Write in your voice.</span>
+            Write Naturally.<br>
+            <span>Sound Like You.</span>
           </h1>
           <p class="hero-description">
-            PostMaster runs your prompts through multiple AI models simultaneously—OpenAI, Claude, Grok, Mistral, or your own local models via Ollama—so you can compare outputs, cherry-pick the best, and synthesize them into content that matches your voice.
+            PostMaster polishes AI-generated content, catches 80+ AI tells, and adapts to your unique voice—so your writing stays authentic.
           </p>
           <div class="hero-actions">
             <a href="https://github.com/himoacs/postmaster/releases/download/v1.2.4/PostMaster-1.2.4.dmg" class="btn btn-primary">
@@ -1359,49 +1732,59 @@
         
         <!-- Visual -->
         <div class="hero-visual">
-          <div class="stacked-cards">
-            <div class="stacked-card"></div>
-            <div class="stacked-card"></div>
-            <div class="stacked-card-main">
-              <div class="card-indicator">
-                <div class="card-indicator-dot"></div>
-                <span>comparing 5 models...</span>
+          <div class="voice-analyzer">
+            <!-- Input Section -->
+            <div class="analyzer-section analyzer-input">
+              <div class="analyzer-title">Samples</div>
+              <div class="doc-icons">
+                <div class="doc-icon"></div>
+                <div class="doc-icon"></div>
+                <div class="doc-icon"></div>
               </div>
-              <div class="model-bars">
-                <div class="model-bar">
-                  <span class="model-bar-name">OpenAI</span>
-                  <div class="model-bar-track">
-                    <div class="model-bar-fill" style="width: 85%"></div>
-                  </div>
-                </div>
-                <div class="model-bar">
-                  <span class="model-bar-name">Claude</span>
-                  <div class="model-bar-track">
-                    <div class="model-bar-fill" style="width: 92%"></div>
-                  </div>
-                </div>
-                <div class="model-bar">
-                  <span class="model-bar-name">Grok</span>
-                  <div class="model-bar-track">
-                    <div class="model-bar-fill" style="width: 75%"></div>
-                  </div>
-                </div>
-                <div class="model-bar">
-                  <span class="model-bar-name">Mistral</span>
-                  <div class="model-bar-track">
-                    <div class="model-bar-fill" style="width: 80%"></div>
-                  </div>
-                </div>
-                <div class="model-bar">
-                  <span class="model-bar-name">Ollama</span>
-                  <div class="model-bar-track">
-                    <div class="model-bar-fill" style="width: 78%"></div>
-                  </div>
-                </div>
+              <div class="progress-bar">
+                <div class="progress-fill"></div>
               </div>
-              <div class="card-footer">
-                <div class="card-footer-divider"></div>
-                <p class="card-footer-text">"Synthesize the best elements..."</p>
+              <div class="analyzer-label">Analyzing...</div>
+            </div>
+            
+            <!-- Metrics Section -->
+            <div class="analyzer-section analyzer-metrics">
+              <div class="analyzer-title">Voice Profile</div>
+              <div class="metric-item">
+                <span class="metric-check">✓</span>
+                <span class="metric-label">Tone:</span>
+                <span class="metric-value">Direct</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-check">✓</span>
+                <span class="metric-label">Length:</span>
+                <span class="metric-value">12-18 words</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-check">✓</span>
+                <span class="metric-label">Jargon:</span>
+                <span class="metric-value">Low</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-check">✓</span>
+                <span class="metric-label">Em-dashes:</span>
+                <span class="metric-value">None</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-check">✓</span>
+                <span class="metric-label">Match:</span>
+                <span class="metric-value">94%</span>
+              </div>
+            </div>
+            
+            <!-- Preview Section -->
+            <div class="analyzer-section analyzer-preview">
+              <div class="analyzer-title">Preview</div>
+              <div class="preview-window">
+                <span class="preview-text" data-text="AI is powerful, and when used correctly, it transforms how we work."></span><span class="preview-cursor"></span>
+              </div>
+              <div class="voice-badge">
+                ✓ Voice Matched
               </div>
             </div>
           </div>
@@ -1502,7 +1885,7 @@
       <div class="screenshots-header">
         <p class="screenshots-badge">See it in action</p>
         <h2 class="screenshots-title">A Writing Experience Designed for Focus</h2>
-        <p class="screenshots-subtitle">Compare outputs, refine your voice, and craft content with intention.</p>
+        <p class="screenshots-subtitle">Polish AI content, eliminate generic phrases, and preserve your authentic voice.</p>
       </div>
       
       <div class="carousel-container">
@@ -1628,19 +2011,19 @@
         <div class="feature-card">
           <div class="feature-header">
             <span class="feature-number">01</span>
-            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/><path d="M14 14h3v3h-3z"/></svg>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </div>
-          <h3 class="feature-title">Compare Models</h3>
-          <p class="feature-description">Submit your prompt once, receive outputs from multiple AI models. See how each interprets your request.</p>
+          <h3 class="feature-title">Keep Your Writing Human</h3>
+          <p class="feature-description">Built-in detection for 80+ common AI phrases and patterns. PostMaster flags generic language, awkward em-dashes, and corporate buzzwords before they reach your readers.</p>
         </div>
         
         <div class="feature-card">
           <div class="feature-header">
             <span class="feature-number">02</span>
-            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
           </div>
-          <h3 class="feature-title">Synthesize Results</h3>
-          <p class="feature-description">Pick the strongest elements from each output. Combine them into a cohesive draft that captures your intent.</p>
+          <h3 class="feature-title">Learn & Match Your Voice</h3>
+          <p class="feature-description">Share examples of your writing. PostMaster analyzes your style—tone, vocabulary, phrasing—and generates content that sounds like you, not a chatbot.</p>
         </div>
         
         <div class="feature-card">
@@ -1648,17 +2031,17 @@
             <span class="feature-number">03</span>
             <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           </div>
-          <h3 class="feature-title">Refine & Iterate</h3>
-          <p class="feature-description">Provide feedback, adjust tone, tighten phrasing. Iterate until every sentence feels intentional.</p>
+          <h3 class="feature-title">Polish & Refine Iteratively</h3>
+          <p class="feature-description">Provide feedback, adjust phrasing, tighten flow. Iterate with intelligent suggestions until every sentence feels intentional and authentic.</p>
         </div>
         
         <div class="feature-card">
           <div class="feature-header">
             <span class="feature-number">04</span>
-            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+            <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7z"/><path d="M14 7h3v3h-3z"/><path d="M7 14h3v3H7z"/><path d="M14 14h3v3h-3z"/></svg>
           </div>
-          <h3 class="feature-title">Learn Your Style</h3>
-          <p class="feature-description">Share examples of your writing. PostMaster analyzes your voice to generate content that sounds like you.</p>
+          <h3 class="feature-title">Advanced: Compare Multiple Models</h3>
+          <p class="feature-description">Power users can run prompts through multiple AI models—OpenAI, Claude, Grok, Mistral, or local models via Ollama—to compare approaches and synthesize the best elements.</p>
         </div>
         
         <div class="feature-card">
@@ -1666,8 +2049,8 @@
             <span class="feature-number">05</span>
             <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           </div>
-          <h3 class="feature-title">Generate Images</h3>
-          <p class="feature-description">Create matching visuals with DALL-E or Stable Diffusion, integrated directly into your workflow.</p>
+          <h3 class="feature-title">Generate Matching Visuals</h3>
+          <p class="feature-description">Create illustrations with DALL-E or Stable Diffusion, integrated directly into your workflow.</p>
         </div>
         
         <div class="feature-card">
@@ -1675,8 +2058,8 @@
             <span class="feature-number">06</span>
             <svg class="feature-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
           </div>
-          <h3 class="feature-title">Use Your Own Keys</h3>
-          <p class="feature-description">Bring your API keys for complete control. No subscriptions, just pay for what you use.</p>
+          <h3 class="feature-title">Privacy: Use Your Own Keys</h3>
+          <p class="feature-description">Bring your API keys for complete control. No subscriptions, just pay for what you use. Your content never leaves your machine unless you choose to send it to an AI provider.</p>
         </div>
       </div>
     </section>
@@ -1822,6 +2205,41 @@
 
       // Listen for toggle clicks
       toggleButton.addEventListener('click', toggleTheme);
+    })();
+    
+    // Voice Analyzer Preview Typewriter
+    (function() {
+      const previewText = document.querySelector('.preview-text');
+      const cursor = document.querySelector('.preview-cursor');
+      const badge = document.querySelector('.voice-badge');
+      
+      if (!previewText) return;
+      
+      const fullText = previewText.dataset.text;
+      const TYPING_SPEED = 50; // ms per character
+      const START_DELAY = 3000; // Start after 3 seconds (after metrics animate)
+      
+      async function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+      
+      async function typeText() {
+        await sleep(START_DELAY);
+        
+        for (let i = 0; i <= fullText.length; i++) {
+          previewText.textContent = fullText.substring(0, i);
+          await sleep(TYPING_SPEED);
+        }
+        
+        // Hide cursor and show badge after typing
+        await sleep(300);
+        cursor.style.display = 'none';
+        badge.style.animation = 'badgeFadeIn 0.5s ease-out forwards';
+        badge.style.opacity = '1';
+      }
+      
+      // Start typing animation
+      typeText();
     })();
     
     // Carousel functionality

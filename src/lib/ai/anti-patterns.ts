@@ -101,6 +101,15 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   
   // Structure/Punctuation
   { pattern: "—", category: "structure", severity: "high", replacement: "Use commas, parentheses, or split into separate sentences" },
+  { pattern: "The result:", category: "structure", severity: "high", replacement: "Integrate naturally without colon-based setup" },
+  { pattern: "The answer:", category: "structure", severity: "high", replacement: "State directly without colon introduction" },
+  { pattern: "The solution:", category: "structure", severity: "high", replacement: "State directly without colon introduction" },
+  { pattern: "The key:", category: "structure", severity: "high", replacement: "Integrate naturally without colon" },
+  { pattern: "The secret:", category: "structure", severity: "high", replacement: "State directly without colon" },
+  { pattern: "The takeaway:", category: "structure", severity: "high", replacement: "State directly without colon" },
+  { pattern: "The lesson:", category: "structure", severity: "high", replacement: "State directly without colon" },
+  { pattern: "The truth:", category: "structure", severity: "high", replacement: "State directly without colon" },
+  { pattern: "The problem:", category: "structure", severity: "high", replacement: "Describe the problem naturally" },
   { pattern: "Here's what you need to know", category: "structure", severity: "high" },
   
   // Negation/Contrastive structures - Very recognizable AI pattern
@@ -117,6 +126,29 @@ export const HIGH_SEVERITY_PATTERNS: AntiPattern[] = [
   { pattern: "Future-proof", category: "hype", severity: "high" },
   { pattern: "Stay ahead of the curve", category: "hype", severity: "high" },
   { pattern: "Thrilled to announce", category: "hype", severity: "high" },
+  
+  // Rhetorical Question Setup - Common AI engagement tactics
+  { pattern: "But what does this really mean", category: "opener", severity: "high" },
+  { pattern: "So, what's next", category: "opener", severity: "high" },
+  { pattern: "What's the catch", category: "opener", severity: "high" },
+  { pattern: "Sound familiar", category: "opener", severity: "high" },
+  { pattern: "The question is:", category: "structure", severity: "high" },
+  { pattern: "Ever wondered", category: "opener", severity: "high" },
+  { pattern: "Have you ever", category: "opener", severity: "high" },
+  { pattern: "But here's the question", category: "opener", severity: "high" },
+  { pattern: "So what does this mean for you", category: "opener", severity: "high" },
+  
+  // Setup Phrases - AI loves these intros
+  { pattern: "Picture this:", category: "opener", severity: "high" },
+  { pattern: "Here's the kicker", category: "opener", severity: "high" },
+  { pattern: "Spoiler alert:", category: "opener", severity: "high" },
+  { pattern: "Pro tip:", category: "opener", severity: "high" },
+  { pattern: "Hot take:", category: "opener", severity: "high" },
+  { pattern: "Let me explain", category: "opener", severity: "high" },
+  { pattern: "Think of it as", category: "opener", severity: "high" },
+  { pattern: "Look no further", category: "hype", severity: "high" },
+  { pattern: "Enter:", category: "opener", severity: "high" },
+  { pattern: "Cue the", category: "opener", severity: "high" },
 ];
 
 /**
