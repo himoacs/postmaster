@@ -11,7 +11,6 @@ import {
   ImageIcon,
   Layers,
   Play,
-  HeartHandshake,
 } from "lucide-react";
 
 interface PageProps {
@@ -85,12 +84,6 @@ export default async function HistoryDetailPage({ params }: PageProps) {
                 <Play className="mr-2 h-4 w-4" />
                 Resume in Workspace
               </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-              <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-                <HeartHandshake className="h-4 w-4" />
-                Sponsor
-              </a>
             </Button>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HeartHandshake, Trophy, Sparkles, Target, RefreshCw } from "lucide-react";
+import { Trophy, Sparkles, Target, RefreshCw } from "lucide-react";
 import { AI_PROVIDERS } from "@/lib/ai/providers";
 import { AIProvider } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -106,12 +106,6 @@ export default function AnalyticsPage() {
             className="text-muted-foreground"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-            <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-              <HeartHandshake className="h-4 w-4" />
-              Sponsor
-            </a>
           </Button>
         </div>
       </header>

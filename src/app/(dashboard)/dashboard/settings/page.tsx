@@ -2,8 +2,6 @@ import { APIKeyManager } from "@/components/settings/api-key-manager";
 import { PrimaryModelSettings } from "@/components/settings/primary-model-settings";
 import { UpdateSettings } from "@/components/settings/update-settings";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
-import { HeartHandshake } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
   return (
@@ -15,12 +13,6 @@ export default function SettingsPage() {
             Manage your API keys and preferences
           </p>
         </div>
-        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-            <HeartHandshake className="h-4 w-4" />
-            Sponsor
-          </a>
-        </Button>
       </header>
       <div className="flex-1 overflow-auto p-6">
         <div className="mx-auto max-w-2xl space-y-6">

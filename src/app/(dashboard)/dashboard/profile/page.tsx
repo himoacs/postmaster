@@ -2,8 +2,6 @@ import { prisma } from "@/lib/db";
 import { StyleProfileEditor } from "@/components/profile/style-profile-editor";
 import { ContentSampleList } from "@/components/profile/content-sample-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HeartHandshake } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 // Disable caching to always show fresh content samples
 export const dynamic = "force-dynamic";
@@ -26,12 +24,6 @@ export default async function ProfilePage() {
             Teach PostMaster your writing style
           </p>
         </div>
-        <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <a href="https://paypal.me/himoacs" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-            <HeartHandshake className="h-4 w-4" />
-            Sponsor
-          </a>
-        </Button>
       </header>
 
       <div className="flex-1 overflow-auto p-6">
