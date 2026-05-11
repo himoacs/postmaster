@@ -11,6 +11,11 @@ on:
         required: true
         type: string
 
+# Cancel in-progress runs for older versions when a new tag is pushed
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
