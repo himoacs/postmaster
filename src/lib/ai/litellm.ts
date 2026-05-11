@@ -18,6 +18,7 @@ export function createLiteLLMClient(endpoint: string, apiKey?: string): OpenAI {
   return new OpenAI({
     apiKey: apiKey || "not-needed", // Some LiteLLM setups don't require a key
     baseURL,
+    timeout: 5 * 60 * 1000, // 5 minutes - handles slow models like Claude Opus
   });
 }
 
@@ -98,6 +99,19 @@ export async function fetchLiteLLMModels(
 }
 
 /**
+ * Check if a model supports the temperature parameter
+ * Some newer models (e.g., claude-opus-4-7) have deprecated temperature
+ */
+function supportsTemperature(modelId: string): boolean {
+  const id = modelId.toLowerCase();
+  // Claude Opus 4.7 and newer don't support temperature
+  if (id.includes('claude-opus-4-7') || id.includes('claude-opus-4.7')) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Generate content using LiteLLM proxy
  */
 export async function generateWithLiteLLM(
@@ -115,7 +129,7 @@ export async function generateWithLiteLLM(
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    temperature: 0.7,
+    ...(supportsTemperature(modelId) ? { temperature: 0.7 } : {}),
     max_tokens: 4096,
   });
   
@@ -144,7 +158,7 @@ export async function* generateWithLiteLLMStream(
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    temperature: 0.7,
+    ...(supportsTemperature(modelId) ? { temperature: 0.7 } : {}),
     max_tokens: 4096,
     stream: true,
     stream_options: { include_usage: true },
