@@ -45,12 +45,12 @@ asarUnpack:
 mac:
   category: public.app-category.productivity
   icon: build/icon.icns
-  hardenedRuntime: false
+  hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  identity: null
-  notarize: false
+  # Note: For local unsigned builds, use CSC_IDENTITY_AUTO_DISCOVERY=false
+  # CI will use MAC_CERTS secret for signing
   target:
     - target: dmg
       arch:

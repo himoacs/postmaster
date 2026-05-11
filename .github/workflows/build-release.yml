@@ -122,18 +122,27 @@ jobs:
 
       - name: Build Mac ARM64 app
         run: |
+          # Build args
+          BUILD_ARGS="--mac --arm64"
+          
           # Check if signing secrets are available
           if [ -z "$CSC_LINK" ]; then
-            echo "No code signing certificate found, building unsigned"
+            echo "⚠️ No code signing certificate found, building unsigned"
             export CSC_IDENTITY_AUTO_DISCOVERY=false
-          fi
-          # Check if notarization secrets are available
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            echo "No notarization credentials found, skipping notarization"
-            pnpm exec electron-builder --mac --arm64 --config.mac.notarize=false
+            BUILD_ARGS="$BUILD_ARGS --config.mac.notarize=false"
           else
-            pnpm exec electron-builder --mac --arm64
+            echo "✓ Code signing certificate found"
+            # Check if notarization secrets are available
+            if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+              echo "⚠️ Notarization credentials incomplete, skipping notarization"
+              BUILD_ARGS="$BUILD_ARGS --config.mac.notarize=false"
+            else
+              echo "✓ Notarization credentials found"
+            fi
           fi
+          
+          echo "Running: pnpm exec electron-builder $BUILD_ARGS"
+          pnpm exec electron-builder $BUILD_ARGS
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
@@ -256,18 +265,27 @@ jobs:
 
       - name: Build Mac x64 app
         run: |
+          # Build args
+          BUILD_ARGS="--mac --x64"
+          
           # Check if signing secrets are available
           if [ -z "$CSC_LINK" ]; then
-            echo "No code signing certificate found, building unsigned"
+            echo "⚠️ No code signing certificate found, building unsigned"
             export CSC_IDENTITY_AUTO_DISCOVERY=false
-          fi
-          # Check if notarization secrets are available
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            echo "No notarization credentials found, skipping notarization"
-            pnpm exec electron-builder --mac --x64 --config.mac.notarize=false
+            BUILD_ARGS="$BUILD_ARGS --config.mac.notarize=false"
           else
-            pnpm exec electron-builder --mac --x64
+            echo "✓ Code signing certificate found"
+            # Check if notarization secrets are available
+            if [ -z "$APPLE_ID" ] || [ -z "$APPLE_APP_SPECIFIC_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+              echo "⚠️ Notarization credentials incomplete, skipping notarization"
+              BUILD_ARGS="$BUILD_ARGS --config.mac.notarize=false"
+            else
+              echo "✓ Notarization credentials found"
+            fi
           fi
+          
+          echo "Running: pnpm exec electron-builder $BUILD_ARGS"
+          pnpm exec electron-builder $BUILD_ARGS
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ secrets.MAC_CERTS }}
