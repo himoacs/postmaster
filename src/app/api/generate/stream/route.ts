@@ -201,8 +201,14 @@ export async function POST(request: NextRequest) {
   // Build prompts
   const hasReferences = references && references.length > 0;
   const systemPrompt = buildSystemPrompt(styleProfile, contentType, lengthPref, enableCitations, hasReferences, enableEmojis, contentMode, existingContent, sourceMap);
-  // For enhance mode with no prompt, use empty string as user didn't provide additional instructions
-  const userPrompt = (contentMode === "enhance" && !prompt) ? referenceContext : prompt + referenceContext;
+  // For enhance mode with no prompt, provide a default instruction if referenceContext is also empty
+  let userPrompt = (contentMode === "enhance" && !prompt) ? referenceContext : prompt + referenceContext;
+  // Ensure userPrompt is never empty (required by Anthropic/Claude models)
+  if (!userPrompt || userPrompt.trim() === "") {
+    userPrompt = contentMode === "enhance" 
+      ? "Please enhance and improve the content provided above, maintaining the original meaning while improving clarity and style."
+      : "Please generate the requested content based on the instructions provided.";
+  }
 
   // Create SSE stream
   const { stream, writer } = createSSEStream();

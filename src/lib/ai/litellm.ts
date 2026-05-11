@@ -123,11 +123,15 @@ export async function generateWithLiteLLM(
 ): Promise<{ content: string; tokensUsed: number }> {
   const client = createLiteLLMClient(endpoint, apiKey);
   
+  // Ensure prompts are never empty (required by Anthropic/Claude models)
+  const safeSystemPrompt = systemPrompt?.trim() || "You are a helpful assistant.";
+  const safeUserPrompt = userPrompt?.trim() || "Please proceed with the task.";
+  
   const response = await client.chat.completions.create({
     model: modelId,
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "system", content: safeSystemPrompt },
+      { role: "user", content: safeUserPrompt },
     ],
     ...(supportsTemperature(modelId) ? { temperature: 0.7 } : {}),
     max_tokens: 4096,
@@ -152,11 +156,15 @@ export async function* generateWithLiteLLMStream(
 ): AsyncGenerator<{ content: string; done: boolean; tokensUsed?: number }> {
   const client = createLiteLLMClient(endpoint, apiKey);
   
+  // Ensure prompts are never empty (required by Anthropic/Claude models)
+  const safeSystemPrompt = systemPrompt?.trim() || "You are a helpful assistant.";
+  const safeUserPrompt = userPrompt?.trim() || "Please proceed with the task.";
+  
   const stream = await client.chat.completions.create({
     model: modelId,
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
+      { role: "system", content: safeSystemPrompt },
+      { role: "user", content: safeUserPrompt },
     ],
     ...(supportsTemperature(modelId) ? { temperature: 0.7 } : {}),
     max_tokens: 4096,
