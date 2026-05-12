@@ -24,9 +24,9 @@ export default function LandingPage() {
                 AI Writing Assistant That Sounds Human
               </p>
               <h1 className="font-serif text-4xl font-normal leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-                Write Naturally.
+                Skip the AI Slop.
                 <br />
-                <span className="text-muted-foreground">Sound Like You.</span>
+                <span className="text-muted-foreground">Write in Your Voice.</span>
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
                 PostMaster polishes AI-generated content, catches 80+ AI tells, and adapts to your unique voice so your writing stays authentic.

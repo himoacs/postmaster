@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   Link,
@@ -19,8 +20,21 @@ import {
   Upload,
   Loader2,
   CheckCircle,
-  AlertCircle,
+  X,
+  FolderOpen,
 } from "lucide-react";
+
+// Supported file types - must match backend EXTENSION_MAP
+const SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".md", ".markdown", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+interface UploadProgress {
+  current: number;
+  total: number;
+  currentFile: string;
+  succeeded: number;
+  failed: number;
+}
 
 interface AddKnowledgeDialogProps {
   open: boolean;
@@ -45,11 +59,11 @@ export function AddKnowledgeDialog({
   const [textTitle, setTextTitle] = useState("");
   const [textContent, setTextContent] = useState("");
   
-  // File form state
-  const [file, setFile] = useState<File | null>(null);
-  const [fileTitle, setFileTitle] = useState("");
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  // File form state - now supports multiple files
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setUrl("");
@@ -57,9 +71,8 @@ export function AddKnowledgeDialog({
     setUrlPreview(null);
     setTextTitle("");
     setTextContent("");
-    setFile(null);
-    setFileTitle("");
-    setFilePreview(null);
+    setFiles([]);
+    setUploadProgress(null);
     setLoading(false);
   };
 
@@ -141,65 +154,142 @@ export function AddKnowledgeDialog({
     }
   };
 
-  // File submission
+  // File submission - batch upload
   const handleFileSubmit = async () => {
-    if (!file) {
-      toast.error("Please select a file");
+    if (files.length === 0) {
+      toast.error("Please select files to upload");
       return;
     }
 
     setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (fileTitle.trim()) {
-        formData.append("title", fileTitle.trim());
+    const progress: UploadProgress = {
+      current: 0,
+      total: files.length,
+      currentFile: "",
+      succeeded: 0,
+      failed: 0,
+    };
+    setUploadProgress(progress);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      progress.current = i + 1;
+      progress.currentFile = file.name;
+      setUploadProgress({ ...progress });
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/knowledge/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error(`Failed to upload ${file.name}:`, data.error);
+          progress.failed++;
+        } else {
+          progress.succeeded++;
+        }
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        progress.failed++;
       }
-
-      const response = await fetch("/api/knowledge/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || "Failed to upload file");
-        return;
-      }
-
-      setFilePreview(data.preview);
-      toast.success(`Added: ${data.entry.title} (${data.entry.wordCount.toLocaleString()} words)`);
-      onSuccess();
-      handleClose();
-    } catch (error) {
-      console.error("File submission error:", error);
-      toast.error("Failed to upload file");
-    } finally {
-      setLoading(false);
+      setUploadProgress({ ...progress });
     }
+
+    // Show summary toast
+    if (progress.failed === 0) {
+      toast.success(`Successfully uploaded ${progress.succeeded} file${progress.succeeded !== 1 ? "s" : ""}`);
+    } else if (progress.succeeded === 0) {
+      toast.error(`Failed to upload all ${progress.failed} file${progress.failed !== 1 ? "s" : ""}`);
+    } else {
+      toast.warning(`Uploaded ${progress.succeeded} file${progress.succeeded !== 1 ? "s" : ""}, ${progress.failed} failed`);
+    }
+
+    if (progress.succeeded > 0) {
+      onSuccess();
+    }
+    handleClose();
+  };
+
+  // Validate and filter files
+  const validateFiles = (fileList: FileList | File[]): File[] => {
+    const validFiles: File[] = [];
+    const skipped: string[] = [];
+
+    const filesArray = Array.from(fileList);
+    for (const file of filesArray) {
+      // Check extension
+      const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0];
+      if (!ext || !SUPPORTED_EXTENSIONS.includes(ext)) {
+        skipped.push(`${file.name} (unsupported type)`);
+        continue;
+      }
+
+      // Check size
+      if (file.size > MAX_FILE_SIZE) {
+        skipped.push(`${file.name} (too large)`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (skipped.length > 0) {
+      const skippedMsg = skipped.length <= 3 
+        ? skipped.join(", ") 
+        : `${skipped.slice(0, 3).join(", ")} and ${skipped.length - 3} more`;
+      toast.warning(`Skipped: ${skippedMsg}`);
+    }
+
+    return validFiles;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    // Validate file size
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("File too large. Maximum size is 5MB.");
-      return;
+    const validFiles = validateFiles(selectedFiles);
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
     }
 
-    // Validate file type
-    const allowedTypes = ["application/pdf", "text/plain"];
-    if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error("Invalid file type. Only PDF and TXT files are supported.");
-      return;
+    // Reset input so same file can be selected again
+    e.target.value = "";
+  };
+
+  const handleFolderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+
+    const validFiles = validateFiles(selectedFiles);
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+      toast.info(`Added ${validFiles.length} file${validFiles.length !== 1 ? "s" : ""} from folder`);
     }
 
-    setFile(selectedFile);
-    // Use filename (without extension) as default title
-    setFileTitle(selectedFile.name.replace(/\.(pdf|txt)$/i, ""));
+    // Reset input
+    e.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearAllFiles = () => {
+    setFiles([]);
+  };
+
+  const totalFileSize = files.reduce((sum, f) => sum + f.size, 0);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const wordCount = textContent.split(/\s+/).filter(Boolean).length;
@@ -320,66 +410,140 @@ export function AddKnowledgeDialog({
           {/* File Tab */}
           <TabsContent value="file" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>File</Label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                  file
-                    ? "border-green-500 bg-green-50"
-                    : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-              >
+              <Label>Files</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Choose Files
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={loading}
+                >
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Upload Folder
+                </Button>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.txt,application/pdf,text/plain"
+                  accept={SUPPORTED_EXTENSIONS.join(",")}
+                  multiple
                   className="hidden"
                   onChange={handleFileChange}
                   disabled={loading}
                 />
-                {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
-                    <span className="font-medium">{file.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                    <span className="font-medium">Click to upload</span>
-                    <span className="text-sm text-muted-foreground">
-                      PDF or TXT files only (max 5MB)
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            {file && (
-              <div className="space-y-2">
-                <Label htmlFor="file-title">Title</Label>
-                <Input
-                  id="file-title"
-                  placeholder="Custom title"
-                  value={fileTitle}
-                  onChange={(e) => setFileTitle(e.target.value)}
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  // @ts-expect-error - webkitdirectory is not in the type definition
+                  webkitdirectory=""
+                  directory=""
+                  multiple
+                  className="hidden"
+                  onChange={handleFolderChange}
                   disabled={loading}
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Supported: PDF, TXT, MD, DOCX, PPTX, XLSX (max 10MB each)
+              </p>
+            </div>
+
+            {/* File List */}
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">
+                    {files.length} file{files.length !== 1 ? "s" : ""} selected ({formatFileSize(totalFileSize)})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFiles}
+                    disabled={loading}
+                  >
+                    Clear all
+                  </Button>
+                </div>
+                <div className="max-h-[200px] overflow-y-auto border rounded-md divide-y">
+                  {files.map((file, index) => (
+                    <div
+                      key={`${file.name}-${index}`}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <FileText className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-muted-foreground flex-shrink-0">
+                          ({formatFileSize(file.size)})
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => removeFile(index)}
+                        disabled={loading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {/* Upload Progress */}
+            {uploadProgress && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>
+                    Uploading {uploadProgress.current} of {uploadProgress.total}...
+                  </span>
+                  <span className="text-muted-foreground">
+                    {uploadProgress.succeeded} ✓ {uploadProgress.failed > 0 && `${uploadProgress.failed} ✗`}
+                  </span>
+                </div>
+                <Progress value={(uploadProgress.current / uploadProgress.total) * 100} />
+                <p className="text-xs text-muted-foreground truncate">
+                  {uploadProgress.currentFile}
+                </p>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {files.length === 0 && !loading && (
+              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Select files or upload an entire folder
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={handleClose} disabled={loading}>
                 Cancel
               </Button>
-              <Button onClick={handleFileSubmit} disabled={loading || !file}>
+              <Button onClick={handleFileSubmit} disabled={loading || files.length === 0}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Uploading...
                   </>
                 ) : (
-                  "Upload File"
+                  `Upload ${files.length} File${files.length !== 1 ? "s" : ""}`
                 )}
               </Button>
             </div>
