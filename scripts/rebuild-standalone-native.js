@@ -69,9 +69,9 @@ try {
     stdio: 'inherit'
   });
   
-  // Verify the rebuilt module has correct architecture
+  // Verify the rebuilt module has correct architecture (macOS/Linux only - `file` command not available on Windows)
   const rebuiltModulePath = path.join(realPath, 'build', 'Release', 'better_sqlite3.node');
-  if (fs.existsSync(rebuiltModulePath)) {
+  if (fs.existsSync(rebuiltModulePath) && process.platform !== 'win32') {
     const fileOutput = execSync(`file "${rebuiltModulePath}"`, { encoding: 'utf-8' });
     console.log(`  Rebuilt module: ${fileOutput.trim()}`);
     
@@ -80,6 +80,8 @@ try {
       throw new Error(`Architecture mismatch! Expected ${expectedArch} but got: ${fileOutput}`);
     }
     console.log(`  ✓ Architecture verified: ${expectedArch}`);
+  } else if (fs.existsSync(rebuiltModulePath)) {
+    console.log(`  ✓ Module rebuilt (architecture verification skipped on Windows)`);
   }
   
   // Step 3: Copy the rebuilt module to standalone
