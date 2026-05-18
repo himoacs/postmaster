@@ -51,15 +51,11 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   # Note: For local unsigned builds, use CSC_IDENTITY_AUTO_DISCOVERY=false
   # CI will use MAC_CERTS secret for signing
+  # Architecture is controlled by CLI flags (--arm64 or --x64)
+  # Do NOT specify arch here - it causes electron-builder to build all listed archs
   target:
-    - target: dmg
-      arch:
-        - arm64
-        - x64
-    - target: zip
-      arch:
-        - arm64
-        - x64
+    - dmg
+    - zip
 
 dmg:
   artifactName: "PostMaster-${arch}.${ext}"
