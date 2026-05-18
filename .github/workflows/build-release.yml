@@ -114,6 +114,19 @@ jobs:
             console.log('✓ Native modules verified successfully');
           "
 
+      - name: Verify native module architecture
+        run: |
+          echo "Verifying native module architecture for ARM64 build..."
+          ARCH=$(file .next/standalone_flat/node_modules/better-sqlite3/build/Release/better_sqlite3.node)
+          echo "Module architecture: $ARCH"
+          if [[ "$ARCH" != *"arm64"* ]]; then
+            echo "ERROR: Native module is NOT arm64!"
+            echo "Expected: arm64 for macos-14 (Apple Silicon) build"
+            echo "Got: $ARCH"
+            exit 1
+          fi
+          echo "✓ Architecture verified: arm64"
+
       - name: Prepare Electron dependencies
         run: pnpm electron:deps
 
@@ -256,6 +269,19 @@ jobs:
             
             console.log('✓ Native modules verified successfully');
           "
+
+      - name: Verify native module architecture
+        run: |
+          echo "Verifying native module architecture for x64 build..."
+          ARCH=$(file .next/standalone_flat/node_modules/better-sqlite3/build/Release/better_sqlite3.node)
+          echo "Module architecture: $ARCH"
+          if [[ "$ARCH" != *"x86_64"* ]]; then
+            echo "ERROR: Native module is NOT x86_64!"
+            echo "Expected: x86_64 for macos-13 (Intel) build"
+            echo "Got: $ARCH"
+            exit 1
+          fi
+          echo "✓ Architecture verified: x86_64"
 
       - name: Prepare Electron dependencies
         run: pnpm electron:deps
@@ -424,16 +450,15 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           
-          # Update all download links in docs/index.html
-          sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-[0-9.]*-*[a-zA-Z0-9]*-arm64.dmg|/releases/download/v${VERSION}/PostMaster-${VERSION}-arm64.dmg|g" docs/index.html
-          sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-[0-9.]*-*[a-zA-Z0-9]*.dmg|/releases/download/v${VERSION}/PostMaster-${VERSION}.dmg|g" docs/index.html
-          sed -i "s|/releases/download/v[0-9.]*-*[a-zA-Z0-9]*/PostMaster-Setup-[0-9.]*-*[a-zA-Z0-9]*.exe|/releases/download/v${VERSION}/PostMaster-Setup-${VERSION}.exe|g" docs/index.html
+          # Note: Download links now use /releases/latest/download/ pattern
+          # which automatically points to the latest release, so no URL updates needed.
+          # Artifact names: PostMaster-arm64.dmg, PostMaster-x64.dmg, PostMaster-Setup.exe
           
-          # Update version text (e.g., "v1.2.2 •" to "v1.2.3 •")
+          # Just update the version text display (e.g., "v1.2.2 •" to "v1.2.3 •")
           sed -i "s|>v[0-9.]*-*[a-zA-Z0-9]* •|>v${VERSION} •|g" docs/index.html
           
-          echo "Updated docs/index.html with version ${VERSION}"
-          grep -n "PostMaster-.*\.\(dmg\|exe\)" docs/index.html || true
+          echo "Updated docs/index.html version display to ${VERSION}"
+          echo "Download links use /latest/ pattern - no update needed"
 
       - name: Commit updated landing page
         run: |

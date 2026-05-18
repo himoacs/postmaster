@@ -58,12 +58,29 @@ try {
     console.log('⚠ No existing build directory to back up');
   }
   
-  // Step 2: Rebuild for Electron
+  // Step 2: Rebuild for Electron with explicit architecture
   console.log('\nStep 2: Rebuilding better-sqlite3 for Electron...');
-  execSync('npx electron-rebuild -f -w better-sqlite3', {
+  console.log(`  Target architecture: ${process.arch}`);
+  
+  // Use --force to ignore prebuilt binaries and rebuild from source
+  // Use --arch to explicitly specify the architecture
+  execSync(`npx electron-rebuild -f -w better-sqlite3 --arch ${process.arch}`, {
     cwd: projectRoot,
     stdio: 'inherit'
   });
+  
+  // Verify the rebuilt module has correct architecture
+  const rebuiltModulePath = path.join(realPath, 'build', 'Release', 'better_sqlite3.node');
+  if (fs.existsSync(rebuiltModulePath)) {
+    const fileOutput = execSync(`file "${rebuiltModulePath}"`, { encoding: 'utf-8' });
+    console.log(`  Rebuilt module: ${fileOutput.trim()}`);
+    
+    const expectedArch = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+    if (!fileOutput.includes(expectedArch)) {
+      throw new Error(`Architecture mismatch! Expected ${expectedArch} but got: ${fileOutput}`);
+    }
+    console.log(`  ✓ Architecture verified: ${expectedArch}`);
+  }
   
   // Step 3: Copy the rebuilt module to standalone
   console.log('\nStep 3: Copying rebuilt module to standalone...');

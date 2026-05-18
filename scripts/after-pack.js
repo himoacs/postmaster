@@ -1,19 +1,62 @@
 // Runs after electron-builder packs the app
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 // Minimum size for Electron-compiled native module (~1.9MB)
 // Node.js-compiled version is ~1.3MB - this catches wrong ABI builds
 const MIN_NATIVE_MODULE_SIZE = 1500000; // 1.5MB
 
+// Architecture mapping from electron-builder arch to `file` command output
+const ARCH_MAP = {
+  "x64": "x86_64",
+  "arm64": "arm64",
+  "ia32": "i386",
+};
+
+/**
+ * Verify native module architecture matches the build target
+ * @param {string} modulePath - Path to the .node file
+ * @param {string} targetArch - Target architecture (x64, arm64, etc.)
+ * @returns {boolean} - True if architecture matches
+ */
+function verifyArchitecture(modulePath, targetArch) {
+  try {
+    const fileOutput = execSync(`file "${modulePath}"`, { encoding: "utf-8" });
+    const expectedArch = ARCH_MAP[targetArch];
+    
+    console.log(`  Architecture check: ${fileOutput.trim()}`);
+    
+    if (!expectedArch) {
+      console.warn(`  ⚠ Unknown target architecture: ${targetArch}`);
+      return true; // Don't fail on unknown architectures
+    }
+    
+    if (!fileOutput.includes(expectedArch)) {
+      console.error(`  ✗ ERROR: Architecture mismatch!`);
+      console.error(`    Expected: ${expectedArch} (target: ${targetArch})`);
+      console.error(`    Got: ${fileOutput.trim()}`);
+      return false;
+    }
+    
+    console.log(`  ✓ Architecture verified: ${expectedArch}`);
+    return true;
+  } catch (error) {
+    console.error(`  ✗ Failed to verify architecture: ${error.message}`);
+    return false;
+  }
+}
+
 exports.default = async function (context) {
   console.log("After pack: Finalizing package...");
   
-  const { appOutDir, packager } = context;
+  const { appOutDir, packager, arch } = context;
+  const targetArch = arch === 1 ? "x64" : arch === 3 ? "arm64" : arch === 0 ? "ia32" : `unknown-${arch}`;
   
   // Log the output directory for debugging
   console.log("App output directory:", appOutDir);
   console.log("Platform:", packager.platform.name);
+  console.log("Target architecture:", targetArch);
   
   // Verify native modules are present and correct size
   const serverPath = packager.platform.name === "mac" 
@@ -43,6 +86,13 @@ exports.default = async function (context) {
         console.error("  The app will crash with NODE_MODULE_VERSION mismatch!");
         throw new Error("Native module ABI mismatch detected - module too small for Electron build");
       }
+      
+      // Verify architecture on macOS
+      if (packager.platform.name === "mac") {
+        if (!verifyArchitecture(betterSqlitePath, targetArch)) {
+          throw new Error(`Native module architecture mismatch - expected ${targetArch}`);
+        }
+      }
     } else {
       console.warn("⚠ WARNING: better-sqlite3.node not found at expected location!");
       console.warn("  Expected:", betterSqlitePath);
@@ -66,6 +116,13 @@ exports.default = async function (context) {
             console.error("  Size: " + (stats.size / 1024 / 1024).toFixed(2) + " MB");
             console.error("  This is the module Next.js will actually load at runtime!");
             throw new Error("Native module ABI mismatch detected in traced directory");
+          }
+          
+          // Verify architecture on macOS (this is the module Next.js actually loads!)
+          if (packager.platform.name === "mac") {
+            if (!verifyArchitecture(tracedPath, targetArch)) {
+              throw new Error(`Traced native module architecture mismatch - expected ${targetArch}`);
+            }
           }
           
           // Verify it matches main module if both exist
