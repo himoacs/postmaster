@@ -40,7 +40,10 @@ function getFileType(file: File): string | null {
 
 // Extract text from PDF
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  console.log("[PDF Extract] Buffer size:", buffer.length, "bytes");
   const result = await pdfParse(buffer);
+  console.log("[PDF Extract] Pages:", result.numpages, "Info:", result.info);
+  console.log("[PDF Extract] Text length:", result.text?.length || 0);
   return result.text;
 }
 
@@ -105,8 +108,9 @@ export async function POST(request: NextRequest) {
       }
     } catch (parseError) {
       console.error(`${fileType.toUpperCase()} parsing error:`, parseError);
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
       return NextResponse.json(
-        { error: `Failed to parse ${fileType.toUpperCase()} file. The file may be corrupted or unsupported.` },
+        { error: `Failed to parse ${fileType.toUpperCase()} file: ${errorMessage}` },
         { status: 400 }
       );
     }
@@ -115,6 +119,13 @@ export async function POST(request: NextRequest) {
     content = content.trim();
     
     if (!content) {
+      // Provide more helpful error for PDFs
+      if (fileType === "pdf") {
+        return NextResponse.json(
+          { error: "No text content could be extracted from the PDF. This may be a scanned/image-based PDF. Please use a PDF with selectable text." },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
         { error: "No text content could be extracted from the file." },
         { status: 400 }

@@ -9,6 +9,10 @@
  * 4. Restores the original build (to avoid polluting node_modules with Electron builds)
  * 
  * This prevents the recurring x86_64/arm64 architecture mismatch issue.
+ * 
+ * Environment variables:
+ *   TARGET_ARCH - Target architecture (arm64, x64). Defaults to process.arch.
+ *                 Use this for cross-compilation (e.g., building x64 on ARM runner).
  */
 
 const fs = require('fs');
@@ -19,7 +23,12 @@ const projectRoot = path.join(__dirname, '..');
 const standalonePath = path.join(projectRoot, '.next', 'standalone_flat');
 const nodeModulesPath = path.join(projectRoot, 'node_modules');
 
-console.log('Rebuilding native modules for Electron in standalone...\n');
+// Allow cross-compilation via TARGET_ARCH env var
+const targetArch = process.env.TARGET_ARCH || process.arch;
+
+console.log('Rebuilding native modules for Electron in standalone...');
+console.log(`  Host architecture: ${process.arch}`);
+console.log(`  Target architecture: ${targetArch}\n`);
 
 // Check if standalone exists
 if (!fs.existsSync(standalonePath)) {
@@ -60,11 +69,11 @@ try {
   
   // Step 2: Rebuild for Electron with explicit architecture
   console.log('\nStep 2: Rebuilding better-sqlite3 for Electron...');
-  console.log(`  Target architecture: ${process.arch}`);
+  console.log(`  Target architecture: ${targetArch}`);
   
   // Use --force to ignore prebuilt binaries and rebuild from source
-  // Use --arch to explicitly specify the architecture
-  execSync(`npx electron-rebuild -f -w better-sqlite3 --arch ${process.arch}`, {
+  // Use --arch to explicitly specify the architecture (enables cross-compilation)
+  execSync(`npx electron-rebuild -f -w better-sqlite3 --arch ${targetArch}`, {
     cwd: projectRoot,
     stdio: 'inherit'
   });
@@ -75,7 +84,7 @@ try {
     const fileOutput = execSync(`file "${rebuiltModulePath}"`, { encoding: 'utf-8' });
     console.log(`  Rebuilt module: ${fileOutput.trim()}`);
     
-    const expectedArch = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+    const expectedArch = targetArch === 'arm64' ? 'arm64' : 'x86_64';
     if (!fileOutput.includes(expectedArch)) {
       throw new Error(`Architecture mismatch! Expected ${expectedArch} but got: ${fileOutput}`);
     }

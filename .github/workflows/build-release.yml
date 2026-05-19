@@ -177,10 +177,12 @@ jobs:
           retention-days: 5
 
   # ============================================================================
-  # macOS x64 (Intel) Build
+  # macOS x64 (Intel) Build - Cross-compiled on ARM runner for faster builds
   # ============================================================================
   build-mac-x64:
-    runs-on: macos-13  # Intel runner
+    runs-on: macos-14  # ARM runner with cross-compilation (macos-13 Intel runners have long queues)
+    env:
+      TARGET_ARCH: x64  # Cross-compile for Intel
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -217,6 +219,8 @@ jobs:
 
       - name: Rebuild native modules for Electron
         run: pnpm electron:rebuild-standalone
+        env:
+          TARGET_ARCH: x64  # Cross-compile for Intel
 
       - name: Verify native modules
         run: |
